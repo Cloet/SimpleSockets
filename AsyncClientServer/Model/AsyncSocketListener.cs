@@ -11,10 +11,39 @@ using AsyncClientServer.Helper;
 namespace AsyncClientServer.Model
 {
 
+	/// <summary>
+	/// Event that is triggered when a message is received
+	/// </summary>
+	/// <param name="id"></param>
+	/// <param name="msg"></param>
 	public delegate void MessageReceivedHandler(int id, string msg);
+
+	/// <summary>
+	/// Event that is triggered a message is sent to the server
+	/// </summary>
+	/// <param name="id"></param>
+	/// <param name="close"></param>
 	public delegate void MessageSubmittedHandler(int id, bool close);
+
+	/// <summary>
+	/// Event that is triggered when an object is received from the server
+	/// </summary>
+	/// <param name="id"></param>
+	/// <param name="obj"></param>
 	public delegate void ObjectReceivedHandler(int id, string obj);
+
+	/// <summary>
+	/// Event that is triggered when the client has disconnected
+	/// </summary>
+	/// <param name="id"></param>
 	public delegate void ClientDisconnectedHandler(int id);
+
+	/// <summary>
+	/// Event that is triggered when the server receives a file
+	/// </summary>
+	/// <param name="id"></param>
+	/// <param name="filepath"></param>
+	public delegate void FileReceivedHandler(int id, string filepath);
 
 	/// <summary>
 	/// This class is the server, singleton class
@@ -23,10 +52,16 @@ namespace AsyncClientServer.Model
 	/// </summary>
 	public class AsyncSocketListener : SendToClient,IAsyncSocketListener
 	{
-		private const ushort Port = 13000;
-		private const ushort Limit = 250;
+		private int _port;
+
+		private const ushort Limit = 500;
 		private int flag;
 		private string receivedpath = "";
+
+		public int Port
+		{
+			get => _port;
+		}
 
 		private static readonly AsyncSocketListener instance = new AsyncSocketListener();
 
@@ -46,6 +81,7 @@ namespace AsyncClientServer.Model
 		public event MessageReceivedHandler MessageReceived;
 		public event MessageSubmittedHandler MessageSubmitted;
 		public event ClientDisconnectedHandler ClientDisconnected;
+		public event FileReceivedHandler FileReceived;
 
 		private AsyncSocketListener()
 		{
@@ -61,11 +97,13 @@ namespace AsyncClientServer.Model
 		}
 
 		/* Starts the AsyncSocketListener */
-		public void StartListening()
+		public void StartListening( int port)
 		{
+			_port = port;
+
 			var host = Dns.GetHostEntry("127.0.0.1");
 			var ip = host.AddressList[0];
-			var endpoint = new IPEndPoint(ip, Port);
+			var endpoint = new IPEndPoint(ip, port);
 
 			try
 			{

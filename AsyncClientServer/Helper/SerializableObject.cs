@@ -6,9 +6,10 @@ using System.Xml.Serialization;
 namespace AsyncClientServer.Helper
 {
 	/// <summary>
-	/// Wrapper class for class Object
-	/// <para>This class adds the ability to serialize and deserialize to xml and from xml to object</para>
-	/// <para>Extend you class you want to serialize with "SerializableObject"</para>
+	/// Wrapper class for class Object.
+	/// <para>This class can serialize an object to xml and deserialize from xml to object.</para>
+	/// <para>Extend you class you want to serialize with "SerializableObject".</para>
+	/// <para>Extends <see cref="Object"/>, Implements <see cref="ISerializableObject"/></para>
 	/// </summary>
 	public abstract class SerializableObject : Object, ISerializableObject
 	{

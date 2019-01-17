@@ -18,7 +18,9 @@ namespace AsyncClientServer.Helper
 
 		event ClientDisconnectedHandler ClientDisconnected;
 
-		void StartListening();
+		event FileReceivedHandler FileReceived;
+
+		void StartListening(int port);
 
 		bool IsConnected(int id);
 

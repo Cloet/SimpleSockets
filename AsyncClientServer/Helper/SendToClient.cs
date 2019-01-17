@@ -3,6 +3,10 @@ using AsyncClientServer.Model;
 
 namespace AsyncClientServer.Helper
 {
+	/// <summary>
+	/// This abstract class has classes to send messages, objects and files to the client.
+	/// <para>Extends <see cref="SendTo"/>, Implements <see cref="ISendToClient"/></para>
+	/// </summary>
 	public abstract class SendToClient: SendTo, ISendToClient
 	{
 

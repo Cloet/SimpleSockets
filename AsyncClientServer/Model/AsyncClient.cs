@@ -2,6 +2,7 @@
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Reflection;
 using System.Text;
 using System.Threading;
 using AsyncClientServer.Helper;
@@ -9,25 +10,54 @@ using AsyncClientServer.Helper;
 namespace AsyncClientServer.Model
 {
 
-
+	/// <summary>
+	/// Event that triggers when a client is connected to server
+	/// </summary>
+	/// <param name="a"></param>
 	public delegate void ConnectedHandler(AsyncClient a);
+	/// <summary>
+	/// Event that triggers when client receives a message
+	/// </summary>
+	/// <param name="a"></param>
+	/// <param name="msg"></param>
 	public delegate void ClientMessageReceivedHandler(AsyncClient a, string msg);
+	/// <summary>
+	/// Event that triggers when client sends a message
+	/// </summary>
+	/// <param name="a"></param>
+	/// <param name="close"></param>
 	public delegate void ClientMessageSubmittedHandler(AsyncClient a, bool close);
+
+
+
 	/// <summary>
 	/// The Following code handles the client in an Async fashion.
 	/// <para>To send messages to the corresponding Server, you should use the class "SendToServer"</para>
-	/// <para>Implements
+	/// <para>Extends <see cref="SendToServer"/>, Implements
 	/// <seealso cref="IAsyncClient"/>
 	/// </para>
 	/// </summary>
 	public sealed class AsyncClient : SendToServer, IAsyncClient
 	{
-		private const ushort Port = 13000;
+		private int _port;
+		private string _ipServer;
+		private int _reconnectSeconds;
 
 		private Socket _listener;
 		private bool _close;
 		private int _flag;
 		private string _receivedpath = "";
+
+
+		public int Port
+		{
+			get => _port;
+		}
+
+		public string IpServer
+		{
+			get => _ipServer;
+		}
 
 		private readonly ManualResetEvent _connected = new ManualResetEvent(false);
 		private readonly ManualResetEvent _sent = new ManualResetEvent(false);
@@ -46,19 +76,27 @@ namespace AsyncClientServer.Model
 		/// </summary>
 		public event ClientMessageSubmittedHandler MessageSubmitted;
 
+		/// <summary>
+		/// Constructor
+		/// Use StartClient() to start a connection to a server.
+		/// </summary>
 		public AsyncClient()
 		{
 		}
 
 		/// <summary>
 		/// Starts the client.
-		/// <para>Loops every 5 seconds to try and start connection with server.</para>
+		/// <para>requires server ip, port number and how many seconds the client should wait to try to connect again. Default is 5 seconds</para>
 		/// </summary>
-		public void StartClient()
+		public void StartClient(string ipServer, int port, int reconnectInSeconds)
 		{
-			var host = Dns.GetHostEntry("127.0.0.1");
+			_ipServer = ipServer;
+			_port = port;
+			_reconnectSeconds = reconnectInSeconds * 1000;
+
+			var host = Dns.GetHostEntry(ipServer);
 			var ip = host.AddressList[0];
-			var endpoint = new IPEndPoint(ip, Port);
+			var endpoint = new IPEndPoint(ip, port);
 
 			try
 			{
@@ -67,18 +105,24 @@ namespace AsyncClientServer.Model
 				_listener.BeginConnect(endpoint, this.OnConnectCallback, _listener);
 				_connected.WaitOne();
 
-
 				//If client is connected activate connected event
-				var connectedHandler = this.Connected;
-				if (connectedHandler != null)
-				{
-					connectedHandler(this);
-				}
+				this.Connected?.Invoke(this);
 
 			}
 			catch (Exception ex)
 			{
 			}
+		}
+
+		/// <summary>
+		/// Method starts the client requires ip of server and port number.
+		/// <para>Loops connect every 5 seconds.</para>
+		/// </summary>
+		/// <param name="ipServer"></param>
+		/// <param name="port"></param>
+		public void StartClient(string ipServer, int port)
+		{
+			StartClient(ipServer, port, 5);
 		}
 
 		/// <summary>
@@ -111,11 +155,10 @@ namespace AsyncClientServer.Model
 			{
 				//Loops until connected
 				Thread.Sleep(5000);
-				StartClient();
+				StartClient(_ipServer, _port);
 			}
 		}
-
-		#region Receive data
+		
 		/// <summary>
 		/// Start receiving data from server.
 		/// </summary>
@@ -136,7 +179,7 @@ namespace AsyncClientServer.Model
 
 				int fileNameLen = 1;
 				string filename = "";
-				var state = (IStateObject) result.AsyncState;
+				var state = (IStateObject)result.AsyncState;
 				var receive = state.Listener.EndReceive(result);
 
 				//Process received information
@@ -222,9 +265,7 @@ namespace AsyncClientServer.Model
 			{
 			}
 		}
-		#endregion
 
-		#region Send data
 		/// <summary>
 		/// Sends data to server
 		/// <para>This method should not be used,instead use methods in "SendToServer"</para>
@@ -278,7 +319,6 @@ namespace AsyncClientServer.Model
 
 			_sent.Set();
 		}
-		#endregion
 
 		private void Close()
 		{

@@ -16,7 +16,9 @@ namespace AsyncClientServer.Helper
 
 		event ClientMessageSubmittedHandler MessageSubmitted;
 
-		void StartClient();
+		void StartClient(string ipServer, int port);
+
+		void StartClient(string ipServer, int port, int reconnectinSeconds);
 
 		bool IsConnected();
 
