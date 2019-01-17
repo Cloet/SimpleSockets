@@ -13,6 +13,7 @@ The server and client can send & receive: files, objects and messages.
 - Add more exceptions
 - Make it simpler to use
 - Clean up code
+- Add example
 - Add file transfer library into it
 - ?
 
