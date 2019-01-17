@@ -1,13 +1,13 @@
 # AsyncClientServer
 Simple library that can send and receive files, objects and messages.
 
-##Done
+## Done
 - Send messages from server -> client & server -> client
 - Ability to send files from client -> server & server -> client
 - Serialize objects into xml and send from client -> server & server -> client
 - Get a list of all connected clients
 
-##TODO
+## TODO
 - Add more exceptions
 - Make it simpler to use
 - Clean up code
