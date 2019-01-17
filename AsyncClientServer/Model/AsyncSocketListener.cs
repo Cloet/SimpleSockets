@@ -50,7 +50,7 @@ namespace AsyncClientServer.Model
 	/// <para>Handles sending and receiving data to/from clients</para>
 	/// <para>Extends <see cref="SendToClient"/>, Implements <seealso cref="IAsyncSocketListener"/></para>
 	/// </summary>
-	public class AsyncSocketListener : SendToClient,IAsyncSocketListener
+	public class AsyncSocketListener : SendToClient, IAsyncSocketListener
 	{
 		private int _port;
 
@@ -204,50 +204,57 @@ namespace AsyncClientServer.Model
 						_receivedpath = filename;
 						_flag++;
 
-					}
+						/* check if the message is an serialized object or a command. If it is a file it will go to the else*/
+						if (_receivedpath == "OBJECT" || _receivedpath == "NOFILE")
+						{
+							string test = Encoding.UTF8.GetString(state.Buffer, 4 + fileNameLen,
+								receive - (4 + fileNameLen));
+							state.Append(test);
+							_flag = -1;
+						}
 
-					/* check if the message is an serialized object or a command. If it is a file it will go to the else*/
-					if (filename == "OBJECT" || filename == "NOFILE")
-					{
-						state.Append(Encoding.UTF8.GetString(state.Buffer, 4 + fileNameLen, receive - (4 + fileNameLen)));
-						_flag = -1;
 					}
 					else
 					{
-						/* The message is a file so create a file and write data to it*/
-						if (_flag >= 1)
-						{
-							//Get data for file and write it
-							using (BinaryWriter writer = new BinaryWriter(File.Open(_receivedpath, FileMode.Append)))
-							{
-								if (_flag == 1)
-								{
-									/*Delete the file if it already exists */
-									if (File.Exists(_receivedpath))
-									{
-										File.Delete(_receivedpath);
-									}
-									writer.Write(state.Buffer, 4 + fileNameLen, receive - (4 + fileNameLen));
-									_flag++;
-								}
-								else
-								{
-									writer.Write(state.Buffer, 0, receive);
-									writer.Close();
-								}
-							}
-
-
-						}
-
 						/* Further convert bytes to string */
 						if (_flag == -1)
 						{
-							state.Append(Encoding.UTF8.GetString(state.Buffer, 0, receive));
+
+							string test = Encoding.UTF8.GetString(state.Buffer, 0, receive);
+							state.Append(test);
+						}
+					}
+
+
+
+					/* The message is a file so create a file and write data to it*/
+					if (_flag >= 1)
+					{
+						//Get data for file and write it
+						using (BinaryWriter writer = new BinaryWriter(File.Open(_receivedpath, FileMode.Append)))
+						{
+							if (_flag == 1)
+							{
+								/*Delete the file if it already exists */
+								if (File.Exists(_receivedpath))
+								{
+									File.Delete(_receivedpath);
+								}
+								writer.Write(state.Buffer, 4 + fileNameLen, receive - (4 + fileNameLen));
+								_flag++;
+							}
+							else
+							{
+								writer.Write(state.Buffer, 0, receive);
+								writer.Close();
+							}
 						}
 
+
 					}
+
 				}
+
 
 				if (_receivedpath != "OBJECT" && _receivedpath != "NOFILE")
 				{
@@ -256,7 +263,7 @@ namespace AsyncClientServer.Model
 
 				if (receive == state.BufferSize)
 				{
-					state.Listener.BeginReceive(state.Buffer, 0, state.BufferSize, SocketFlags.None,this.ReceiveCallback, state);
+					state.Listener.BeginReceive(state.Buffer, 0, state.BufferSize, SocketFlags.None, this.ReceiveCallback, state);
 				}
 				else
 				{
@@ -266,11 +273,12 @@ namespace AsyncClientServer.Model
 					{
 						this.ObjectReceived?.Invoke(state.Id, state.Text);
 					}
-					else if(_receivedpath == "NOFILE")
+					else if (_receivedpath == "NOFILE")
 					{
 						this.MessageReceived?.Invoke(state.Id, state.Text);
 					}
 
+					_flag = 0;
 					state.Reset();
 					state.Listener.BeginReceive(state.Buffer, 0, state.BufferSize, SocketFlags.None, this.ReceiveCallback, state);
 

@@ -280,7 +280,6 @@ namespace AsyncClientServer.Model
 
 
 					state.Reset();
-
 					if (!state.Close)
 					{
 						Receive();

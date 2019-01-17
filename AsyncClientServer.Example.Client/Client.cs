@@ -26,12 +26,11 @@ namespace AsyncClientServer.Example.Client
 			Thread t = new Thread(StartClient);
 			t.Start();
 
-			Console.WriteLine("Press enter to continue...");
-			Console.ReadLine();
-
-
-			Console.WriteLine("Trying to send message...");
-			SendMessage("Hoi", false);
+			while(true){
+				Console.Write("Enter message:");
+				string msg = Console.ReadLine();
+				_client.SendMessage(msg, false);
+			}
 
 			Console.ReadLine();
 
@@ -75,19 +74,11 @@ namespace AsyncClientServer.Example.Client
 		{
 			Console.WriteLine("Client has connected to server");
 			a.SendMessage("Hello server, I'm the client.", false);
-			a.Receive();
 		}
 
 		private static void ServerMessageReceived(AsyncClient a, String msg)
 		{
-
-			if (msg == "transfer" + "/" + "D:\\stay.mp3" + "/" + "D:\\copy-stay.mp3")
-			{
-				a.SendFile("D:\\Stay.mp3", "D:\\Stay-copy.mp3", false);
-			}
-
 			Console.WriteLine("Message received from the server: " + msg);
-			a.Receive();
 		}
 
 		private static void ObjectReceived(string xml)
