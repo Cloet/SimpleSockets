@@ -57,6 +57,7 @@ namespace AsyncClientServer.Model
 		private const ushort Limit = 500;
 		private int _flag;
 		private string _receivedpath = "";
+		private Socket _listener;
 
 		public int Port
 		{
@@ -111,6 +112,7 @@ namespace AsyncClientServer.Model
 				{
 					listener.Bind(endpoint);
 					listener.Listen(Limit);
+					_listener = listener;
 					while (true)
 					{
 						this.mre.Reset();
@@ -269,10 +271,8 @@ namespace AsyncClientServer.Model
 						this.MessageReceived?.Invoke(state.Id, state.Text);
 					}
 
-
-
-
 					state.Reset();
+					state.Listener.BeginReceive(state.Buffer, 0, state.BufferSize, SocketFlags.None, this.ReceiveCallback, state);
 
 				}
 			}

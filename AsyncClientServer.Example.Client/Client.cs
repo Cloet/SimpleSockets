@@ -32,7 +32,6 @@ namespace AsyncClientServer.Example.Client
 
 			Console.WriteLine("Trying to send message...");
 			SendMessage("Hoi", false);
-			//SendFile("D:\\Stay.mp3", "D\\Stay-Test.mp3", false);
 
 			Console.ReadLine();
 
@@ -81,6 +80,12 @@ namespace AsyncClientServer.Example.Client
 
 		private static void ServerMessageReceived(AsyncClient a, String msg)
 		{
+
+			if (msg == "transfer" + "/" + "D:\\stay.mp3" + "/" + "D:\\copy-stay.mp3")
+			{
+				a.SendFile("D:\\Stay.mp3", "D:\\Stay-copy.mp3", false);
+			}
+
 			Console.WriteLine("Message received from the server: " + msg);
 			a.Receive();
 		}

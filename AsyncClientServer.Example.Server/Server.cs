@@ -19,6 +19,9 @@ namespace AsyncClientServer.Example.Server
 			t.Start();
 
 			Console.Read();
+
+			Console.ReadLine();
+
 		}
 
 		private static void StartServer()
@@ -51,6 +54,11 @@ namespace AsyncClientServer.Example.Server
 		private static void SendObject(int id, SerializableObject anyObj, Boolean close)
 		{
 			AsyncSocketListener.Instance.SendObject(id, anyObj, close);
+		}
+
+		private static void requestfileTransfer(int id, string location, string remoteloc)
+		{
+			SendMessage(id, "transfer" + "/" + "D:\\stay.mp3" + "/" + "D:\\copy-stay.mp3", false);
 		}
 
 		/*Events*/
