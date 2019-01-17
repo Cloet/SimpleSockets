@@ -35,7 +35,8 @@ namespace AsyncClientServer.Helper
 			}
 			catch (Exception ex)
 			{
-				return null;
+				throw new Exception(ex.ToString());
+				//return null;
 			}
 
 		}
@@ -56,7 +57,8 @@ namespace AsyncClientServer.Helper
 			}
 			catch (Exception ex)
 			{
-				return null;
+				throw new Exception(ex.ToString());
+				//return null;
 			}
 		}
 	}

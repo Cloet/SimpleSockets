@@ -30,7 +30,7 @@ namespace AsyncClientServer.Model
 	/// </summary>
 	/// <param name="id"></param>
 	/// <param name="obj"></param>
-	public delegate void ObjectReceivedHandler(int id, string obj);
+	public delegate void ObjectFromClientReceivedHandler(int id, string obj);
 
 	/// <summary>
 	/// Event that is triggered when the client has disconnected
@@ -43,7 +43,7 @@ namespace AsyncClientServer.Model
 	/// </summary>
 	/// <param name="id"></param>
 	/// <param name="filepath"></param>
-	public delegate void FileReceivedHandler(int id, string filepath);
+	public delegate void FileFromClientReceivedHandler(int id, string filepath);
 
 	/// <summary>
 	/// This class is the server, singleton class
@@ -55,8 +55,8 @@ namespace AsyncClientServer.Model
 		private int _port;
 
 		private const ushort Limit = 500;
-		private int flag;
-		private string receivedpath = "";
+		private int _flag;
+		private string _receivedpath = "";
 
 		public int Port
 		{
@@ -77,11 +77,11 @@ namespace AsyncClientServer.Model
 			return clients;
 		}
 
-		public event ObjectReceivedHandler ObjectReceived;
+		public event ObjectFromClientReceivedHandler ObjectReceived;
 		public event MessageReceivedHandler MessageReceived;
 		public event MessageSubmittedHandler MessageSubmitted;
 		public event ClientDisconnectedHandler ClientDisconnected;
-		public event FileReceivedHandler FileReceived;
+		public event FileFromClientReceivedHandler FileReceived;
 
 		private AsyncSocketListener()
 		{
@@ -97,7 +97,7 @@ namespace AsyncClientServer.Model
 		}
 
 		/* Starts the AsyncSocketListener */
-		public void StartListening( int port)
+		public void StartListening(int port)
 		{
 			_port = port;
 
@@ -121,6 +121,7 @@ namespace AsyncClientServer.Model
 			}
 			catch (SocketException se)
 			{
+				throw new Exception(se.ToString());
 			}
 		}
 
@@ -148,7 +149,8 @@ namespace AsyncClientServer.Model
 			}
 			catch (Exception ex)
 			{
-				return false;
+				throw new Exception(ex.ToString());
+				//return false;
 			}
 
 		}
@@ -158,7 +160,7 @@ namespace AsyncClientServer.Model
 		public void OnClientConnect(IAsyncResult result)
 		{
 			this.mre.Set();
-			flag = 0;
+			_flag = 0;
 			try
 			{
 				IStateObject state;
@@ -175,6 +177,7 @@ namespace AsyncClientServer.Model
 			}
 			catch (SocketException se)
 			{
+				throw new Exception(se.ToString());
 			}
 		}
 
@@ -192,12 +195,12 @@ namespace AsyncClientServer.Model
 				if (receive > 0)
 				{
 					//get filename or path of file
-					if (flag == 0)
+					if (_flag == 0)
 					{
 						fileNameLen = BitConverter.ToInt32(state.Buffer, 0);
 						filename = Encoding.UTF8.GetString(state.Buffer, 4, fileNameLen);
-						receivedpath = filename;
-						flag++;
+						_receivedpath = filename;
+						_flag++;
 
 					}
 
@@ -205,25 +208,25 @@ namespace AsyncClientServer.Model
 					if (filename == "OBJECT" || filename == "NOFILE")
 					{
 						state.Append(Encoding.UTF8.GetString(state.Buffer, 4 + fileNameLen, receive - (4 + fileNameLen)));
-						flag = -1;
+						_flag = -1;
 					}
 					else
 					{
 						/* The message is a file so create a file and write data to it*/
-						if (flag >= 1)
+						if (_flag >= 1)
 						{
 							//Get data for file and write it
-							using (BinaryWriter writer = new BinaryWriter(File.Open(receivedpath, FileMode.Append)))
+							using (BinaryWriter writer = new BinaryWriter(File.Open(_receivedpath, FileMode.Append)))
 							{
-								if (flag == 1)
+								if (_flag == 1)
 								{
 									/*Delete the file if it already exists */
-									if (File.Exists(receivedpath))
+									if (File.Exists(_receivedpath))
 									{
-										File.Delete(receivedpath);
+										File.Delete(_receivedpath);
 									}
 									writer.Write(state.Buffer, 4 + fileNameLen, receive - (4 + fileNameLen));
-									flag++;
+									_flag++;
 								}
 								else
 								{
@@ -232,10 +235,11 @@ namespace AsyncClientServer.Model
 								}
 							}
 
+
 						}
 
 						/* Further convert bytes to string */
-						if (flag == -1)
+						if (_flag == -1)
 						{
 							state.Append(Encoding.UTF8.GetString(state.Buffer, 0, receive));
 						}
@@ -243,33 +247,26 @@ namespace AsyncClientServer.Model
 					}
 				}
 
+				if (_receivedpath != "OBJECT" && _receivedpath != "NOFILE")
+				{
+					FileReceived?.Invoke(state.Id, _receivedpath);
+				}
+
 				if (receive == state.BufferSize)
 				{
-					state.Listener.BeginReceive(state.Buffer, 0, state.BufferSize, SocketFlags.None,
-						this.ReceiveCallback, state);
+					state.Listener.BeginReceive(state.Buffer, 0, state.BufferSize, SocketFlags.None,this.ReceiveCallback, state);
 				}
 				else
 				{
 
 
-					if (receivedpath == "OBJECT")
+					if (_receivedpath == "OBJECT")
 					{
-						var objectReceived = this.ObjectReceived;
-
-						if (objectReceived != null)
-						{
-							objectReceived(state.Id, state.Text);
-						}
-
+						this.ObjectReceived?.Invoke(state.Id, state.Text);
 					}
-					else
+					else if(_receivedpath == "NOFILE")
 					{
-						var messageReceived = this.MessageReceived;
-						if (messageReceived != null && receivedpath == "NOFILE")
-						{
-							messageReceived(state.Id, state.Text);
-
-						}
+						this.MessageReceived?.Invoke(state.Id, state.Text);
 					}
 
 
@@ -281,6 +278,7 @@ namespace AsyncClientServer.Model
 			}
 			catch (Exception ex)
 			{
+				throw new Exception(ex.ToString());
 			}
 
 
@@ -318,9 +316,11 @@ namespace AsyncClientServer.Model
 			}
 			catch (SocketException se)
 			{
+				throw new Exception(se.ToString());
 			}
 			catch (ArgumentException ae)
 			{
+				throw new Exception(ae.ToString());
 			}
 		}
 
@@ -334,9 +334,11 @@ namespace AsyncClientServer.Model
 			}
 			catch (SocketException se)
 			{
+				throw new Exception(se.ToString());
 			}
 			catch (ObjectDisposedException ode)
 			{
+				throw new Exception(ode.ToString());
 			}
 			finally
 			{
@@ -365,6 +367,7 @@ namespace AsyncClientServer.Model
 			}
 			catch (SocketException se)
 			{
+				throw new Exception(se.ToString());
 			}
 			finally
 			{
@@ -393,6 +396,7 @@ namespace AsyncClientServer.Model
 			}
 			catch (Exception ex)
 			{
+				throw new Exception(ex.ToString());
 			}
 		}
 

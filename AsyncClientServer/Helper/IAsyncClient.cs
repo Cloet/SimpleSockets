@@ -16,6 +16,10 @@ namespace AsyncClientServer.Helper
 
 		event ClientMessageSubmittedHandler MessageSubmitted;
 
+		event FileFromServerReceivedHandler FileReceived;
+
+		event ObjectFromServerReceivedHandler ObjectReceived;
+
 		void StartClient(string ipServer, int port);
 
 		void StartClient(string ipServer, int port, int reconnectinSeconds);

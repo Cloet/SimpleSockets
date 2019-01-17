@@ -1,4 +1,5 @@
 ﻿using System;
+using System.CodeDom;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
@@ -27,6 +28,19 @@ namespace AsyncClientServer.Model
 	/// <param name="a"></param>
 	/// <param name="close"></param>
 	public delegate void ClientMessageSubmittedHandler(AsyncClient a, bool close);
+
+	/// <summary>
+	/// Event that is triggered when a file is received from the server, returns the new file path
+	/// </summary>
+	/// <param name="path"></param>
+	public delegate void FileFromServerReceivedHandler(string path);
+
+	/// <summary>
+	/// Event that is triggered when an object is received from the server, return the object as xml
+	/// </summary>
+	/// <param name="xmlObj"></param>
+	public delegate void ObjectFromServerReceivedHandler(string xmlObj);
+
 
 
 
@@ -61,7 +75,6 @@ namespace AsyncClientServer.Model
 
 		private readonly ManualResetEvent _connected = new ManualResetEvent(false);
 		private readonly ManualResetEvent _sent = new ManualResetEvent(false);
-		private readonly ManualResetEvent _received = new ManualResetEvent(false);
 
 		/// <summary>
 		/// This event is used to check if the client is connected
@@ -75,6 +88,16 @@ namespace AsyncClientServer.Model
 		/// This event is used to check if the client sends a message
 		/// </summary>
 		public event ClientMessageSubmittedHandler MessageSubmitted;
+
+		/// <summary>
+		/// Event that is used to check when a file is received from the server
+		/// </summary>
+		public event FileFromServerReceivedHandler FileReceived;
+
+		/// <summary>
+		/// Event that is used to check when an object is received from the server
+		/// </summary>
+		public event ObjectFromServerReceivedHandler ObjectReceived;
 
 		/// <summary>
 		/// Constructor
@@ -111,6 +134,7 @@ namespace AsyncClientServer.Model
 			}
 			catch (Exception ex)
 			{
+				throw new Exception(ex.ToString());
 			}
 		}
 
@@ -191,18 +215,11 @@ namespace AsyncClientServer.Model
 						filename = Encoding.UTF8.GetString(state.Buffer, 4, fileNameLen);
 						_receivedpath = filename;
 						_flag++;
-
-						if (File.Exists(_receivedpath))
-						{
-							File.Delete(_receivedpath);
-						}
-
 					}
 
 					if (filename == "NOFILE" || filename == "OBJECT")
 					{
-						state.Append(
-							Encoding.UTF8.GetString(state.Buffer, 4 + fileNameLen, receive - (4 + fileNameLen)));
+						state.Append(Encoding.UTF8.GetString(state.Buffer, 4 + fileNameLen, receive - (4 + fileNameLen)));
 						_flag = -1;
 					}
 					else
@@ -215,6 +232,10 @@ namespace AsyncClientServer.Model
 							{
 								if (_flag == 1)
 								{
+									if (File.Exists(_receivedpath))
+									{
+										File.Delete(_receivedpath);
+									}
 									writer.Write(state.Buffer, 4 + fileNameLen, receive - (4 + fileNameLen));
 									_flag++;
 								}
@@ -235,6 +256,11 @@ namespace AsyncClientServer.Model
 					}
 				}
 
+				if (_receivedpath != "OBJECT" && _receivedpath != "NOFILE")
+				{
+					FileReceived?.Invoke(_receivedpath);
+				}
+
 				if (receive == state.BufferSize)
 				{
 					state.Listener.BeginReceive(state.Buffer, 0, state.BufferSize, SocketFlags.None,
@@ -242,17 +268,18 @@ namespace AsyncClientServer.Model
 				}
 				else
 				{
-					var messageReceived = this.MessageReceived;
 
-					if (messageReceived != null && filename == "NOFILE")
+					if (_receivedpath == "OBJECT")
 					{
-						messageReceived(this, state.Text);
+						this.ObjectReceived?.Invoke(state.Text);
 
+					}else if (_receivedpath == "NOFILE")
+					{
+						this.MessageReceived?.Invoke(this, state.Text);
 					}
 
 
 					state.Reset();
-					_received.Set();
 
 					if (!state.Close)
 					{
@@ -263,6 +290,7 @@ namespace AsyncClientServer.Model
 			}
 			catch (Exception ex)
 			{
+				throw new Exception(ex.ToString());
 			}
 		}
 
@@ -292,6 +320,7 @@ namespace AsyncClientServer.Model
 			}
 			catch (Exception ex)
 			{
+				throw new Exception(ex.ToString());
 			}
 		}
 
@@ -305,17 +334,14 @@ namespace AsyncClientServer.Model
 			}
 			catch (SocketException se)
 			{
+				throw new Exception(se.ToString());
 			}
 			catch (ObjectDisposedException se)
 			{
+				throw new Exception(se.ToString());
 			}
 
-			var messageSubmitted = this.MessageSubmitted;
-
-			if (messageSubmitted != null)
-			{
-				messageSubmitted(this, _close);
-			}
+			this.MessageSubmitted?.Invoke(this, _close);
 
 			_sent.Set();
 		}
@@ -334,6 +360,7 @@ namespace AsyncClientServer.Model
 			}
 			catch (SocketException se)
 			{
+				throw new Exception(se.ToString());
 			}
 		}
 
@@ -344,7 +371,6 @@ namespace AsyncClientServer.Model
 		{
 			_connected.Dispose();
 			_sent.Dispose();
-			_received.Dispose();
 			this.Close();
 		}
 

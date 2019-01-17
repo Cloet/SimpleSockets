@@ -13,26 +13,28 @@ namespace AsyncClientServer.Example.Server
 	{
 		static void Main(string[] args)
 		{
-			
+			Console.Title = "Server";
 			BindEvents();
 			Thread t = new Thread(StartServer);
 			t.Start();
-			
 
+			Console.Read();
 		}
 
 		private static void StartServer()
 		{
 			AsyncSocketListener.Instance.StartListening(13000);
+			Console.WriteLine("Server has started...");
+			Console.WriteLine();
 		}
 
 		private static void BindEvents()
 		{
 			AsyncSocketListener.Instance.MessageReceived += new MessageReceivedHandler(MessageReceived);
 			AsyncSocketListener.Instance.MessageSubmitted += new MessageSubmittedHandler(MessageSubmitted);
-			AsyncSocketListener.Instance.ObjectReceived += new ObjectReceivedHandler(ObjectReceived);
+			AsyncSocketListener.Instance.ObjectReceived += new ObjectFromClientReceivedHandler(ObjectReceived);
 			AsyncSocketListener.Instance.ClientDisconnected += new ClientDisconnectedHandler(ClientDisconnected);
-			AsyncSocketListener.Instance.FileReceived += new FileReceivedHandler(FileReceived);
+			AsyncSocketListener.Instance.FileReceived += new FileFromClientReceivedHandler(FileReceived);
 		}
 
 		/*Send messages*/
@@ -54,6 +56,7 @@ namespace AsyncClientServer.Example.Server
 		/*Events*/
 		private static void MessageReceived(int id, string msg)
 		{
+			AsyncSocketListener.Instance.SendMessage(id, "Received message", false);
 			Console.WriteLine("Server received message from client " + id + ": " + msg);
 		}
 
@@ -64,12 +67,14 @@ namespace AsyncClientServer.Example.Server
 
 		private static void ObjectReceived(int id, string obj)
 		{
+			AsyncSocketListener.Instance.SendMessage(id, "Recieved message", false);
 			Console.WriteLine("Server received an object from client " + id);
 		}
 
 		private static void FileReceived(int id, string path)
 		{
-			Console.WriteLine("Server received a file from the server and is stored at " + path);
+			AsyncSocketListener.Instance.SendMessage(id, "Received", false);
+			Console.WriteLine("Server received a file from client "+ id + " and is stored at " + path);
 		}
 
 		private static void ClientDisconnected(int id)

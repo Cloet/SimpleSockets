@@ -14,11 +14,11 @@ namespace AsyncClientServer.Helper
 
 		event MessageSubmittedHandler MessageSubmitted;
 
-		event ObjectReceivedHandler ObjectReceived;
+		event ObjectFromClientReceivedHandler ObjectReceived;
 
 		event ClientDisconnectedHandler ClientDisconnected;
 
-		event FileReceivedHandler FileReceived;
+		event FileFromClientReceivedHandler FileReceived;
 
 		void StartListening(int port);
 
