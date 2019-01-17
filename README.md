@@ -1,5 +1,7 @@
 # AsyncClientServer
-Simple library that can send and receive files, objects and messages.
+Simple library using Asynchronous client and Asynchronous server.
+
+The server and client can send & receive: files, objects and messages.
 
 ## Done
 - Send messages from server -> client & server -> client
