@@ -11,6 +11,8 @@ namespace AsyncClientServer.Example.Server
 {
 	class Server
 	{
+
+		private static Boolean _started;
 		static void Main(string[] args)
 		{
 			Console.Title = "Server";
@@ -18,7 +20,26 @@ namespace AsyncClientServer.Example.Server
 			Thread t = new Thread(StartServer);
 			t.Start();
 
-			Console.Read();
+			while (true)
+			{
+
+				if (_started)
+				{
+					Console.Write("Choose client");
+					string id = Console.ReadLine();
+					int idd = Int32.Parse(id);
+
+					Console.WriteLine("Write a message");
+					string msg = Console.ReadLine();
+
+
+					AsyncSocketListener.Instance.SendMessage(idd, msg, false);
+				}
+
+
+
+			}
+
 
 			Console.ReadLine();
 
@@ -26,9 +47,10 @@ namespace AsyncClientServer.Example.Server
 
 		private static void StartServer()
 		{
-			AsyncSocketListener.Instance.StartListening(13000);
 			Console.WriteLine("Server has started...");
 			Console.WriteLine();
+			AsyncSocketListener.Instance.StartListening(13000);
+
 		}
 
 		private static void BindEvents()
@@ -38,6 +60,7 @@ namespace AsyncClientServer.Example.Server
 			AsyncSocketListener.Instance.ObjectReceived += new ObjectFromClientReceivedHandler(ObjectReceived);
 			AsyncSocketListener.Instance.ClientDisconnected += new ClientDisconnectedHandler(ClientDisconnected);
 			AsyncSocketListener.Instance.FileReceived += new FileFromClientReceivedHandler(FileReceived);
+			AsyncSocketListener.Instance.ServerHasStarted += new ServerHasStartedHandler(ServerHasStarted);
 		}
 
 		/*Send messages*/
@@ -83,6 +106,11 @@ namespace AsyncClientServer.Example.Server
 		{
 			AsyncSocketListener.Instance.SendMessage(id, "Received", false);
 			Console.WriteLine("Server received a file from client "+ id + " and is stored at " + path);
+		}
+
+		private static void ServerHasStarted()
+		{
+			_started = true;
 		}
 
 		private static void ClientDisconnected(int id)

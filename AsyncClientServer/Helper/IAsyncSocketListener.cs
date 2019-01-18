@@ -20,6 +20,8 @@ namespace AsyncClientServer.Helper
 
 		event FileFromClientReceivedHandler FileReceived;
 
+		event ServerHasStartedHandler ServerHasStarted;
+
 		void StartListening(int port);
 
 		bool IsConnected(int id);

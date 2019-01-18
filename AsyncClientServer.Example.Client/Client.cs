@@ -14,6 +14,7 @@ namespace AsyncClientServer.Example.Client
 {
 	class Client
 	{
+		private static Boolean _connected;
 		private static AsyncClient _client;
 		static void Main(string[] args)
 		{
@@ -27,9 +28,15 @@ namespace AsyncClientServer.Example.Client
 			t.Start();
 
 			while(true){
-				Console.Write("Enter message:");
-				string msg = Console.ReadLine();
-				_client.SendMessage(msg, false);
+
+				if (_connected)
+				{
+
+					Console.Write("Enter message:");
+					string msg = Console.ReadLine();
+					_client.SendMessage(msg, false);
+				}
+
 			}
 
 			Console.ReadLine();
@@ -72,13 +79,16 @@ namespace AsyncClientServer.Example.Client
 		//Client Events
 		private static void ConnectedToServer(AsyncClient a)
 		{
+			_connected = true;
 			Console.WriteLine("Client has connected to server");
 			a.SendMessage("Hello server, I'm the client.", false);
+			a.Receive();
 		}
 
 		private static void ServerMessageReceived(AsyncClient a, String msg)
 		{
 			Console.WriteLine("Message received from the server: " + msg);
+			a.Receive();
 		}
 
 		private static void ObjectReceived(string xml)

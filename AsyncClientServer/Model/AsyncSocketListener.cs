@@ -46,6 +46,11 @@ namespace AsyncClientServer.Model
 	public delegate void FileFromClientReceivedHandler(int id, string filepath);
 
 	/// <summary>
+	/// Event that is triggered when the server has started
+	/// </summary>
+	public delegate void ServerHasStartedHandler();
+
+	/// <summary>
 	/// This class is the server, singleton class
 	/// <para>Handles sending and receiving data to/from clients</para>
 	/// <para>Extends <see cref="SendToClient"/>, Implements <seealso cref="IAsyncSocketListener"/></para>
@@ -83,6 +88,7 @@ namespace AsyncClientServer.Model
 		public event MessageSubmittedHandler MessageSubmitted;
 		public event ClientDisconnectedHandler ClientDisconnected;
 		public event FileFromClientReceivedHandler FileReceived;
+		public event ServerHasStartedHandler ServerHasStarted;
 
 		private AsyncSocketListener()
 		{
@@ -113,6 +119,7 @@ namespace AsyncClientServer.Model
 					listener.Bind(endpoint);
 					listener.Listen(Limit);
 					_listener = listener;
+					ServerHasStarted?.Invoke();
 					while (true)
 					{
 						this.mre.Reset();
