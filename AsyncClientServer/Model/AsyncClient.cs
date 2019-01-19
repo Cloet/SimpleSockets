@@ -225,6 +225,14 @@ namespace AsyncClientServer.Model
 					else
 					{
 
+						if (_flag == 1)
+						{
+							if (File.Exists(_receivedpath))
+							{
+								File.Delete(_receivedpath);
+							}
+						}
+
 						if (_flag >= 1)
 						{
 							//Get data for file and write it
@@ -256,11 +264,6 @@ namespace AsyncClientServer.Model
 					}
 				}
 
-				if (_receivedpath != "OBJECT" && _receivedpath != "NOFILE")
-				{
-					FileReceived?.Invoke(_receivedpath);
-				}
-
 				if (receive == state.BufferSize)
 				{
 					state.Listener.BeginReceive(state.Buffer, 0, state.BufferSize, SocketFlags.None,
@@ -276,6 +279,10 @@ namespace AsyncClientServer.Model
 					}else if (_receivedpath == "NOFILE")
 					{
 						this.MessageReceived?.Invoke(this, state.Text);
+					}
+					else if (_receivedpath != "OBJECT" && _receivedpath != "NOFILE")
+					{
+						FileReceived?.Invoke(_receivedpath);
 					}
 
 

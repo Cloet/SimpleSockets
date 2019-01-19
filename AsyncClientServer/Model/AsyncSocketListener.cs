@@ -219,53 +219,42 @@ namespace AsyncClientServer.Model
 							state.Append(test);
 							_flag = -1;
 						}
-
 					}
 					else
 					{
-						/* Further convert bytes to string */
-						if (_flag == -1)
-						{
-
-							string test = Encoding.UTF8.GetString(state.Buffer, 0, receive);
-							state.Append(test);
-						}
-					}
-
-
-
-					/* The message is a file so create a file and write data to it*/
-					if (_flag >= 1)
-					{
-						//Get data for file and write it
-						using (BinaryWriter writer = new BinaryWriter(File.Open(_receivedpath, FileMode.Append)))
+						/* The message is a file so create a file and write data to it*/
+						if (_flag >= 1)
 						{
 							if (_flag == 1)
 							{
-								/*Delete the file if it already exists */
 								if (File.Exists(_receivedpath))
 								{
 									File.Delete(_receivedpath);
 								}
-								writer.Write(state.Buffer, 4 + fileNameLen, receive - (4 + fileNameLen));
-								_flag++;
 							}
-							else
+
+							//Get data for file and write it
+							using (BinaryWriter writer = new BinaryWriter(File.Open(_receivedpath, FileMode.Append)))
 							{
-								writer.Write(state.Buffer, 0, receive);
-								writer.Close();
+								if (_flag == 1)
+								{
+									writer.Write(state.Buffer, 4 + fileNameLen, receive - (4 + fileNameLen));
+									_flag++;
+								}
+								else
+								{
+									writer.Write(state.Buffer, 0, receive);
+									writer.Close();
+								}
 							}
 						}
 
-
+						/* Further convert bytes to string */
+						if (_flag == -1)
+						{
+							state.Append(Encoding.UTF8.GetString(state.Buffer, 0, receive));
+						}
 					}
-
-				}
-
-
-				if (_receivedpath != "OBJECT" && _receivedpath != "NOFILE")
-				{
-					FileReceived?.Invoke(state.Id, _receivedpath);
 				}
 
 				if (receive == state.BufferSize)
@@ -283,6 +272,9 @@ namespace AsyncClientServer.Model
 					else if (_receivedpath == "NOFILE")
 					{
 						this.MessageReceived?.Invoke(state.Id, state.Text);
+					}else if (_receivedpath != "OBJECT" && _receivedpath != "NOFILE")
+					{
+						FileReceived?.Invoke(state.Id, _receivedpath);
 					}
 
 					_flag = 0;
