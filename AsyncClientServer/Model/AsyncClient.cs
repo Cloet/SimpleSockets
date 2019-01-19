@@ -327,9 +327,21 @@ namespace AsyncClientServer.Model
 		{
 			try
 			{
-				var resceiver = (Socket)result.AsyncState;
+				var receiver = (Socket)result.AsyncState;
+				receiver.EndSend(result);
 
-				resceiver.EndSend(result);
+				
+				if (!_close)
+				{	
+					//Makes sure the client is receiving messages
+					Receive();
+				}
+				else
+				{
+					//Closes the client when necesarry
+					Dispose();
+				}
+
 			}
 			catch (SocketException se)
 			{

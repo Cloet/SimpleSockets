@@ -36,12 +36,7 @@ namespace AsyncClientServer.Example.Server
 					AsyncSocketListener.Instance.SendMessage(idd, msg, false);
 				}
 
-
-
 			}
-
-
-			Console.ReadLine();
 
 		}
 

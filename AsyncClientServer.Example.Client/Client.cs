@@ -82,13 +82,11 @@ namespace AsyncClientServer.Example.Client
 			_connected = true;
 			Console.WriteLine("Client has connected to server");
 			a.SendMessage("Hello server, I'm the client.", false);
-			a.Receive();
 		}
 
 		private static void ServerMessageReceived(AsyncClient a, String msg)
 		{
 			Console.WriteLine("Message received from the server: " + msg);
-			a.Receive();
 		}
 
 		private static void ObjectReceived(string xml)
@@ -103,10 +101,10 @@ namespace AsyncClientServer.Example.Client
 
 		private static void ClientMessageSubmitted(AsyncClient a, bool close)
 		{
-			if (close)
-			{
-				a.Dispose();
-			}
+			//if (close)
+			//{
+			//	a.Dispose();
+			//}
 		}
 
 	}
