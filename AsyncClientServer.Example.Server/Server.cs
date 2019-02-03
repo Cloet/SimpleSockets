@@ -52,7 +52,6 @@ namespace AsyncClientServer.Example.Server
 		{
 			AsyncSocketListener.Instance.MessageReceived += new MessageReceivedHandler(MessageReceived);
 			AsyncSocketListener.Instance.MessageSubmitted += new MessageSubmittedHandler(MessageSubmitted);
-			AsyncSocketListener.Instance.ObjectReceived += new ObjectFromClientReceivedHandler(ObjectReceived);
 			AsyncSocketListener.Instance.ClientDisconnected += new ClientDisconnectedHandler(ClientDisconnected);
 			AsyncSocketListener.Instance.FileReceived += new FileFromClientReceivedHandler(FileReceived);
 			AsyncSocketListener.Instance.ServerHasStarted += new ServerHasStartedHandler(ServerHasStarted);
@@ -80,7 +79,7 @@ namespace AsyncClientServer.Example.Server
 		}
 
 		/*Events*/
-		private static void MessageReceived(int id, string msg)
+		private static void MessageReceived(int id, string header,string msg)
 		{
 			AsyncSocketListener.Instance.SendMessage(id, "Received message", false);
 			Console.WriteLine("Server received message from client " + id + ": " + msg);

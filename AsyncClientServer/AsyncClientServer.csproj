@@ -45,7 +45,6 @@
     <Compile Include="Helper\IAsyncSocketListener.cs" />
     <Compile Include="Helper\ISendToClient.cs" />
     <Compile Include="Helper\ISendToServer.cs" />
-    <Compile Include="Helper\ISerializableObject.cs" />
     <Compile Include="Helper\IStateObject.cs" />
     <Compile Include="Helper\SendTo.cs" />
     <Compile Include="Helper\SendToClient.cs" />
@@ -53,6 +52,7 @@
     <Compile Include="Helper\SerializableObject.cs" />
     <Compile Include="Model\AsyncClient.cs" />
     <Compile Include="Model\AsyncSocketListener.cs" />
+    <Compile Include="Model\SerializeObject.cs" />
     <Compile Include="Model\StateObject.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

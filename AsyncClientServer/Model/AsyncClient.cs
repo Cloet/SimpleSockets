@@ -1,6 +1,7 @@
 ﻿using System;
 using System.CodeDom;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
@@ -15,33 +16,25 @@ namespace AsyncClientServer.Model
 	/// Event that triggers when a client is connected to server
 	/// </summary>
 	/// <param name="a"></param>
-	public delegate void ConnectedHandler(AsyncClient a);
+	public delegate void ConnectedHandler(IAsyncClient a);
 	/// <summary>
 	/// Event that triggers when client receives a message
 	/// </summary>
 	/// <param name="a"></param>
 	/// <param name="msg"></param>
-	public delegate void ClientMessageReceivedHandler(AsyncClient a, string msg);
+	public delegate void ClientMessageReceivedHandler(IAsyncClient a, string header, string msg);
 	/// <summary>
 	/// Event that triggers when client sends a message
 	/// </summary>
 	/// <param name="a"></param>
 	/// <param name="close"></param>
-	public delegate void ClientMessageSubmittedHandler(AsyncClient a, bool close);
+	public delegate void ClientMessageSubmittedHandler(IAsyncClient a, bool close);
 
 	/// <summary>
 	/// Event that is triggered when a file is received from the server, returns the new file path
 	/// </summary>
 	/// <param name="path"></param>
-	public delegate void FileFromServerReceivedHandler(string path);
-
-	/// <summary>
-	/// Event that is triggered when an object is received from the server, return the object as xml
-	/// </summary>
-	/// <param name="xmlObj"></param>
-	public delegate void ObjectFromServerReceivedHandler(string xmlObj);
-
-
+	public delegate void FileFromServerReceivedHandler(IAsyncClient a, string path);
 
 
 	/// <summary>
@@ -53,28 +46,28 @@ namespace AsyncClientServer.Model
 	/// </summary>
 	public sealed class AsyncClient : SendToServer, IAsyncClient
 	{
-		private int _port;
-		private string _ipServer;
-		private int _reconnectSeconds;
-
+		private readonly string[] _messageTypes = { "FILETRANSFER", "COMMAND", "MESSAGE", "OBJECT" };
 		private Socket _listener;
 		private bool _close;
-		private int _flag;
-		private string _receivedpath = "";
-
-
-		public int Port
-		{
-			get => _port;
-		}
-
-		public string IpServer
-		{
-			get => _ipServer;
-		}
-
 		private readonly ManualResetEvent _connected = new ManualResetEvent(false);
 		private readonly ManualResetEvent _sent = new ManualResetEvent(false);
+		private IPEndPoint _endpoint;
+
+		/// <summary>
+		/// The port of the server
+		/// </summary>
+		public int Port { get; private set; }
+
+		/// <summary>
+		/// The ip of the server
+		/// </summary>
+		public string IpServer { get; private set; }
+
+		/// <summary>
+		/// This is how many seconds te client waits to try and reconnect to the server
+		/// </summary>
+		public int ReconnectInSeconds { get; private set; }
+
 
 		/// <summary>
 		/// This event is used to check if the client is connected
@@ -95,11 +88,6 @@ namespace AsyncClientServer.Model
 		public event FileFromServerReceivedHandler FileReceived;
 
 		/// <summary>
-		/// Event that is used to check when an object is received from the server
-		/// </summary>
-		public event ObjectFromServerReceivedHandler ObjectReceived;
-
-		/// <summary>
 		/// Constructor
 		/// Use StartClient() to start a connection to a server.
 		/// </summary>
@@ -113,19 +101,19 @@ namespace AsyncClientServer.Model
 		/// </summary>
 		public void StartClient(string ipServer, int port, int reconnectInSeconds)
 		{
-			_ipServer = ipServer;
-			_port = port;
-			_reconnectSeconds = reconnectInSeconds * 1000;
+			IpServer = ipServer;
+			Port = port;
+			ReconnectInSeconds = reconnectInSeconds;
 
 			var host = Dns.GetHostEntry(ipServer);
 			var ip = host.AddressList[0];
-			var endpoint = new IPEndPoint(ip, port);
+			_endpoint = new IPEndPoint(ip, port);
 
 			try
 			{
 				//Try and connect
-				_listener = new Socket(endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-				_listener.BeginConnect(endpoint, this.OnConnectCallback, _listener);
+				_listener = new Socket(_endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+				_listener.BeginConnect(_endpoint, this.OnConnectCallback, _listener);
 				_connected.WaitOne();
 
 				//If client is connected activate connected event
@@ -175,14 +163,13 @@ namespace AsyncClientServer.Model
 				server.EndConnect(result);
 				_connected.Set();
 			}
-			catch (SocketException)
+			catch (SocketException ex)
 			{
-				//Loops until connected
-				Thread.Sleep(5000);
-				StartClient(_ipServer, _port);
+				Thread.Sleep(ReconnectInSeconds * 1000);
+				_listener.BeginConnect(_endpoint, this.OnConnectCallback, _listener);
 			}
 		}
-		
+
 		/// <summary>
 		/// Start receiving data from server.
 		/// </summary>
@@ -190,113 +177,177 @@ namespace AsyncClientServer.Model
 		{
 			//Start receiving data
 			var state = new StateObject(_listener);
-
-			_flag = 0;
-			state.Listener.BeginReceive(state.Buffer, 0, state.BufferSize, SocketFlags.None, this.ReceiveCallback, state);
-
+			StartReceiving(state);
 		}
-
 		private void ReceiveCallback(IAsyncResult result)
 		{
+
 			try
 			{
-
-				int fileNameLen = 1;
-				string filename = "";
-				var state = (IStateObject)result.AsyncState;
-				var receive = state.Listener.EndReceive(result);
-
-				//Process received information
-				if (receive > 0)
+				if (IsConnected())
 				{
-					if (_flag == 0)
-					{
-						fileNameLen = BitConverter.ToInt32(state.Buffer, 0);
-						filename = Encoding.UTF8.GetString(state.Buffer, 4, fileNameLen);
-						_receivedpath = filename;
-						_flag++;
-					}
-
-					if (filename == "NOFILE" || filename == "OBJECT")
-					{
-						state.Append(Encoding.UTF8.GetString(state.Buffer, 4 + fileNameLen, receive - (4 + fileNameLen)));
-						_flag = -1;
-					}
-					else
-					{
-
-						if (_flag == 1)
-						{
-							if (File.Exists(_receivedpath))
-							{
-								File.Delete(_receivedpath);
-							}
-						}
-
-						if (_flag >= 1)
-						{
-							//Get data for file and write it
-							using (BinaryWriter writer = new BinaryWriter(File.Open(_receivedpath, FileMode.Append)))
-							{
-								if (_flag == 1)
-								{
-									if (File.Exists(_receivedpath))
-									{
-										File.Delete(_receivedpath);
-									}
-									writer.Write(state.Buffer, 4 + fileNameLen, receive - (4 + fileNameLen));
-									_flag++;
-								}
-								else
-								{
-									writer.Write(state.Buffer, 0, receive);
-									writer.Close();
-								}
-
-							}
-
-						}
-
-						if (_flag == -1)
-						{
-							state.Append(Encoding.UTF8.GetString(state.Buffer, 0, receive));
-						}
-					}
-				}
-
-				if (receive == state.BufferSize)
-				{
-					state.Listener.BeginReceive(state.Buffer, 0, state.BufferSize, SocketFlags.None,
-						this.ReceiveCallback, state);
+					HandleMessage(result);
 				}
 				else
 				{
-
-					if (_receivedpath == "OBJECT")
-					{
-						this.ObjectReceived?.Invoke(state.Text);
-
-					}else if (_receivedpath == "NOFILE")
-					{
-						this.MessageReceived?.Invoke(this, state.Text);
-					}
-					else if (_receivedpath != "OBJECT" && _receivedpath != "NOFILE")
-					{
-						FileReceived?.Invoke(_receivedpath);
-					}
-
-
-					state.Reset();
-					if (!state.Close)
-					{
-						Receive();
-					}
-
+					Close();
+					StartClient(IpServer, Port, ReconnectInSeconds);
 				}
+
 			}
 			catch (Exception ex)
 			{
 				throw new Exception(ex.ToString());
+			}
+
+
+		}
+
+
+		/*Used make receivecallback easier*/
+		private void Loop(IStateObject state, int receive)
+		{
+			if (state.Flag == 0)
+			{
+				state.MessageSize = BitConverter.ToInt32(state.Buffer, 0);
+				state.HeaderSize = BitConverter.ToInt32(state.Buffer, 4);
+				state.Header = Encoding.UTF8.GetString(state.Buffer, 8, state.HeaderSize);
+				state.Flag++;
+
+				if (_messageTypes.Contains(state.Header))
+				{
+					string msg = Encoding.UTF8.GetString(state.Buffer, 8 + state.HeaderSize,
+						receive - (8 + state.HeaderSize));
+					state.Append(msg);
+					state.AppendRead(msg.Length);
+					state.Flag = -1;
+				}
+				else
+				{
+
+					/* Writes file to corresponding location*/
+					HandleFile(state, receive);
+
+					/* Convert message to string */
+					if (state.Flag == -1)
+					{
+						string msg = Encoding.UTF8.GetString(state.Buffer, 0, receive);
+						state.Append(msg);
+						state.AppendRead(msg.Length);
+					}
+				}
+
+
+			}
+		}
+		private void HandleFile(IStateObject state, int receive)
+		{
+			if (state.Flag >= 1)
+			{
+				if (state.Flag == 1)
+				{
+					if (File.Exists(state.Header))
+					{
+						File.Delete(state.Header);
+					}
+				}
+
+				//Get data for file and write it
+				using (BinaryWriter writer = new BinaryWriter(File.Open(state.Header, FileMode.Append)))
+				{
+					if (state.Flag == 1)
+					{
+						string test = Encoding.UTF8.GetString(state.Buffer, 8 + state.HeaderSize,
+							receive - (8 + state.HeaderSize));
+						writer.Write(test);
+						state.AppendRead(test.Length);
+						state.Flag++;
+					}
+					else
+					{
+						writer.Write(state.Buffer, 0, receive);
+						writer.Close();
+					}
+				}
+			}
+
+		}
+		private void StartReceiving(IStateObject state)
+		{
+			state.Listener.BeginReceive(state.Buffer, 0, state.BufferSize, SocketFlags.None,
+				this.ReceiveCallback, state);
+		}
+		private void InvokeAndReset(IStateObject state)
+		{
+
+			foreach (var v in _messageTypes)
+			{
+				if (v == state.Header)
+				{
+					MessageReceived?.Invoke(this, state.Header, state.Text);
+					state.Reset();
+					if (!state.Close)
+					{
+						StartReceiving(state);
+						return;
+					}
+					this.Dispose();
+					return;
+
+				}
+			}
+
+
+			FileReceived?.Invoke(this, state.Header);
+			state.Reset();
+			StartReceiving(state);
+			state.Reset();
+			if (!state.Close)
+			{
+				StartReceiving(state);
+				return;
+			}
+			this.Dispose();
+
+
+
+		}
+		private void HandleMessage(IAsyncResult result)
+		{
+
+			try
+			{
+
+				var state = (StateObject)result.AsyncState;
+				var receive = state.Listener.EndReceive(result);
+
+				if (receive > 0)
+				{
+					/*Gets the header, headersize and messagesize and first part of the message.*/
+					Loop(state, receive);
+				}
+
+				/*When the full message has been received. */
+				if (state.Read == state.MessageSize)
+				{
+					InvokeAndReset(state);
+				}
+
+				/*Check if there still are messages to be received.*/
+				if (receive == state.BufferSize)
+				{
+					StartReceiving(state);
+				}
+				//else
+				//{
+				//	InvokeAndReset(state);
+				//}
+
+
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine(ex);
 			}
 		}
 
@@ -306,7 +357,7 @@ namespace AsyncClientServer.Model
 		/// </summary>
 		/// <param name="bytes"></param>
 		/// <param name="close"></param>
-		protected override void SendBytes(Byte[] bytes, bool close)
+		protected override void SendBytes(byte[] bytes, bool close)
 		{
 
 			try
@@ -336,19 +387,6 @@ namespace AsyncClientServer.Model
 			{
 				var receiver = (Socket)result.AsyncState;
 				receiver.EndSend(result);
-
-				
-				if (!_close)
-				{	
-					//Makes sure the client is receiving messages
-					Receive();
-				}
-				else
-				{
-					//Closes the client when necesarry
-					Dispose();
-				}
-
 			}
 			catch (SocketException se)
 			{

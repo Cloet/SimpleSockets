@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Runtime.Remoting.Messaging;
 using System.Text;
 
 namespace AsyncClientServer.Helper
@@ -11,35 +12,25 @@ namespace AsyncClientServer.Helper
 	public abstract class SendTo
 	{
 
-		/// <summary>
-		/// Handles errors, client doesn't need to handle error in this project so do nothing default.
-		/// </summary>
-		/// <param name="ex"></param>
-		public virtual void ErrorHandler(string ex)
-		{
-			throw new Exception("Something went wrong..." + ex);
-		}
+
 
 		/// <summary>
 		/// Creates an array of bytes
 		/// <para>This method sets the location of where the file will be copied to.
 		/// It also gets all bytes in a file and writes it to fileData byte array</para>
 		/// </summary>
-		/// <param name="Filelocation"></param>
-		/// <param name="RemoteSaveLocation"></param>
+		/// <param name="fileLocation"></param>
+		/// <param name="remoteSaveLocation"></param>
 		/// <returns>Byte[]</returns>
-		public Byte[] CreateByteArray(string Filelocation, string RemoteSaveLocation)
+		public byte[] CreateByteFile(string fileLocation, string remoteSaveLocation)
 		{
 
 			try
 			{
-				byte[] data;
-
-
-				byte[] fileName = Encoding.UTF8.GetBytes(RemoteSaveLocation); //file name
-				byte[] fileData = File.ReadAllBytes(Filelocation); //file
+				byte[] fileName = Encoding.UTF8.GetBytes(remoteSaveLocation); //file name
+				byte[] fileData = File.ReadAllBytes(fileLocation); //file
 				byte[] fileNameLen = BitConverter.GetBytes(fileName.Length); //length of file name
-				data = new byte[4 + fileName.Length + fileData.Length];
+				var data = new byte[4 + fileName.Length + fileData.Length];
 
 				fileNameLen.CopyTo(data, 0);
 				fileName.CopyTo(data, 4);
@@ -49,8 +40,38 @@ namespace AsyncClientServer.Helper
 			}
 			catch (Exception ex)
 			{
-				ErrorHandler(ex.ToString());
 				return null;
+			}
+		}
+
+
+		private byte[] CreateByteArray(string message, string header)
+		{
+			try
+			{
+
+				//Message
+				byte[] messageData = Encoding.UTF8.GetBytes(message);
+				byte[] headerBytes = Encoding.UTF8.GetBytes(header);
+				byte[] headerLen = BitConverter.GetBytes(headerBytes.Length);
+				byte[] messageLength = BitConverter.GetBytes(messageData.Length);
+
+				
+				var data = new byte[4 + 4 + headerBytes.Length + messageData.Length];
+
+				messageLength.CopyTo(data, 0);
+				headerLen.CopyTo(data, 4);
+
+				headerBytes.CopyTo(data, 8);
+
+				messageData.CopyTo(data, 8 + headerBytes.Length);
+
+				return data;
+
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.ToString());
 			}
 		}
 
@@ -61,30 +82,29 @@ namespace AsyncClientServer.Helper
 		/// </summary>
 		/// <param name="message"></param>
 		/// <returns>Byte[]</returns>
-		public Byte[] CreateByteArray(string message)
+		public byte[] CreateByteMessage(string message)
 		{
-			try
-			{
-				byte[] data;
+			return CreateByteArray(message, "MESSAGE");
+		}
 
-				byte[] fileName = Encoding.UTF8.GetBytes("NOFILE"); //not a file
-				byte[] fileData = Encoding.UTF8.GetBytes(message); //message
-				byte[] fileNameLen = BitConverter.GetBytes(fileName.Length); //length of "filename"
-				data = new byte[4 + fileName.Length + fileData.Length];
+		/// <summary>
+		/// Creates an array of bytes to send a command
+		/// </summary>
+		/// <param name="command"></param>
+		/// <returns></returns>
+		public byte[] CreateByteCommand(string command)
+		{
+			return CreateByteArray(command, "COMMAND");
+		}
 
-				fileNameLen.CopyTo(data, 0); // length of filename
-				fileName.CopyTo(data, 4);
-				fileData.CopyTo(data, 4 + fileName.Length); // instruction
-
-				return data;
-			}
-			catch (Exception ex)
-			{
-				ErrorHandler(ex.ToString());
-				return null;
-			}
-
-
+		/// <summary>
+		/// Creates an array of bytes to send a command
+		/// </summary>
+		/// <param name="newPath"></param>
+		/// <returns></returns>
+		public byte[] CreateByteFileTransfer(string newPath)
+		{
+			return CreateByteArray(newPath, "FILETRANSFER");
 		}
 
 		/// <summary>
@@ -92,34 +112,13 @@ namespace AsyncClientServer.Helper
 		/// <para>This method serializes an object of type "SerializableObject" and converts it to xml.
 		/// This xml string will be converted to bytes and send using sockets and deserialized when it arrives.</para>
 		/// </summary>
-		/// <param name="b"></param>
+		/// <param name="serObj"></param>
 		/// <returns>Byte[]</returns>
-		public Byte[] CreateByteArray(SerializableObject b)
+		public byte[] CreateByteObject(SerializableObject serObj)
 		{
-			try
-			{
 
-
-				byte[] data;
-
-				byte[] fileName = Encoding.UTF8.GetBytes("OBJECT"); //not a file
-				string message = b.SerializeToXml();
-				byte[] fileData = Encoding.UTF8.GetBytes(message); //message
-				byte[] fileNameLen = BitConverter.GetBytes(fileName.Length); //length of "filename"
-				data = new byte[4 + fileName.Length + fileData.Length];
-
-				fileNameLen.CopyTo(data, 0); // length of filename
-				fileName.CopyTo(data, 4);
-				fileData.CopyTo(data, 4 + fileName.Length); // instruction
-
-				return data;
-			}
-			catch (Exception ex)
-			{
-				ErrorHandler(ex.ToString());
-				return null;
-			}
-
+			string message = serObj.Serialize();
+			return CreateByteArray(message, "OBJECT");
 
 		}
 

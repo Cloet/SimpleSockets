@@ -10,6 +10,16 @@ namespace AsyncClientServer.Helper
 
 		int BufferSize { get; }
 
+		int MessageSize { get; set; }
+
+		int HeaderSize { get; set; }
+
+		int Read { get; }
+
+		int Flag { get; set; }
+
+		string Header { get; set; }
+
 		int Id { get; }
 
 		bool Close { get; set; }
@@ -21,6 +31,8 @@ namespace AsyncClientServer.Helper
 		string Text { get; }
 
 		void Append(string text);
+
+		void AppendRead(int length);
 
 		void Reset();
 

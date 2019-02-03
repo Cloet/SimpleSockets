@@ -27,7 +27,8 @@ namespace AsyncClientServer.Example.Client
 			Thread t = new Thread(StartClient);
 			t.Start();
 
-			while(true){
+			while (true)
+			{
 
 				if (_connected)
 				{
@@ -56,50 +57,44 @@ namespace AsyncClientServer.Example.Client
 			_client.MessageReceived += new ClientMessageReceivedHandler(ServerMessageReceived);
 			_client.MessageSubmitted += new ClientMessageSubmittedHandler(ClientMessageSubmitted);
 			_client.FileReceived += new FileFromServerReceivedHandler(FileReceived);
-			_client.ObjectReceived += new ObjectFromServerReceivedHandler(ObjectReceived);
 		}
 
 		/*Send messages*/
-		private static void SendMessage(string msg, Boolean close)
+		private static void SendMessage(string msg, bool close)
 		{
 			_client.SendMessage(msg, close);
 		}
 
-		private static void SendFile(string fileLocation, string remoteLocation, Boolean close)
+		private static void SendFile(string fileLocation, string remoteLocation, bool close)
 		{
 			_client.SendFile(fileLocation, remoteLocation, close);
 		}
 
-		private static void SendObject(SerializableObject anyObj, Boolean close)
+		private static void SendObject(SerializableObject anyObj, bool close)
 		{
 			_client.SendObject(anyObj, close);
 		}
 
 		/*Events*/
 		//Client Events
-		private static void ConnectedToServer(AsyncClient a)
+		private static void ConnectedToServer(IAsyncClient a)
 		{
 			_connected = true;
 			Console.WriteLine("Client has connected to server");
 			a.SendMessage("Hello server, I'm the client.", false);
 		}
 
-		private static void ServerMessageReceived(AsyncClient a, String msg)
+		private static void ServerMessageReceived(IAsyncClient a,string header, string msg)
 		{
 			Console.WriteLine("Message received from the server: " + msg);
 		}
 
-		private static void ObjectReceived(string xml)
-		{
-			Console.WriteLine("Object received from the server: " + xml);
-		}
-
-		private static void FileReceived(string file)
+		private static void FileReceived(IAsyncClient a, string file)
 		{
 			Console.WriteLine("File received and saved at: " + file);
 		}
 
-		private static void ClientMessageSubmitted(AsyncClient a, bool close)
+		private static void ClientMessageSubmitted(IAsyncClient a, bool close)
 		{
 			//if (close)
 			//{

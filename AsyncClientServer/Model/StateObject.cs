@@ -34,7 +34,13 @@ namespace AsyncClientServer.Model
 			this.id = id;
 			this.Close = false;
 			this.Reset();
+			this.Flag = 0;
+			this.Read = 0;
 		}
+
+		public int Read { get; private set; }
+		public int Flag { get; set; }
+		public string Header { get; set; }
 
 		/// <summary>
 		/// Get the id
@@ -63,6 +69,9 @@ namespace AsyncClientServer.Model
 				return Buffer_Size;
 			}
 		}
+
+		public int MessageSize { get; set; }
+		public int HeaderSize { get; set; }
 
 		/// <summary>
 		/// Gets the amount of bytes in the buffer
@@ -106,11 +115,21 @@ namespace AsyncClientServer.Model
 			this.sb.Append(text);
 		}
 
+		public void AppendRead(int length)
+		{
+			this.Read += length;
+		}
+
 		/// <summary>
 		/// Resets the stringbuilder
 		/// </summary>
 		public void Reset()
 		{
+			this.Header = "";
+			this.MessageSize = 0;
+			this.HeaderSize = 0;
+			this.Read = 0;
+			this.Flag = 0;
 			this.sb = new StringBuilder();
 		}
 
