@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using System.Timers;
 using AsyncClientServer.Helper;
 
 namespace AsyncClientServer.Model
@@ -55,6 +56,7 @@ namespace AsyncClientServer.Model
 		private readonly ManualResetEvent _mre = new ManualResetEvent(false);
 		private readonly IDictionary<int, IStateObject> _clients = new Dictionary<int, IStateObject>();
 		private readonly string[] _messageTypes = {"FILETRANSFER", "COMMAND", "MESSAGE", "OBJECT"};
+		private static System.Timers.Timer _keepAliveTimer;
 
 		public event MessageReceivedHandler MessageReceived;
 		public event MessageSubmittedHandler MessageSubmitted;
@@ -80,13 +82,34 @@ namespace AsyncClientServer.Model
 
 		private AsyncSocketListener()
 		{
-
+			_keepAliveTimer = new System.Timers.Timer(60000);
+			_keepAliveTimer.Elapsed += KeepAlive;
+			_keepAliveTimer.AutoReset = true;
+			_keepAliveTimer.Enabled = true;
 		}
 
 		/// <summary>
 		/// Get the instance of the server
 		/// </summary>
 		public static AsyncSocketListener Instance { get; } = new AsyncSocketListener();
+
+		private void KeepAlive(Object source, ElapsedEventArgs e)
+		{
+			lock (_clients)
+			{
+				if (_clients.Keys.Count > 0)
+				{
+					foreach (var id in _clients.Keys)
+					{
+						if (!IsConnected(id))
+						{
+							ClientDisconnected?.Invoke(id);
+							_clients.Remove(id);
+						}
+					}
+				}
+			}
+		}
 
 		/// <summary>
 		/// Starts listening on the given port.
@@ -141,7 +164,7 @@ namespace AsyncClientServer.Model
 
 				var state = this.GetClient(id);
 
-				return !(state.Listener.Poll(1000, SelectMode.SelectRead) && state.Listener.Available == 0);
+				return !((state.Listener.Poll(1000, SelectMode.SelectRead) && (state.Listener.Available == 0)) || !state.Listener.Connected);
 			}
 			catch (Exception ex)
 			{
@@ -291,10 +314,9 @@ namespace AsyncClientServer.Model
 		private void HandleMessage(IAsyncResult result)
 		{
 
+			var state = (StateObject)result.AsyncState;
 			try
 			{
-
-				var state = (StateObject)result.AsyncState;
 				var receive = state.Listener.EndReceive(result);
 
 				if (receive > 0)
@@ -316,6 +338,11 @@ namespace AsyncClientServer.Model
 					StartReceiving(state);
 				}
 
+			}
+			catch (SocketException)
+			{
+				ClientDisconnected?.Invoke(state.Id);
+				_clients.Remove(state.Id);
 			}
 			catch (Exception ex)
 			{

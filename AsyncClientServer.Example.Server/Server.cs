@@ -90,12 +90,6 @@ namespace AsyncClientServer.Example.Server
 			Console.WriteLine("Server sent a message to client " + id);
 		}
 
-		private static void ObjectReceived(int id, string obj)
-		{
-			AsyncSocketListener.Instance.SendMessage(id, "Recieved message", false);
-			Console.WriteLine("Server received an object from client " + id);
-		}
-
 		private static void FileReceived(int id, string path)
 		{
 			AsyncSocketListener.Instance.SendMessage(id, "Received", false);

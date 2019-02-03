@@ -7,6 +7,7 @@ using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
 using System.Threading;
+using System.Timers;
 using AsyncClientServer.Helper;
 
 namespace AsyncClientServer.Model
@@ -17,6 +18,12 @@ namespace AsyncClientServer.Model
 	/// </summary>
 	/// <param name="a"></param>
 	public delegate void ConnectedHandler(IAsyncClient a);
+
+	/// <summary>
+	/// Event that is triggered when the client has disconnected from the server.
+	/// </summary>
+	public delegate void DisconnectedFromServerHandler(string ipServer, int port);
+
 	/// <summary>
 	/// Event that triggers when client receives a message
 	/// </summary>
@@ -52,6 +59,7 @@ namespace AsyncClientServer.Model
 		private readonly ManualResetEvent _connected = new ManualResetEvent(false);
 		private readonly ManualResetEvent _sent = new ManualResetEvent(false);
 		private IPEndPoint _endpoint;
+		private static System.Timers.Timer _keepAliveTimer;
 
 		/// <summary>
 		/// The port of the server
@@ -88,11 +96,32 @@ namespace AsyncClientServer.Model
 		public event FileFromServerReceivedHandler FileReceived;
 
 		/// <summary>
+		/// Event that is used to check if the client is still connected to the server.
+		/// </summary>
+		public event DisconnectedFromServerHandler Disconnected;
+
+		/// <summary>
 		/// Constructor
 		/// Use StartClient() to start a connection to a server.
 		/// </summary>
 		public AsyncClient()
 		{
+			_keepAliveTimer = new System.Timers.Timer(5000);
+			_keepAliveTimer.Elapsed += KeepAlive;
+			_keepAliveTimer.AutoReset = true;
+			_keepAliveTimer.Enabled = false;
+		}
+
+
+		private void KeepAlive(Object source, ElapsedEventArgs e)
+		{
+			if (!IsConnected())
+			{
+				Disconnected?.Invoke(this.IpServer, this.Port);
+				this.Close();
+				_connected.Reset();
+				StartClient(IpServer, Port, ReconnectInSeconds);
+			}
 		}
 
 		/// <summary>
@@ -104,6 +133,7 @@ namespace AsyncClientServer.Model
 			IpServer = ipServer;
 			Port = port;
 			ReconnectInSeconds = reconnectInSeconds;
+			_keepAliveTimer.Enabled = false;
 
 			var host = Dns.GetHostEntry(ipServer);
 			var ip = host.AddressList[0];
@@ -145,7 +175,7 @@ namespace AsyncClientServer.Model
 		{
 			try
 			{
-				return !(_listener.Poll(1000, SelectMode.SelectRead) && _listener.Available == 0);
+				return !((_listener.Poll(1000, SelectMode.SelectRead) && (_listener.Available == 0)) || !_listener.Connected);
 			}
 			catch (Exception)
 			{
@@ -162,6 +192,7 @@ namespace AsyncClientServer.Model
 				//Client is connected to server and set connected variable
 				server.EndConnect(result);
 				_connected.Set();
+				_keepAliveTimer.Enabled = true;
 			}
 			catch (SocketException ex)
 			{
@@ -411,6 +442,7 @@ namespace AsyncClientServer.Model
 					return;
 				}
 
+				_connected.Reset();
 				_listener.Shutdown(SocketShutdown.Both);
 				_listener.Close();
 			}
