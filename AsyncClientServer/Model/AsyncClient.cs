@@ -193,6 +193,7 @@ namespace AsyncClientServer.Model
 				server.EndConnect(result);
 				_connected.Set();
 				_keepAliveTimer.Enabled = true;
+				Receive();
 			}
 			catch (SocketException ex)
 			{
