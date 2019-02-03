@@ -4,11 +4,12 @@ namespace AsyncClientServer.Helper
 {
 	/// <summary>
 	/// Implements methods to send messages to the server
-	/// <para>Extends <see cref="SendTo"/>, Implements <see cref="ISendToServer"/></para>
+	/// <para>Extends <see cref="T:AsyncClientServer.Helper.SendTo" />, Implements <see cref="T:AsyncClientServer.Helper.ISendToServer" /></para>
 	/// </summary>
 	public abstract class SendToServer: SendTo,ISendToServer
 	{
 
+		/// <inheritdoc />
 		/// <summary>
 		/// Send a message to the server
 		/// </summary>
@@ -21,6 +22,7 @@ namespace AsyncClientServer.Helper
 			SendBytes(data, close);
 		}
 
+		/// <inheritdoc />
 		/// <summary>
 		/// Send an object to server
 		/// <para>This object will be serialized using xml</para>
@@ -34,6 +36,7 @@ namespace AsyncClientServer.Helper
 			SendBytes(data, close);
 		}
 
+		/// <inheritdoc />
 		/// <summary>
 		/// Send a file to server
 		/// <para>Simple way of sending large files over sockets</para>
@@ -46,6 +49,31 @@ namespace AsyncClientServer.Helper
 			Byte[] data = CreateByteFile(FileLocation, RemoteFileLocation);
 			SendBytes(data, close);
 		}
+
+		/// <summary>
+		/// Send fileTransfer data to server
+		/// </summary>
+		/// <param name="path"></param>
+		/// <param name="close"></param>
+		public void SendFileTransfer(string path, bool close)
+		{
+			byte[] data = CreateByteFileTransfer(path);
+			SendBytes(data, close);
+		}
+
+		/// <inheritdoc />
+		/// <summary>
+		/// Sends a file to server
+		/// <para>Sends a command to server</para>
+		/// </summary>
+		/// <param name="command"></param>
+		/// <param name="close"></param>
+		public void SendCommand(string command, bool close)
+		{
+			byte[] data = CreateByteCommand(command);
+			SendBytes(data, close);
+		}
+
 
 		protected abstract void SendBytes(byte[] msg, bool close);
 	}

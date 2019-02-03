@@ -8,12 +8,34 @@ namespace AsyncClientServer.Helper
 	/// </summary>
 	public interface ISendToServer
 	{
+		/// <summary>
+		/// Sends a message to the server
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="close"></param>
+		void SendMessage(string message, bool close);
 
-		void SendMessage(string message, Boolean close);
+		/// <summary>
+		/// Sends an object to the srver
+		/// </summary>
+		/// <param name="anyObj"></param>
+		/// <param name="close"></param>
+		void SendObject(SerializableObject anyObj, bool close);
 
-		void SendObject(SerializableObject anyObj, Boolean close);
+		/// <summary>
+		/// Sends a file to the server
+		/// </summary>
+		/// <param name="fileLocation"></param>
+		/// <param name="remoteFileLocation"></param>
+		/// <param name="Close"></param>
+		void SendFile(string fileLocation, string remoteFileLocation, bool Close);
 
-		void SendFile(string FileLocation, string RemoteFileLocation, Boolean Close);
+		/// <summary>
+		/// Sends a command to the server
+		/// </summary>
+		/// <param name="command">Command that should be executed by the server</param>
+		/// <param name="close"></param>
+		void SendCommand(string command, bool close);
 
 	}
 }

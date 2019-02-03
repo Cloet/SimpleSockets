@@ -30,7 +30,7 @@ namespace AsyncClientServer.Model
 			}
 			catch (Exception)
 			{
-				return null;
+				throw new Exception("Unable to serialize the object of type " + obj.GetType() + " to an xml string.");
 			}
 
 		}
@@ -50,9 +50,9 @@ namespace AsyncClientServer.Model
 				StringReader stringReader = new StringReader(xml);
 				return xmlSer.Deserialize(stringReader);
 			}
-			catch (Exception ex)
+			catch (Exception)
 			{
-				return null;
+				throw new Exception("Unable to convert xml string back to an object of type " + obj.GetType() + ".");
 			}
 		}
 	}

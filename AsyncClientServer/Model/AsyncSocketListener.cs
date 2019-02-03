@@ -93,7 +93,16 @@ namespace AsyncClientServer.Model
 		/// </summary>
 		public static AsyncSocketListener Instance { get; } = new AsyncSocketListener();
 
-		private void KeepAlive(Object source, ElapsedEventArgs e)
+		public void CheckClient(int id)
+		{
+			if (!IsConnected(id))
+			{
+				ClientDisconnected?.Invoke(id);
+				_clients.Remove(id);
+			}
+		}
+
+		public void CheckAllClients()
 		{
 			lock (_clients)
 			{
@@ -101,15 +110,18 @@ namespace AsyncClientServer.Model
 				{
 					foreach (var id in _clients.Keys)
 					{
-						if (!IsConnected(id))
-						{
-							ClientDisconnected?.Invoke(id);
-							_clients.Remove(id);
-						}
+						CheckClient(id);
 					}
 				}
 			}
 		}
+
+		private void KeepAlive(Object source, ElapsedEventArgs e)
+		{
+			CheckAllClients();
+		}
+
+
 
 		/// <summary>
 		/// Starts listening on the given port.

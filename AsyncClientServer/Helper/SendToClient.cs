@@ -36,6 +36,7 @@ namespace AsyncClientServer.Helper
 			SendBytes(id, data, close);
 		}
 
+		/// <inheritdoc />
 		/// <summary>
 		/// Sends a file to corresponding client.
 		/// <para>The id is not zero-based!</para>
@@ -47,6 +48,34 @@ namespace AsyncClientServer.Helper
 		public void SendFile(int id, string fileLocation, string remoteSaveLocation, Boolean close)
 		{
 			byte[] data = CreateByteFile(fileLocation, remoteSaveLocation);
+			SendBytes(id, data, close);
+		}
+
+		/// <inheritdoc />
+		/// <summary>
+		/// Sends a command to the corresponding client and waits for an answer.
+		/// <para>The id is not zero-based!</para>
+		/// </summary>
+		/// <param name="id">client id</param>
+		/// <param name="command"></param>
+		/// <param name="close"></param>
+		public void SendCommand(int id, string command, bool close)
+		{
+			byte[] data = CreateByteCommand(command);
+			SendBytes(id, data, close);
+		}
+
+		/// <inheritdoc />
+		/// <summary>
+		/// Requests info of a certain path
+		/// <para>The id is not zero-based!</para>
+		/// </summary>
+		/// <param name="id">Client id</param>
+		/// <param name="path">the path</param>
+		/// <param name="close">true if client should be closed afterwards</param>
+		public void SendFileTransfer(int id, string path, bool close)
+		{
+			byte[] data = CreateByteFileTransfer(path);
 			SendBytes(id, data, close);
 		}
 
@@ -102,5 +131,17 @@ namespace AsyncClientServer.Helper
 			}
 		}
 
+		/// <summary>
+		/// Sends a command to all connected clients
+		/// </summary>
+		/// <param name="command"></param>
+		/// <param name="close"></param>
+		public void SendCommandToAllClients(string command, bool close)
+		{
+			foreach (var c in AsyncSocketListener.Instance.GetClients())
+			{
+				SendCommand(c.Key, command, close);
+			}
+		}
 	}
 }

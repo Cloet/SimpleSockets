@@ -231,12 +231,6 @@ namespace AsyncClientServer.Model
 				{
 					HandleMessage(result);
 				}
-				//else
-				//{
-				//	Close();
-				//	StartClient(IpServer, Port, ReconnectInSeconds);
-				//}
-
 			}
 			catch (Exception ex)
 			{
