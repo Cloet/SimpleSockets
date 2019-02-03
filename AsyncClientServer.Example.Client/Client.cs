@@ -27,18 +27,18 @@ namespace AsyncClientServer.Example.Client
 			Thread t = new Thread(StartClient);
 			t.Start();
 
-			while (true)
-			{
+			//while (true)
+			//{
 
-				if (_connected)
-				{
+			//	if (_connected)
+			//	{
 
-					Console.Write("Enter message:");
-					string msg = Console.ReadLine();
-					_client.SendMessage(msg, false);
-				}
+			//		Console.Write("Enter message:");
+			//		string msg = Console.ReadLine();
+			//		_client.SendMessage(msg, false);
+			//	}
 
-			}
+			//}
 
 			Console.ReadLine();
 
@@ -57,6 +57,7 @@ namespace AsyncClientServer.Example.Client
 			_client.MessageReceived += new ClientMessageReceivedHandler(ServerMessageReceived);
 			_client.MessageSubmitted += new ClientMessageSubmittedHandler(ClientMessageSubmitted);
 			_client.FileReceived += new FileFromServerReceivedHandler(FileReceived);
+			_client.Disconnected += new DisconnectedFromServerHandler(Disconnected);
 		}
 
 		/*Send messages*/
@@ -92,6 +93,11 @@ namespace AsyncClientServer.Example.Client
 		private static void FileReceived(IAsyncClient a, string file)
 		{
 			Console.WriteLine("File received and saved at: " + file);
+		}
+
+		private static void Disconnected(string ip, int port)
+		{
+			Console.WriteLine("Client has disconnected from server with ip: " + ip + " and port " + port);
 		}
 
 		private static void ClientMessageSubmitted(IAsyncClient a, bool close)

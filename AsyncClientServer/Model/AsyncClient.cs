@@ -106,7 +106,7 @@ namespace AsyncClientServer.Model
 		/// </summary>
 		public AsyncClient()
 		{
-			_keepAliveTimer = new System.Timers.Timer(5000);
+			_keepAliveTimer = new System.Timers.Timer(15000);
 			_keepAliveTimer.Elapsed += KeepAlive;
 			_keepAliveTimer.AutoReset = true;
 			_keepAliveTimer.Enabled = false;
@@ -147,7 +147,18 @@ namespace AsyncClientServer.Model
 				_connected.WaitOne();
 
 				//If client is connected activate connected event
-				this.Connected?.Invoke(this);
+				if (IsConnected())
+				{
+					this.Connected?.Invoke(this);
+				}
+				else
+				{
+					_keepAliveTimer.Enabled = false;
+					Disconnected?.Invoke(this.IpServer, this.Port);
+					this.Close();
+					_connected.Reset();
+					_listener.BeginConnect(_endpoint, this.OnConnectCallback, _listener);
+				}
 
 			}
 			catch (Exception ex)
@@ -220,11 +231,11 @@ namespace AsyncClientServer.Model
 				{
 					HandleMessage(result);
 				}
-				else
-				{
-					Close();
-					StartClient(IpServer, Port, ReconnectInSeconds);
-				}
+				//else
+				//{
+				//	Close();
+				//	StartClient(IpServer, Port, ReconnectInSeconds);
+				//}
 
 			}
 			catch (Exception ex)
