@@ -29,8 +29,8 @@ namespace AsyncClientServer.Model.State
 		{
 
 			//Creates a new byte array and copy data to it
-			byte[] bytes = new byte[receive - (8 + state.HeaderSize)];
-			Array.Copy(state.Buffer, 8 + state.HeaderSize, bytes, 0, receive - (8 + state.HeaderSize));
+			byte[] bytes = new byte[state.Buffer.Length - (8 + state.HeaderSize)];
+			Array.Copy(state.Buffer, 8 + state.HeaderSize, bytes, 0, state.Buffer.Length - (8 + state.HeaderSize));
 
 			//Get data for file and write it
 			using (BinaryWriter writer = new BinaryWriter(File.Open(state.Header, FileMode.Append)))
@@ -40,9 +40,14 @@ namespace AsyncClientServer.Model.State
 				writer.Close();
 			}
 
-
 			//Add bytes that have been read to int and increment state flag
 			state.AppendRead(bytes.Length);
+
+			if (state.Buffer.Length < 1024)
+			{
+				state.ChangeBuffer(new byte[state.BufferSize]);
+			}
+
 			state.Flag++;
 
 
@@ -52,12 +57,19 @@ namespace AsyncClientServer.Model.State
 		{
 
 			byte[] bytes = CheckMessage(state, receive);
-
-			
+		
 			using (BinaryWriter writer = new BinaryWriter(File.Open(state.Header, FileMode.Append)))
 			{	
 				writer.Write(bytes);
 				writer.Close();
+			}
+
+			if (state.Flag == -2)
+			{
+				byte[] bytes2 = new byte[state.BufferSize - bytes.Length];
+				Array.Copy(state.Buffer, bytes.Length, bytes2, 0, state.Read - state.MessageSize);
+				state.SubtractRead(receive - bytes.Length);
+				state.ChangeBuffer(bytes2);
 			}
 
 		}
@@ -65,18 +77,21 @@ namespace AsyncClientServer.Model.State
 		public byte[] CheckMessage(IStateObject state, int receive)
 		{
 			byte[] bytes = new byte[receive];
-			state.AppendRead(bytes.Length);
+			state.AppendRead(receive);
 
 			if (state.Read > state.MessageSize)
 			{
+				bytes = new byte[receive - (state.Read - state.MessageSize)];
 				Array.Copy(state.Buffer, 0, bytes, 0, receive - (state.Read - state.MessageSize));
-				Client.ChangeState(new InitReceiveState(Client));
+				Client.ChangeState(new FileReceivedState(Client));
 				state.Flag = -2;
 			}
 			else
 			{
 				Array.Copy(state.Buffer, 0, bytes,0, receive);
 			}
+
+
 
 			return bytes;
 
@@ -93,6 +108,10 @@ namespace AsyncClientServer.Model.State
 			else
 			{
 				NormalWrite(state, receive);
+				if (state.Flag == -2)
+				{
+					Client.CState.Receive(state, receive);
+				}
 			}
 
 

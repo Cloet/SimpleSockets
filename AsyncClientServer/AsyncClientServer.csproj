@@ -55,6 +55,7 @@
     <Compile Include="Model\State\ClientServerState.cs" />
     <Compile Include="Model\SerializeObject.cs" />
     <Compile Include="Model\StateObject.cs" />
+    <Compile Include="Model\State\FileReceivedState.cs" />
     <Compile Include="Model\State\InitReceiveState.cs" />
     <Compile Include="Model\State\ReceiveFileState.cs" />
     <Compile Include="Model\State\ReceiveMessageState.cs" />

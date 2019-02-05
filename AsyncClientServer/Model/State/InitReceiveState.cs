@@ -18,6 +18,7 @@ namespace AsyncClientServer.Model.State
 
 		public override void Receive(IStateObject state, int receive)
 		{
+
 			if (state.Flag == 0)
 			{
 				state.MessageSize = BitConverter.ToInt32(state.Buffer, 0);

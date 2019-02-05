@@ -304,15 +304,21 @@ namespace AsyncClientServer.Model
 				/*When the full message has been received. */
 				if (state.Read == state.MessageSize)
 				{
-					InvokeAndReset(state);
 					StartReceiving(state);
+					return;
 				}
 
 				/*Check if there still are messages to be received.*/
 				if (receive == state.BufferSize)
 				{
 					StartReceiving(state);
+					return;
 				}
+
+				//When something goes wrong
+				ChangeState(new InitReceiveState(this));
+				StartReceiving(state);
+
 
 			}
 			catch (Exception ex)
