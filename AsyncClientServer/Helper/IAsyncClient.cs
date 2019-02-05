@@ -106,5 +106,11 @@ namespace AsyncClientServer.Helper
 		void SendFile(string fileLocation, string remoteFileLocation, bool close);
 
 
+		ClientState CState { get; }
+
+		void InvokeAndReset(IStateObject state);
+
+		void ChangeState(ClientState cstate);
+
 	}
 }

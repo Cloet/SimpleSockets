@@ -10,12 +10,22 @@ namespace AsyncClientServer.Model
 	public abstract class ClientState
 	{
 
-		protected AsyncClient Client;
+		protected IAsyncClient Client;
+		protected IAsyncSocketListener Server;
 
-		public ClientState(AsyncClient client)
+		protected ClientState(IAsyncClient client)
 		{
+			Server = null;
 			Client = client;
 		}
+
+		protected ClientState(IAsyncSocketListener server)
+		{
+			Client = null;
+			Server = server;
+		}
+
+
 
 		public abstract void Receive(IStateObject state, int receive);
 

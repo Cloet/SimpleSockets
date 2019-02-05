@@ -316,6 +316,7 @@ namespace AsyncClientServer.Model
 				}
 
 				//When something goes wrong
+				InvokeAndReset(state);
 				ChangeState(new InitReceiveState(this));
 				StartReceiving(state);
 

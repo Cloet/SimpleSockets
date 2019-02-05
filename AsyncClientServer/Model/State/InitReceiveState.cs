@@ -12,7 +12,11 @@ namespace AsyncClientServer.Model.State
 
 		private readonly string[] _messageTypes = { "FILETRANSFER", "COMMAND", "MESSAGE", "OBJECT" };
 
-		public InitReceiveState(AsyncClient client) : base(client)
+		public InitReceiveState(IAsyncClient client) : base(client)
+		{
+		}
+
+		public InitReceiveState(IAsyncSocketListener server) : base(server)
 		{
 		}
 
@@ -29,13 +33,36 @@ namespace AsyncClientServer.Model.State
 
 			if (_messageTypes.Contains(state.Header))
 			{
-				Client.ChangeState(new ReceiveMessageState(Client));
-				Client.CState.Receive(state, receive);
+				if (Client != null)
+				{
+					Client.ChangeState(new ReceiveMessageState(Client));
+					Client.CState.Receive(state, receive);
+					return;
+				}
+
+				if (Server != null)
+				{
+					Server.CurrentState = new ReceiveMessageState(Server);
+					Server.CurrentState.Receive(state, receive);
+				}
 				return;
 			}
 
-			Client.ChangeState(new ReceiveFileState(Client));
-			Client.CState.Receive(state, receive);
+
+			if (Client != null)
+			{
+				Client.ChangeState(new ReceiveFileState(Client));
+				Client.CState.Receive(state, receive);
+			}
+
+			if (Server != null)
+			{
+				Server.CurrentState = new ReceiveFileState(Server);
+				Server.CurrentState.Receive(state, receive);
+			}
+
+
+
 
 		}
 	}

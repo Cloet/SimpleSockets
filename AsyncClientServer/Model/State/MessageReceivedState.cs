@@ -7,13 +7,14 @@ using AsyncClientServer.Helper;
 
 namespace AsyncClientServer.Model.State
 {
-	public class FileReceivedState : ClientState
+	public class MessageReceivedState: ClientState
 	{
-		public FileReceivedState(IAsyncClient client) : base(client)
+		public MessageReceivedState(IAsyncClient client) : base(client)
 		{
+
 		}
 
-		public FileReceivedState(IAsyncSocketListener server) : base(server)
+		public MessageReceivedState(IAsyncSocketListener server) : base(server)
 		{
 		}
 
@@ -24,7 +25,6 @@ namespace AsyncClientServer.Model.State
 				Client.InvokeAndReset(state);
 				Client.ChangeState(new InitReceiveState(Client));
 				Client.CState.Receive(state, receive);
-				return;
 			}
 
 			if (Server != null)
@@ -33,7 +33,6 @@ namespace AsyncClientServer.Model.State
 				Server.CurrentState = new InitReceiveState(Server);
 				Server.CurrentState.Receive(state, receive);
 			}
-
 
 		}
 	}
