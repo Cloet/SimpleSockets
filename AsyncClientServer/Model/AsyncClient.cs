@@ -1,5 +1,6 @@
 ﻿using System;
 using System.CodeDom;
+using System.Collections;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -9,6 +10,7 @@ using System.Text;
 using System.Threading;
 using System.Timers;
 using AsyncClientServer.Helper;
+using AsyncClientServer.Model.State;
 
 namespace AsyncClientServer.Model
 {
@@ -51,7 +53,7 @@ namespace AsyncClientServer.Model
 	/// <seealso cref="IAsyncClient"/>
 	/// </para>
 	/// </summary>
-	public sealed class AsyncClient : SendToServer, IAsyncClient
+	public class AsyncClient : SendToServer, IAsyncClient
 	{
 		private readonly string[] _messageTypes = { "FILETRANSFER", "COMMAND", "MESSAGE", "OBJECT" };
 		private Socket _listener;
@@ -138,6 +140,7 @@ namespace AsyncClientServer.Model
 			var host = Dns.GetHostEntry(ipServer);
 			var ip = host.AddressList[0];
 			_endpoint = new IPEndPoint(ip, port);
+			ChangeState(new InitReceiveState(this));
 
 			try
 			{
@@ -178,6 +181,13 @@ namespace AsyncClientServer.Model
 			StartClient(ipServer, port, 5);
 		}
 
+		public void ChangeState(ClientState state)
+		{
+			CState = state;
+		}
+
+		public ClientState CState { get; private set; }
+
 		/// <summary>
 		/// Check if client is connected to server
 		/// </summary>
@@ -206,7 +216,7 @@ namespace AsyncClientServer.Model
 				_keepAliveTimer.Enabled = true;
 				Receive();
 			}
-			catch (SocketException ex)
+			catch (SocketException)
 			{
 				Thread.Sleep(ReconnectInSeconds * 1000);
 				_listener.BeginConnect(_endpoint, this.OnConnectCallback, _listener);
@@ -222,9 +232,8 @@ namespace AsyncClientServer.Model
 			var state = new StateObject(_listener);
 			StartReceiving(state);
 		}
-		private void ReceiveCallback(IAsyncResult result)
+		public void ReceiveCallback(IAsyncResult result)
 		{
-
 			try
 			{
 				if (IsConnected())
@@ -236,85 +245,16 @@ namespace AsyncClientServer.Model
 			{
 				throw new Exception(ex.ToString());
 			}
-
-
 		}
 
 
-		/*Used make receivecallback easier*/
-		private void Loop(IStateObject state, int receive)
-		{
-			if (state.Flag == 0)
-			{
-				state.MessageSize = BitConverter.ToInt32(state.Buffer, 0);
-				state.HeaderSize = BitConverter.ToInt32(state.Buffer, 4);
-				state.Header = Encoding.UTF8.GetString(state.Buffer, 8, state.HeaderSize);
-				state.Flag++;
-
-				if (_messageTypes.Contains(state.Header))
-				{
-					string msg = Encoding.UTF8.GetString(state.Buffer, 8 + state.HeaderSize,
-						receive - (8 + state.HeaderSize));
-					state.Append(msg);
-					state.AppendRead(msg.Length);
-					state.Flag = -1;
-				}
-				else
-				{
-
-					/* Writes file to corresponding location*/
-					HandleFile(state, receive);
-
-					/* Convert message to string */
-					if (state.Flag == -1)
-					{
-						string msg = Encoding.UTF8.GetString(state.Buffer, 0, receive);
-						state.Append(msg);
-						state.AppendRead(msg.Length);
-					}
-				}
-
-
-			}
-		}
-		private void HandleFile(IStateObject state, int receive)
-		{
-			if (state.Flag >= 1)
-			{
-				if (state.Flag == 1)
-				{
-					if (File.Exists(state.Header))
-					{
-						File.Delete(state.Header);
-					}
-				}
-
-				//Get data for file and write it
-				using (BinaryWriter writer = new BinaryWriter(File.Open(state.Header, FileMode.Append)))
-				{
-					if (state.Flag == 1)
-					{
-						string test = Encoding.UTF8.GetString(state.Buffer, 8 + state.HeaderSize,
-							receive - (8 + state.HeaderSize));
-						writer.Write(test);
-						state.AppendRead(test.Length);
-						state.Flag++;
-					}
-					else
-					{
-						writer.Write(state.Buffer, 0, receive);
-						writer.Close();
-					}
-				}
-			}
-
-		}
 		private void StartReceiving(IStateObject state)
 		{
 			state.Listener.BeginReceive(state.Buffer, 0, state.BufferSize, SocketFlags.None,
 				this.ReceiveCallback, state);
 		}
-		private void InvokeAndReset(IStateObject state)
+
+		public void InvokeAndReset(IStateObject state)
 		{
 
 			foreach (var v in _messageTypes)
@@ -325,7 +265,6 @@ namespace AsyncClientServer.Model
 					state.Reset();
 					if (!state.Close)
 					{
-						StartReceiving(state);
 						return;
 					}
 					this.Dispose();
@@ -336,12 +275,9 @@ namespace AsyncClientServer.Model
 
 
 			FileReceived?.Invoke(this, state.Header);
-			state.Reset();
-			StartReceiving(state);
-			state.Reset();
 			if (!state.Close)
 			{
-				StartReceiving(state);
+				state.Reset();
 				return;
 			}
 			this.Dispose();
@@ -349,6 +285,7 @@ namespace AsyncClientServer.Model
 
 
 		}
+
 		private void HandleMessage(IAsyncResult result)
 		{
 
@@ -358,16 +295,17 @@ namespace AsyncClientServer.Model
 				var state = (StateObject)result.AsyncState;
 				var receive = state.Listener.EndReceive(result);
 
+
 				if (receive > 0)
 				{
-					/*Gets the header, headersize and messagesize and first part of the message.*/
-					Loop(state, receive);
+					CState.Receive(state, receive);
 				}
 
 				/*When the full message has been received. */
 				if (state.Read == state.MessageSize)
 				{
 					InvokeAndReset(state);
+					StartReceiving(state);
 				}
 
 				/*Check if there still are messages to be received.*/
@@ -375,16 +313,11 @@ namespace AsyncClientServer.Model
 				{
 					StartReceiving(state);
 				}
-				//else
-				//{
-				//	InvokeAndReset(state);
-				//}
-
 
 			}
 			catch (Exception ex)
 			{
-				Console.WriteLine(ex);
+				throw new Exception(ex.ToString());
 			}
 		}
 

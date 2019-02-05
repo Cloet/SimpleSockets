@@ -34,6 +34,12 @@ namespace AsyncClientServer.Helper
 
 		void AppendRead(int length);
 
+		void SubtractRead(int length);
+
+		void ChangeBuffer(byte[] test);
+
+		byte[] PreviousRead { get; set; }
+
 		void Reset();
 
 	}

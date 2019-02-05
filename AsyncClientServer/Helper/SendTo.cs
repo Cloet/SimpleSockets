@@ -2,6 +2,7 @@
 using System.IO;
 using System.Runtime.Remoting.Messaging;
 using System.Text;
+using AsyncClientServer.Model;
 
 namespace AsyncClientServer.Helper
 {
@@ -59,7 +60,7 @@ namespace AsyncClientServer.Helper
 				byte[] headerBytes = Encoding.UTF8.GetBytes(remoteSaveLocation);
 				byte[] headerLen = BitConverter.GetBytes(headerBytes.Length);
 				byte[] messageLength = BitConverter.GetBytes(messageData.Length);
-
+				
 
 				var data = new byte[4 + 4 + headerBytes.Length + messageData.Length];
 

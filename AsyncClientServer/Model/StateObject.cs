@@ -1,4 +1,6 @@
-﻿using System.Net.Sockets;
+﻿using System;
+using System.Collections.Generic;
+using System.Net.Sockets;
 using System.Text;
 using AsyncClientServer.Helper;
 
@@ -18,10 +20,7 @@ namespace AsyncClientServer.Model
 		/* Contains the state information. */
 
 		private const int Buffer_Size = 1024;
-		private readonly byte[] buffer = new byte[Buffer_Size];
-		private readonly Socket listener;
-		private readonly int id;
-		private StringBuilder sb;
+		private StringBuilder _sb;
 
 		/// <summary>
 		/// Constructor for StateObject
@@ -30,12 +29,10 @@ namespace AsyncClientServer.Model
 		/// <param name="id"></param>
 		public StateObject(Socket listener, int id = -1)
 		{
-			this.listener = listener;
-			this.id = id;
-			this.Close = false;
-			this.Reset();
-			this.Flag = 0;
-			this.Read = 0;
+			Listener = listener;
+			Id = id;
+			Close = false;
+			Reset();
 		}
 
 		public int Read { get; private set; }
@@ -45,13 +42,7 @@ namespace AsyncClientServer.Model
 		/// <summary>
 		/// Get the id
 		/// </summary>
-		public int Id
-		{
-			get
-			{
-				return this.id;
-			}
-		}
+		public int Id { get; }
 
 		/// <summary>
 		/// Return of set close boolean
@@ -62,13 +53,7 @@ namespace AsyncClientServer.Model
 		/// <summary>
 		/// Gets the buffersize
 		/// </summary>
-		public int BufferSize
-		{
-			get
-			{
-				return Buffer_Size;
-			}
-		}
+		public int BufferSize => Buffer_Size;
 
 		public int MessageSize { get; set; }
 		public int HeaderSize { get; set; }
@@ -76,35 +61,17 @@ namespace AsyncClientServer.Model
 		/// <summary>
 		/// Gets the amount of bytes in the buffer
 		/// </summary>
-		public byte[] Buffer
-		{
-			get
-			{
-				return this.buffer;
-			}
-		}
+		public byte[] Buffer { get; set; } = new byte[Buffer_Size];
 
 		/// <summary>
 		/// Returns the listener socket
 		/// </summary>
-		public Socket Listener
-		{
-			get
-			{
-				return this.listener;
-			}
-		}
+		public Socket Listener { get; }
 
 		/// <summary>
 		/// Returns the text from stringbuilder
 		/// </summary>
-		public string Text
-		{
-			get
-			{
-				return this.sb.ToString();
-			}
-		}
+		public string Text => this._sb.ToString();
 
 		/// <summary>
 		/// Add text to stringbuilder
@@ -112,25 +79,45 @@ namespace AsyncClientServer.Model
 		/// <param name="text"></param>
 		public void Append(string text)
 		{
-			this.sb.Append(text);
-		}
-
-		public void AppendRead(int length)
-		{
-			this.Read += length;
+			_sb.Append(text);
 		}
 
 		/// <summary>
-		/// Resets the stringbuilder
+		/// Appends how much bytes have been read
+		/// </summary>
+		/// <param name="length"></param>
+		public void AppendRead(int length)
+		{
+			Read += length;
+		}
+
+		/// <summary>
+		/// Removes some bytes that have been read
+		/// </summary>
+		/// <param name="length"></param>
+		public void SubtractRead(int length)
+		{
+			Read -= length;
+		}
+
+		public void ChangeBuffer(byte[] test)
+		{
+			Buffer = test;
+		}
+
+		public byte[] PreviousRead { get; set; } = null;
+
+		/// <summary>
+		/// Resets the stringbuilder and other properties
 		/// </summary>
 		public void Reset()
 		{
-			this.Header = "";
-			this.MessageSize = 0;
-			this.HeaderSize = 0;
-			this.Read = 0;
-			this.Flag = 0;
-			this.sb = new StringBuilder();
+			Header = "";
+			MessageSize = 0;
+			HeaderSize = 0;
+			Read = 0;
+			Flag = 0;
+			_sb = new StringBuilder();
 		}
 
 	}

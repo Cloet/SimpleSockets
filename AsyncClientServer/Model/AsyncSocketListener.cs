@@ -17,7 +17,7 @@ namespace AsyncClientServer.Model
 	/// </summary>
 	/// <param name="id"></param>
 	/// <param name="msg"></param>
-	public delegate void MessageReceivedHandler(int id,string header, string msg);
+	public delegate void MessageReceivedHandler(int id, string header, string msg);
 
 	/// <summary>
 	/// Event that is triggered a message is sent to the server
@@ -55,7 +55,7 @@ namespace AsyncClientServer.Model
 		private const ushort Limit = 500;
 		private readonly ManualResetEvent _mre = new ManualResetEvent(false);
 		private readonly IDictionary<int, IStateObject> _clients = new Dictionary<int, IStateObject>();
-		private readonly string[] _messageTypes = {"FILETRANSFER", "COMMAND", "MESSAGE", "OBJECT"};
+		private readonly string[] _messageTypes = { "FILETRANSFER", "COMMAND", "MESSAGE", "OBJECT" };
 		private static System.Timers.Timer _keepAliveTimer;
 
 		public event MessageReceivedHandler MessageReceived;
@@ -241,30 +241,29 @@ namespace AsyncClientServer.Model
 				state.HeaderSize = BitConverter.ToInt32(state.Buffer, 4);
 				state.Header = Encoding.UTF8.GetString(state.Buffer, 8, state.HeaderSize);
 				state.Flag++;
+			}
 
-				if (_messageTypes.Contains(state.Header))
+			if (_messageTypes.Contains(state.Header))
+			{
+				string msg = Encoding.UTF8.GetString(state.Buffer, 8 + state.HeaderSize,
+					receive - (8 + state.HeaderSize));
+				state.Append(msg);
+				state.AppendRead(msg.Length);
+				state.Flag = -1;
+			}
+			else
+			{
+
+				/* Writes file to corresponding location*/
+				HandleFile(state, receive);
+
+				/* Convert message to string */
+				if (state.Flag == -1)
 				{
-					string msg = Encoding.UTF8.GetString(state.Buffer, 8 + state.HeaderSize,
-						receive - (8 + state.HeaderSize));
+					string msg = Encoding.UTF8.GetString(state.Buffer, 0, receive);
 					state.Append(msg);
 					state.AppendRead(msg.Length);
-					state.Flag = -1;
 				}
-				else
-				{
-					/* Writes file to corresponding location*/
-					HandleFile(state, receive);
-
-					/* Convert message to string */
-					if (state.Flag == -1)
-					{
-						string msg = Encoding.UTF8.GetString(state.Buffer, 0, receive);
-						state.Append(msg);
-						state.AppendRead(msg.Length);
-					}
-				}
-
-
 			}
 		}
 		private void HandleFile(IStateObject state, int receive)
@@ -284,16 +283,29 @@ namespace AsyncClientServer.Model
 				{
 					if (state.Flag == 1)
 					{
-						string test = Encoding.UTF8.GetString(state.Buffer, 8 + state.HeaderSize,
-							receive - (8 + state.HeaderSize));
-
-						writer.Write(test);
-						state.AppendRead(test.Length);
+						byte[] bytes = new byte[receive - (8 + state.HeaderSize)];
+						Array.Copy(state.Buffer, 8 + state.HeaderSize, bytes, 0, receive - (8 + state.HeaderSize));
+						writer.Write(bytes);
+						state.AppendRead(bytes.Length);
 						state.Flag++;
+						writer.Close();
 					}
 					else
 					{
-						writer.Write(state.Buffer, 0, receive);
+						byte[] bytes = new byte[receive];
+						state.AppendRead(bytes.Length);
+						if (state.Read > state.MessageSize)
+						{
+							Array.Copy(state.Buffer, 0, bytes, 0, receive - (state.Read - state.MessageSize));
+							state.SubtractRead(state.Read - state.MessageSize);
+						}
+						else
+						{
+							Array.Copy(state.Buffer, 0, bytes, 0, receive);
+						}
+
+
+						writer.Write(bytes);
 						writer.Close();
 					}
 				}
@@ -318,7 +330,7 @@ namespace AsyncClientServer.Model
 				}
 			}
 
-			
+
 			FileReceived?.Invoke(state.Id, state.Header);
 			state.Reset();
 			StartReceiving(state);
@@ -474,7 +486,8 @@ namespace AsyncClientServer.Model
 			}
 			catch (Exception ex)
 			{
-				throw new Exception(ex.ToString());
+				return;
+				//throw new Exception(ex.ToString());
 			}
 		}
 
