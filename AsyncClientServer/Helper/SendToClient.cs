@@ -42,10 +42,10 @@ namespace AsyncClientServer.Helper
 		/// <para>The id is not zero-based!</para>
 		/// </summary>
 		/// <param name="id"></param>
-		/// <param name="Filelocation"></param>
-		/// <param name="RemoteSaveLocation"></param>
+		/// <param name="fileLocation"></param>
+		/// <param name="remoteSaveLocation"></param>
 		/// <param name="close"></param>
-		public void SendFile(int id, string fileLocation, string remoteSaveLocation, Boolean close)
+		public void SendFile(int id, string fileLocation, string remoteSaveLocation, bool close)
 		{
 			byte[] data = CreateByteFile(fileLocation, remoteSaveLocation);
 			SendBytes(id, data, close);
@@ -94,7 +94,7 @@ namespace AsyncClientServer.Helper
 		/// <param name="fileLocation"></param>
 		/// <param name="remoteSaveLocation"></param>
 		/// <param name="close"></param>
-		public void SendFileToAllClients(string fileLocation, string remoteSaveLocation, Boolean close)
+		public void SendFileToAllClients(string fileLocation, string remoteSaveLocation, bool close)
 		{
 
 			foreach (var c in AsyncSocketListener.Instance.GetClients())
@@ -109,7 +109,7 @@ namespace AsyncClientServer.Helper
 		/// </summary>
 		/// <param name="message"></param>
 		/// <param name="close"></param>
-		public void SendMessageToAllClients(string message, Boolean close)
+		public void SendMessageToAllClients(string message, bool close)
 		{
 			foreach (var c in AsyncSocketListener.Instance.GetClients())
 			{
@@ -123,7 +123,7 @@ namespace AsyncClientServer.Helper
 		/// </summary>
 		/// <param name="obj"></param>
 		/// <param name="close"></param>
-		public void SendObjectToAllClients(SerializableObject obj, Boolean close)
+		public void SendObjectToAllClients(SerializableObject obj, bool close)
 		{
 			foreach (var c in AsyncSocketListener.Instance.GetClients())
 			{

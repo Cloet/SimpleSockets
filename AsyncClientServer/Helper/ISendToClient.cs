@@ -42,7 +42,7 @@ namespace AsyncClientServer.Helper
 		void SendCommand(int id, string command, bool close);
 
 		/// <summary>
-		/// Sends a request for filetransfer to corresponding client
+		/// Sends a request for fileTransfer to corresponding client
 		/// </summary>
 		/// <param name="id">client id</param>
 		/// <param name="path">path of which you request child files</param>

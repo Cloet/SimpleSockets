@@ -17,7 +17,7 @@ namespace AsyncClientServer.Helper
 		/// <param name="close"></param>
 		public void SendMessage(string message, bool close)
 		{
-			Byte[] data = CreateByteMessage(message);
+			byte[] data = CreateByteMessage(message);
 
 			SendBytes(data, close);
 		}
@@ -32,7 +32,7 @@ namespace AsyncClientServer.Helper
 		/// <param name="close"></param>
 		public void SendObject(SerializableObject anyObj, bool close)
 		{
-			Byte[] data = CreateByteObject(anyObj);
+			byte[] data = CreateByteObject(anyObj);
 			SendBytes(data, close);
 		}
 
@@ -46,7 +46,7 @@ namespace AsyncClientServer.Helper
 		/// <param name="close"></param>
 		public void SendFile(string FileLocation, string RemoteFileLocation, bool close)
 		{
-			Byte[] data = CreateByteFile(FileLocation, RemoteFileLocation);
+			byte[] data = CreateByteFile(FileLocation, RemoteFileLocation);
 			SendBytes(data, close);
 		}
 
@@ -74,7 +74,12 @@ namespace AsyncClientServer.Helper
 			SendBytes(data, close);
 		}
 
-
+		/// <summary>
+		/// Send bytes to the server
+		/// </summary>
+		/// <param name="msg">Message as a byte array</param>
+		/// <param name="close">if you want to close the client after sending the message.</param>
 		protected abstract void SendBytes(byte[] msg, bool close);
+
 	}
 }

@@ -17,6 +17,10 @@ namespace AsyncClientServer.Model.ClientState
 		{
 		}
 
+		/// <summary>
+		/// Invokes MessageReceived when a message has been fully received.
+		/// </summary>
+		/// <param name="receive"></param>
 		public override void Receive(int receive)
 		{
 			if (Client == null)

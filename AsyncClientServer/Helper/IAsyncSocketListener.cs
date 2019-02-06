@@ -60,12 +60,6 @@ namespace AsyncClientServer.Helper
 		void OnClientConnect(IAsyncResult result);
 
 		/// <summary>
-		/// Handles messagereceiving
-		/// </summary>
-		/// <param name="result"></param>
-		void ReceiveCallback(IAsyncResult result);
-
-		/// <summary>
 		/// Gets all connected clients
 		/// </summary>
 		/// <returns></returns>
@@ -138,8 +132,19 @@ namespace AsyncClientServer.Helper
 		/// <param name="close"></param>
 		void SendObjectToAllClients(SerializableObject obj, Boolean close);
 
+		/// <summary>
+		/// Invokes FileReceived event of the server
+		/// </summary>
+		/// <param name="id">Client id</param>
+		/// <param name="filePath">the path of the file that has been received</param>
 		void InvokeFileReceived(int id, string filePath);
 
+		/// <summary>
+		/// Invokes MessageReceived event of the server
+		/// </summary>
+		/// <param name="id">Client id</param>
+		/// <param name="header">Message type</param>
+		/// <param name="text">the message</param>
 		void InvokeMessageReceived(int id, string header, string text);
 
 	}

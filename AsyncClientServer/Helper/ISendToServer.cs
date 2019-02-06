@@ -16,7 +16,7 @@ namespace AsyncClientServer.Helper
 		void SendMessage(string message, bool close);
 
 		/// <summary>
-		/// Sends an object to the srver
+		/// Sends an object to the server
 		/// </summary>
 		/// <param name="anyObj"></param>
 		/// <param name="close"></param>

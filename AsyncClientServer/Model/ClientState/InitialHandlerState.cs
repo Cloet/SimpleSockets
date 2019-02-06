@@ -9,6 +9,7 @@ namespace AsyncClientServer.Model.ClientState
 {
 	public class InitialHandlerState: StateObjectState
 	{
+		//The types of messages that can be send.
 		private readonly string[] _messageTypes = { "FILETRANSFER", "COMMAND", "MESSAGE", "OBJECT" };
 
 		public InitialHandlerState(IStateObject state) : base(state, null)
@@ -19,20 +20,30 @@ namespace AsyncClientServer.Model.ClientState
 		{
 		}
 
+		/// <summary>
+		/// The first check when a message is received.
+		/// </summary>
+		/// <param name="receive"></param>
 		public override void Receive(int receive)
 		{
+			//First check
 			if (State.Flag == 0)
 			{
+				//Get the size of the message, the header size and the header string and save it to the StateObject.
 				State.MessageSize = BitConverter.ToInt32(State.Buffer, 0);
 				State.HeaderSize = BitConverter.ToInt32(State.Buffer, 4);
 				State.Header = Encoding.UTF8.GetString(State.Buffer, 8, State.HeaderSize);
 
+				//Get the bytes without the header and MessageSize and copy to new byte array.
 				byte[] bytes = new byte[receive - (8 + State.HeaderSize)];
 				Array.Copy(State.Buffer, 8 + State.HeaderSize, bytes, 0, receive - (8 + State.HeaderSize));
 				State.ChangeBuffer(bytes);
+
+				//Increment flag
 				State.Flag++;
 			}
 
+			//If it is a message set state to new MessageHandlerState.
 			if (_messageTypes.Contains(State.Header))
 			{
 				State.CurrentState = new MessageHandlerState(State,Client);
@@ -40,6 +51,7 @@ namespace AsyncClientServer.Model.ClientState
 				return;
 			}
 
+			//If it's a file then set state to new FileHandlerState.
 			State.CurrentState = new FileHandlerState(State, Client);
 			State.CurrentState.Receive(receive - 8 - State.HeaderSize);
 

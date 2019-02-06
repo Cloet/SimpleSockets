@@ -13,6 +13,7 @@ namespace AsyncClientServer.Helper
 	public abstract class SendTo
 	{
 
+		//Writes a message to byte array
 		private byte[] CreateByteArray(string message, string header)
 		{
 			try

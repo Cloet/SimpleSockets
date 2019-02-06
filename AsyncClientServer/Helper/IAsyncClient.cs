@@ -100,13 +100,23 @@ namespace AsyncClientServer.Helper
 		/// Send a file to server
 		/// <para>Simple way of sending large files over sockets</para>
 		/// </summary>
-		/// <param name="fileLocation"></param>
-		/// <param name="remoteFileLocation"></param>
-		/// <param name="close"></param>
+		/// <param name="fileLocation">Location of the file you want to send</param>
+		/// <param name="remoteFileLocation">Location where the file will be saved on the remote machine (overwrites existing files)</param>
+		/// <param name="close">True if you want to close the connection to the server.</param>
 		void SendFile(string fileLocation, string remoteFileLocation, bool close);
 
+
+		/// <summary>
+		/// Invokes a MessageReceived Event.
+		/// </summary>
+		/// <param name="header">Type of message that has been received</param>
+		/// <param name="text">The message itself</param>
 		void InvokeMessage(string header, string text);
 
+		/// <summary>
+		/// Invokes a FileReceived Event
+		/// </summary>
+		/// <param name="filePath">Location where the file is stored.</param>
 		void InvokeFileReceived(string filePath);
 
 	}
