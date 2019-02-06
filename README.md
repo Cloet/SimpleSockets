@@ -32,24 +32,18 @@ Bind the events to methods in your program
 //Events
 AsyncSocketListener.Instance.MessageReceived += new MessageReceivedHandler(MessageReceived);
 AsyncSocketListener.Instance.MessageSubmitted += new MessageSubmittedHandler(MessageSubmitted);
-AsyncSocketListener.Instance.ObjectReceived += new ObjectFromClientReceivedHandler(ObjectReceived);
 AsyncSocketListener.Instance.ClientDisconnected += new ClientDisconnectedHandler(ClientDisconnected);
 AsyncSocketListener.Instance.FileReceived += new FileFromClientReceivedHandler(FileReceived);
 AsyncSocketListener.Instance.ServerHasStarted += new ServerHasStartedHandler(ServerHasStarted);
 ```
 ```C#
 //Methods
-private static void MessageReceived(int id, string msg)
+private static void MessageReceived(int id,string header, string msg)
 {
 	//Code
 }
 
 private static void MessageSubmitted(int id, bool close)
-{
-	//Code
-}
-
-private static void ObjectReceived(int id, string obj)
 {
 	//Code
 }
@@ -78,22 +72,16 @@ client.Connected += new ConnectedHandler(ConnectedToServer);
 client.MessageReceived += new ClientMessageReceivedHandler(ServerMessageReceived);
 client.MessageSubmitted += new ClientMessageSubmittedHandler(ClientMessageSubmitted);
 client.FileReceived += new FileFromServerReceivedHandler(FileReceived);
-client.ObjectReceived += new ObjectFromServerReceivedHandler(ObjectReceived);
 ```
 
 ```C#
 //Events
-private static void ConnectedToServer(AsyncClient a)
+private static void ConnectedToServer(IAsyncClient a)
 {
 	//Code
 }
 
-private static void ServerMessageReceived(AsyncClient a, String msg)
-{
-	//Code
-}
-
-private static void ObjectReceived(string xml)
+private static void ServerMessageReceived(IAsyncClient a,string header, String msg)
 {
 	//Code
 }
@@ -103,7 +91,7 @@ private static void FileReceived(string file)
 	//Code
 }
 
-private static void ClientMessageSubmitted(AsyncClient a, bool close)
+private static void ClientMessageSubmitted(IAsyncClient a, bool close)
 {
 	//Code
 }
