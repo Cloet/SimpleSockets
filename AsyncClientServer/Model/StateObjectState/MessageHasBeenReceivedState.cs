@@ -1,11 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using AsyncClientServer.Helper;
+﻿using AsyncClientServer.Helper;
 
-namespace AsyncClientServer.Model.ClientState
+namespace AsyncClientServer.Model.StateObjectState
 {
 	public class MessageHasBeenReceivedState: StateObjectState
 	{

@@ -105,7 +105,6 @@ namespace AsyncClientServer.Helper
 		/// <param name="close">True if you want to close the connection to the server.</param>
 		void SendFile(string fileLocation, string remoteFileLocation, bool close);
 
-
 		/// <summary>
 		/// Invokes a MessageReceived Event.
 		/// </summary>

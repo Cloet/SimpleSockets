@@ -1,6 +1,6 @@
 ﻿using AsyncClientServer.Helper;
 
-namespace AsyncClientServer.Model.ClientState
+namespace AsyncClientServer.Model.StateObjectState
 {
 	public abstract class StateObjectState
 	{

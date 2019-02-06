@@ -10,7 +10,7 @@ using System.Text;
 using System.Threading;
 using System.Timers;
 using AsyncClientServer.Helper;
-using AsyncClientServer.Model.ClientState;
+using AsyncClientServer.Model.StateObjectState;
 
 namespace AsyncClientServer.Model
 {

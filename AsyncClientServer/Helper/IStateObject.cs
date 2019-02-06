@@ -1,6 +1,6 @@
 ﻿using System.Net.Sockets;
 using AsyncClientServer.Model;
-using AsyncClientServer.Model.ClientState;
+using AsyncClientServer.Model.StateObjectState;
 
 namespace AsyncClientServer.Helper
 {

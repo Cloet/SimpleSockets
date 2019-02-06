@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Text;
 using AsyncClientServer.Helper;
-using AsyncClientServer.Model.ClientState;
 
 namespace AsyncClientServer.Model
 {
@@ -20,7 +19,7 @@ namespace AsyncClientServer.Model
 
 		/* Contains the state information. */
 
-		private const int Buffer_Size = 1024;
+		private const int Buffer_Size = 8192;
 		private StringBuilder _sb;
 
 		/// <summary>
@@ -114,13 +113,13 @@ namespace AsyncClientServer.Model
 		/// <param name="bytes"></param>
 		public void ChangeBuffer(byte[] bytes)
 		{
-			Buffer = test;
+			Buffer = bytes;
 		}
 
 		/// <summary>
 		/// Change the state of the current stateObject
 		/// </summary>
-		public StateObjectState CurrentState { get; set; }
+		public StateObjectState.StateObjectState CurrentState { get; set; }
 
 
 		/// <summary>
