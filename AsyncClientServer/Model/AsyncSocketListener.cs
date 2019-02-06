@@ -253,6 +253,12 @@ namespace AsyncClientServer.Model
 			FileReceived?.Invoke(id, filePath);
 		}
 
+		/// <summary>
+		/// Invokes MessageReceived event of the server.
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="header"></param>
+		/// <param name="text"></param>
 		public void InvokeMessageReceived(int id, string header, string text)
 		{
 			MessageReceived?.Invoke(id, header, text);
@@ -304,6 +310,7 @@ namespace AsyncClientServer.Model
 				}
 
 				//When something goes wrong
+				state.Reset();
 				StartReceiving(state);
 
 

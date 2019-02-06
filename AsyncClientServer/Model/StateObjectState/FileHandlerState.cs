@@ -4,9 +4,9 @@ using AsyncClientServer.Helper;
 
 namespace AsyncClientServer.Model.StateObjectState
 {
-	public class FileHandlerState: StateObjectState
+	public class FileHandlerState : StateObjectState
 	{
-		public FileHandlerState(IStateObject state) : base(state,null)
+		public FileHandlerState(IStateObject state) : base(state, null)
 		{
 		}
 
@@ -15,15 +15,21 @@ namespace AsyncClientServer.Model.StateObjectState
 		}
 
 		//Checks if the file already exists and deletes when it has to.
-		private void DeleteFile()
+		//Checks if the file is located in a folder that doesn't exist and creates that folder when it has to.
+		private void DeleteCreateFile()
 		{
 			if (State.Flag == 1)
 			{
-				if (File.Exists(State.Header))
-					File.Delete(State.Header);
+
+				FileInfo file = new FileInfo(State.Header);
+				file.Directory?.Create();
+				if (file.Exists)
+				{
+					file.Delete();
+				}
 			}
 		}
-		
+
 		//Writes data to file
 		private void Write(int receive)
 		{
@@ -35,7 +41,7 @@ namespace AsyncClientServer.Model.StateObjectState
 			State.AppendRead(receive);
 
 			//Checks if it is the first write and if the file has to be deleted.
-			DeleteFile();
+			DeleteCreateFile();
 
 			//If there is more data read then the server expects handle this accordingly.
 			if (State.Read > State.MessageSize)
@@ -62,7 +68,7 @@ namespace AsyncClientServer.Model.StateObjectState
 
 			}
 			//If all bytes have been read without any extra
-			else if(State.Read == State.MessageSize)
+			else if (State.Read == State.MessageSize)
 			{
 				//Change flag
 				State.Flag = -2;
@@ -101,7 +107,7 @@ namespace AsyncClientServer.Model.StateObjectState
 			//If the message has been read and there is are no extra bytes
 			if (State.Flag == -2)
 			{
-				State.CurrentState = new FileHasBeenReceivedState(State,Client);
+				State.CurrentState = new FileHasBeenReceivedState(State, Client);
 				State.CurrentState.Receive(State.Buffer.Length);
 				State.Reset();
 			}

@@ -225,17 +225,27 @@ namespace AsyncClientServer.Model
 			StartReceiving(state);
 		}
 
+		/// <summary>
+		/// Invokes MessageReceived event of the client.
+		/// </summary>
+		/// <param name="header"></param>
+		/// <param name="text"></param>
 		public void InvokeMessage(string header, string text)
 		{
 			MessageReceived?.Invoke(this, header, text);
 		}
 
+		/// <inheritdoc />
+		/// <summary>
+		/// Invokes FileReceived event of the client
+		/// </summary>
+		/// <param name="filePath"></param>
 		public void InvokeFileReceived(string filePath)
 		{
 			FileReceived?.Invoke(this, filePath);
 		}
 
-		public void ReceiveCallback(IAsyncResult result)
+		private void ReceiveCallback(IAsyncResult result)
 		{
 			try
 			{
@@ -250,7 +260,7 @@ namespace AsyncClientServer.Model
 			}
 		}
 
-
+		//Start receiving
 		private void StartReceiving(IStateObject state)
 		{
 			if (state.Buffer.Length < state.BufferSize)
@@ -260,38 +270,6 @@ namespace AsyncClientServer.Model
 
 			state.Listener.BeginReceive(state.Buffer, 0, state.BufferSize, SocketFlags.None,
 				this.ReceiveCallback, state);
-		}
-
-		public void InvokeAndReset(IStateObject state)
-		{
-
-			foreach (var v in _messageTypes)
-			{
-				if (v == state.Header)
-				{
-					MessageReceived?.Invoke(this, state.Header, state.Text);
-					state.Reset();
-					if (!state.Close)
-					{
-						return;
-					}
-					this.Dispose();
-					return;
-
-				}
-			}
-
-
-			FileReceived?.Invoke(this, state.Header);
-			if (!state.Close)
-			{
-				state.Reset();
-				return;
-			}
-			this.Dispose();
-
-
-
 		}
 
 		private void HandleMessage(IAsyncResult result)
@@ -329,8 +307,7 @@ namespace AsyncClientServer.Model
 				}
 
 				//When something goes wrong
-				InvokeAndReset(state);
-				//ChangeState(new InitReceiveState(this));
+				state.Reset();
 				StartReceiving(state);
 
 
