@@ -52,11 +52,18 @@ namespace AsyncClientServer.Model
 		public bool Close { get; set; }
 
 		/// <summary>
-		/// Gets the buffersize
+		/// Gets the bufferSize
 		/// </summary>
 		public int BufferSize => Buffer_Size;
 
+		/// <summary>
+		/// Get or set the MessageSize of the current message
+		/// </summary>
 		public int MessageSize { get; set; }
+
+		/// <summary>
+		/// Get or set the HeaderSize of the current message
+		/// </summary>
 		public int HeaderSize { get; set; }
 
 		/// <summary>
@@ -70,7 +77,7 @@ namespace AsyncClientServer.Model
 		public Socket Listener { get; }
 
 		/// <summary>
-		/// Returns the text from stringbuilder
+		/// Returns the text from stringBuilder
 		/// </summary>
 		public string Text => this._sb.ToString();
 
@@ -101,17 +108,23 @@ namespace AsyncClientServer.Model
 			Read -= length;
 		}
 
-		public void ChangeBuffer(byte[] test)
+		/// <summary>
+		/// Change the buffer
+		/// </summary>
+		/// <param name="bytes"></param>
+		public void ChangeBuffer(byte[] bytes)
 		{
 			Buffer = test;
 		}
 
+		/// <summary>
+		/// Change the state of the current stateObject
+		/// </summary>
 		public StateObjectState CurrentState { get; set; }
 
-		public byte[] PreviousRead { get; set; } = null;
 
 		/// <summary>
-		/// Resets the stringbuilder and other properties
+		/// Resets the stringBuilder and other properties
 		/// </summary>
 		public void Reset()
 		{
