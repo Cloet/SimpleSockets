@@ -16,6 +16,7 @@ The server and client can send & receive: files, objects and messages.
 - Add more exceptions
 - Add Cryptography
 - Add compression algorithm
+- Ability to send large files (Only sends smaller files reliably for now)
 - ?
 
 ## Usage
