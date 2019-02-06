@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading;
 using System.Timers;
 using AsyncClientServer.Helper;
-using AsyncClientServer.Model.State;
+using AsyncClientServer.Model.ClientState;
 
 namespace AsyncClientServer.Model
 {
@@ -56,7 +56,6 @@ namespace AsyncClientServer.Model
 		private const ushort Limit = 500;
 		private readonly ManualResetEvent _mre = new ManualResetEvent(false);
 		private readonly IDictionary<int, IStateObject> _clients = new Dictionary<int, IStateObject>();
-		private readonly string[] _messageTypes = { "FILETRANSFER", "COMMAND", "MESSAGE", "OBJECT" };
 		private static System.Timers.Timer _keepAliveTimer;
 
 		public event MessageReceivedHandler MessageReceived;
@@ -64,8 +63,6 @@ namespace AsyncClientServer.Model
 		public event ClientDisconnectedHandler ClientDisconnected;
 		public event FileFromClientReceivedHandler FileReceived;
 		public event ServerHasStartedHandler ServerHasStarted;
-
-		public ClientState CurrentState { get; set; }
 
 		/// <summary>
 		/// Get dictionary of clients
@@ -83,7 +80,6 @@ namespace AsyncClientServer.Model
 
 		private AsyncSocketListener()
 		{
-			CurrentState = new InitReceiveState(this);
 			_keepAliveTimer = new System.Timers.Timer(60000);
 			_keepAliveTimer.Elapsed += KeepAlive;
 			_keepAliveTimer.AutoReset = true;
@@ -237,25 +233,40 @@ namespace AsyncClientServer.Model
 		
 		private void StartReceiving(IStateObject state)
 		{
+
+			if (state.Buffer.Length < state.BufferSize)
+			{
+				state.ChangeBuffer(new byte[state.BufferSize]);
+			}
+
 			state.Listener.BeginReceive(state.Buffer, 0, state.BufferSize, SocketFlags.None,
 				this.ReceiveCallback, state);
 		}
 
-		public void InvokeAndReset(IStateObject state)
+		/// <summary>
+		/// Invokes filereceived event
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="filePath"></param>
+		public void InvokeFileReceived(int id, string filePath)
 		{
-			foreach (var v in _messageTypes)
-			{
-				if (v == state.Header)
-				{
-					MessageReceived?.Invoke(state.Id, state.Header, state.Text);
-					state.Reset();
-					return;
-				}
-			}
+			FileReceived?.Invoke(id, filePath);
+		}
 
+		public void InvokeMessageReceived(int id, string header, string text)
+		{
+			MessageReceived?.Invoke(id, header, text);
+		}
 
-			FileReceived?.Invoke(state.Id, state.Header);
-			state.Reset();
+		/// <summary>
+		/// Invokes message received event
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="header"></param>
+		/// <param name="text"></param>
+		public void InvokeMessage(int id, string header, string text)
+		{
+			MessageReceived?.Invoke(id, header, text);
 		}
 
 		private void HandleMessage(IAsyncResult result)
@@ -267,10 +278,15 @@ namespace AsyncClientServer.Model
 				var state = (StateObject)result.AsyncState;
 				var receive = state.Listener.EndReceive(result);
 
+				if (state.Flag == 0)
+				{
+					state.CurrentState = new InitialHandlerState(state);
+				}
 
 				if (receive > 0)
 				{
-					CurrentState.Receive(state, receive);
+					state.CurrentState.Receive(receive);
+					//CurrentState.Receive(state, receive);
 				}
 
 				/*When the full message has been received. */
@@ -288,8 +304,6 @@ namespace AsyncClientServer.Model
 				}
 
 				//When something goes wrong
-				InvokeAndReset(state);
-				CurrentState = new InitReceiveState(this);
 				StartReceiving(state);
 
 

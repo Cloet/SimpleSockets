@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Text;
 using AsyncClientServer.Helper;
+using AsyncClientServer.Model.ClientState;
 
 namespace AsyncClientServer.Model
 {
@@ -104,6 +105,8 @@ namespace AsyncClientServer.Model
 		{
 			Buffer = test;
 		}
+
+		public StateObjectState CurrentState { get; set; }
 
 		public byte[] PreviousRead { get; set; } = null;
 

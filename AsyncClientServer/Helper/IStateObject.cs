@@ -1,4 +1,6 @@
 ﻿using System.Net.Sockets;
+using AsyncClientServer.Model;
+using AsyncClientServer.Model.ClientState;
 
 namespace AsyncClientServer.Helper
 {
@@ -38,7 +40,7 @@ namespace AsyncClientServer.Helper
 
 		void ChangeBuffer(byte[] test);
 
-		byte[] PreviousRead { get; set; }
+		StateObjectState CurrentState { get; set; }
 
 		void Reset();
 

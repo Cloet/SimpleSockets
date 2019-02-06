@@ -138,9 +138,9 @@ namespace AsyncClientServer.Helper
 		/// <param name="close"></param>
 		void SendObjectToAllClients(SerializableObject obj, Boolean close);
 
-		void InvokeAndReset(IStateObject state);
+		void InvokeFileReceived(int id, string filePath);
 
-		ClientState CurrentState { get; set; }
+		void InvokeMessageReceived(int id, string header, string text);
 
 	}
 }

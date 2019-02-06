@@ -10,7 +10,7 @@ using System.Text;
 using System.Threading;
 using System.Timers;
 using AsyncClientServer.Helper;
-using AsyncClientServer.Model.State;
+using AsyncClientServer.Model.ClientState;
 
 namespace AsyncClientServer.Model
 {
@@ -140,7 +140,6 @@ namespace AsyncClientServer.Model
 			var host = Dns.GetHostEntry(ipServer);
 			var ip = host.AddressList[0];
 			_endpoint = new IPEndPoint(ip, port);
-			ChangeState(new InitReceiveState(this));
 
 			try
 			{
@@ -180,13 +179,6 @@ namespace AsyncClientServer.Model
 		{
 			StartClient(ipServer, port, 5);
 		}
-
-		public void ChangeState(ClientState state)
-		{
-			CState = state;
-		}
-
-		public ClientState CState { get; private set; }
 
 		/// <summary>
 		/// Check if client is connected to server
@@ -232,6 +224,17 @@ namespace AsyncClientServer.Model
 			var state = new StateObject(_listener);
 			StartReceiving(state);
 		}
+
+		public void InvokeMessage(string header, string text)
+		{
+			MessageReceived?.Invoke(this, header, text);
+		}
+
+		public void InvokeFileReceived(string filePath)
+		{
+			FileReceived?.Invoke(this, filePath);
+		}
+
 		public void ReceiveCallback(IAsyncResult result)
 		{
 			try
@@ -250,6 +253,11 @@ namespace AsyncClientServer.Model
 
 		private void StartReceiving(IStateObject state)
 		{
+			if (state.Buffer.Length < state.BufferSize)
+			{
+				state.ChangeBuffer(new byte[state.BufferSize]);
+			}
+
 			state.Listener.BeginReceive(state.Buffer, 0, state.BufferSize, SocketFlags.None,
 				this.ReceiveCallback, state);
 		}
@@ -295,10 +303,15 @@ namespace AsyncClientServer.Model
 				var state = (StateObject)result.AsyncState;
 				var receive = state.Listener.EndReceive(result);
 
+				if (state.Flag == 0)
+				{
+					state.CurrentState = new InitialHandlerState(state, this);
+				}
+
 
 				if (receive > 0)
 				{
-					CState.Receive(state, receive);
+					state.CurrentState.Receive(receive);
 				}
 
 				/*When the full message has been received. */
@@ -317,7 +330,7 @@ namespace AsyncClientServer.Model
 
 				//When something goes wrong
 				InvokeAndReset(state);
-				ChangeState(new InitReceiveState(this));
+				//ChangeState(new InitReceiveState(this));
 				StartReceiving(state);
 
 

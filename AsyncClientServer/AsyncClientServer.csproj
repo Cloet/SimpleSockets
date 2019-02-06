@@ -52,14 +52,14 @@
     <Compile Include="Helper\SerializableObject.cs" />
     <Compile Include="Model\AsyncClient.cs" />
     <Compile Include="Model\AsyncSocketListener.cs" />
-    <Compile Include="Model\State\ClientState.cs" />
+    <Compile Include="Model\ClientState\FileHandlerState.cs" />
+    <Compile Include="Model\ClientState\FileHasBeenReceivedState.cs" />
+    <Compile Include="Model\ClientState\InitialHandlerState.cs" />
+    <Compile Include="Model\ClientState\MessageHandlerState.cs" />
+    <Compile Include="Model\ClientState\MessageHasBeenReceivedState.cs" />
+    <Compile Include="Model\ClientState\StateObjectState.cs" />
     <Compile Include="Model\SerializeObject.cs" />
     <Compile Include="Model\StateObject.cs" />
-    <Compile Include="Model\State\FileReceivedState.cs" />
-    <Compile Include="Model\State\InitReceiveState.cs" />
-    <Compile Include="Model\State\MessageReceivedState.cs" />
-    <Compile Include="Model\State\ReceiveFileState.cs" />
-    <Compile Include="Model\State\ReceiveMessageState.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup />
