@@ -14,7 +14,8 @@ The server and client can send & receive: files, objects and messages.
 
 ## TODO
 - Add more exceptions
-- Add file transfer library into it
+- Add Cryptography
+- Add compression algorithm
 - ?
 
 ## Usage
