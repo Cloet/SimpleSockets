@@ -1,5 +1,5 @@
 # AsyncClientServer
-Simple library using Asynchronous client and Asynchronous server.
+Simple library using Asynchronous client and Asynchronous server and connecting using tcp.
 
 The server and client can send & receive: files, objects and messages.
 
