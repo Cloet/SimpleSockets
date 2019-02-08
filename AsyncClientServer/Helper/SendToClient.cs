@@ -30,7 +30,7 @@ namespace AsyncClientServer.Helper
 		/// <param name="id"></param>
 		/// <param name="anyObj"></param>
 		/// <param name="close"></param>
-		public void SendObject(int id, SerializableObject anyObj, bool close)
+		public void SendObject(int id, object anyObj, bool close)
 		{
 			byte[] data = CreateByteObject(anyObj);
 			SendBytes(id, data, close);
@@ -123,7 +123,7 @@ namespace AsyncClientServer.Helper
 		/// </summary>
 		/// <param name="obj"></param>
 		/// <param name="close"></param>
-		public void SendObjectToAllClients(SerializableObject obj, bool close)
+		public void SendObjectToAllClients(object obj, bool close)
 		{
 			foreach (var c in AsyncSocketListener.Instance.GetClients())
 			{

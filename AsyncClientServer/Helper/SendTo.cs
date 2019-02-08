@@ -119,10 +119,9 @@ namespace AsyncClientServer.Helper
 		/// </summary>
 		/// <param name="serObj"></param>
 		/// <returns>Byte[]</returns>
-		public byte[] CreateByteObject(SerializableObject serObj)
+		public byte[] CreateByteObject(object serObj)
 		{
-
-			string message = serObj.Serialize();
+			string message = XmlSerialization.SerializeToXml(serObj);
 			return CreateByteArray(message, "OBJECT");
 
 		}

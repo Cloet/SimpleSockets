@@ -30,7 +30,7 @@ namespace AsyncClientServer.Helper
 		/// </summary>
 		/// <param name="anyObj"></param>
 		/// <param name="close"></param>
-		public void SendObject(SerializableObject anyObj, bool close)
+		public void SendObject(object anyObj, bool close)
 		{
 			byte[] data = CreateByteObject(anyObj);
 			SendBytes(data, close);

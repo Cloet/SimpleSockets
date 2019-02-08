@@ -20,7 +20,7 @@ namespace AsyncClientServer.Helper
 		/// </summary>
 		/// <param name="anyObj"></param>
 		/// <param name="close"></param>
-		void SendObject(SerializableObject anyObj, bool close);
+		void SendObject(object anyObj, bool close);
 
 		/// <summary>
 		/// Sends a file to the server

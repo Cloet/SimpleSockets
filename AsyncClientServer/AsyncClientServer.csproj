@@ -49,7 +49,6 @@
     <Compile Include="Helper\SendTo.cs" />
     <Compile Include="Helper\SendToClient.cs" />
     <Compile Include="Helper\SendToServer.cs" />
-    <Compile Include="Helper\SerializableObject.cs" />
     <Compile Include="Model\AsyncClient.cs" />
     <Compile Include="Model\AsyncSocketListener.cs" />
     <Compile Include="Model\StateObjectState\FileHandlerState.cs" />
@@ -58,7 +57,7 @@
     <Compile Include="Model\StateObjectState\MessageHandlerState.cs" />
     <Compile Include="Model\StateObjectState\MessageHasBeenReceivedState.cs" />
     <Compile Include="Model\StateObjectState\StateObjectState.cs" />
-    <Compile Include="Model\SerializeObject.cs" />
+    <Compile Include="Model\XmlSerialization.cs" />
     <Compile Include="Model\StateObject.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

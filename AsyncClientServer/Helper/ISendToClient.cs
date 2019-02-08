@@ -22,7 +22,7 @@ namespace AsyncClientServer.Helper
 		/// <param name="id"></param>
 		/// <param name="anyObj"></param>
 		/// <param name="close">true if the client should be closed after this message</param>
-		void SendObject(int id,SerializableObject anyObj, bool close);
+		void SendObject(int id,object anyObj, bool close);
 
 		/// <summary>
 		/// Sends a file to the corresponding client.
@@ -69,7 +69,7 @@ namespace AsyncClientServer.Helper
 		/// </summary>
 		/// <param name="obj">The object you want to send</param>
 		/// <param name="close">true if the client should be closed after this message</param>
-		void SendObjectToAllClients(SerializableObject obj, bool close);
+		void SendObjectToAllClients(object obj, bool close);
 
 		/// <summary>
 		/// Sends a command to all clients

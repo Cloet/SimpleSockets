@@ -328,7 +328,7 @@ namespace AsyncClientServer.Model
 		/// <param name="id"></param>
 		/// <param name="bytes"></param>
 		/// <param name="close"></param>
-		protected override void SendBytes(int id, Byte[] bytes, bool close)
+		protected override void SendBytes(int id, byte[] bytes, bool close)
 		{
 			var state = this.GetClient(id);
 
@@ -429,7 +429,7 @@ namespace AsyncClientServer.Model
 
 				_mre.Dispose();
 			}
-			catch (Exception ex)
+			catch (Exception)
 			{
 				return;
 				//throw new Exception(ex.ToString());

@@ -98,7 +98,7 @@ namespace AsyncClientServer.Helper
 		/// <param name="id"></param>
 		/// <param name="anyObj"></param>
 		/// <param name="close"></param>
-		void SendObject(int id, SerializableObject anyObj, bool close);
+		void SendObject(int id, object anyObj, bool close);
 
 
 		/// <summary>
@@ -130,7 +130,7 @@ namespace AsyncClientServer.Helper
 		/// </summary>
 		/// <param name="obj"></param>
 		/// <param name="close"></param>
-		void SendObjectToAllClients(SerializableObject obj, Boolean close);
+		void SendObjectToAllClients(object obj, Boolean close);
 
 		/// <summary>
 		/// Invokes FileReceived event of the server
