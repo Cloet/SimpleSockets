@@ -7,12 +7,20 @@ namespace AsyncClientServer.ByteCreator
 
 	/// <summary>
 	/// Abstract class used to send data to server/client
+	/// <para>Used to set different types of headers.</para>
+	/// <para>The byte array consists of:
+	/// 1. HeaderLength
+	/// 2. Header
+	/// 3. MessageLength
+	/// 4. Message
+	/// </para>
+	/// <para>Check CreateByteArray method for more info.</para>
 	/// </summary>
 	public abstract class ByteConverter
 	{
 
 		//Writes a message to byte array
-		private byte[] CreateByteArray(string message, string header)
+		private static byte[] CreateByteArray(string message, string header)
 		{
 			try
 			{
@@ -94,7 +102,7 @@ namespace AsyncClientServer.ByteCreator
 		/// Creates an array of bytes to send a command
 		/// </summary>
 		/// <param name="command"></param>
-		/// <returns></returns>
+		/// <returns>Byte[]</returns>
 		protected byte[] CreateByteCommand(string command)
 		{
 			return CreateByteArray(command, "COMMAND");
@@ -104,7 +112,7 @@ namespace AsyncClientServer.ByteCreator
 		/// Creates an array of bytes to send a command
 		/// </summary>
 		/// <param name="newPath"></param>
-		/// <returns></returns>
+		/// <returns>Byte[]</returns>
 		protected byte[] CreateByteFileTransfer(string newPath)
 		{
 			return CreateByteArray(newPath, "FILETRANSFER");
@@ -119,7 +127,7 @@ namespace AsyncClientServer.ByteCreator
 		/// <returns>Byte[]</returns>
 		protected byte[] CreateByteObject(object serObj)
 		{
-			string message = XmlSerialization.XmlSerialization.SerializeToXml(serObj);
+			var message = XmlSerialization.XmlSerialization.SerializeToXml(serObj);
 			return CreateByteArray(message, "OBJECT");
 
 		}
