@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace AsyncClientServer.Helper
+﻿namespace AsyncClientServer.Client
 {
 
 	/// <summary>

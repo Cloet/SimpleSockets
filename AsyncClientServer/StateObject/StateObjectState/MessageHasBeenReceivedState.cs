@@ -1,6 +1,7 @@
-﻿using AsyncClientServer.Helper;
+﻿using AsyncClientServer.Client;
+using AsyncClientServer.Server;
 
-namespace AsyncClientServer.Model.StateObjectState
+namespace AsyncClientServer.StateObject.StateObjectState
 {
 	public class MessageHasBeenReceivedState: StateObjectState
 	{
@@ -20,7 +21,7 @@ namespace AsyncClientServer.Model.StateObjectState
 		{
 			if (Client == null)
 			{
-				AsyncSocketListener.Instance.InvokeMessage(State.Id,State.Header,State.Text);
+				AsyncSocketListener.Instance.InvokeMessageReceived(State.Id,State.Header,State.Text);
 				return;
 			}
 

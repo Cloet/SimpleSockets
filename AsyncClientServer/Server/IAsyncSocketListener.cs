@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using AsyncClientServer.Model;
+using AsyncClientServer.StateObject;
 
-namespace AsyncClientServer.Helper
+namespace AsyncClientServer.Server
 {
+	/// <inheritdoc />
 	/// <summary>
 	/// Interface for AsyncSocketListener
-	/// <para>Implements <seealso cref="IDisposable"/></para>
+	/// <para>Implements <seealso cref="T:System.IDisposable" /></para>
 	/// </summary>
 	public interface IAsyncSocketListener : IDisposable
 	{

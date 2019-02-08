@@ -1,12 +1,12 @@
 ﻿using System;
-using AsyncClientServer.Model;
 
-namespace AsyncClientServer.Helper
+namespace AsyncClientServer.Client
 {
+	/// <inheritdoc />
 	/// <summary>
 	/// Interface for AsyncClient
 	/// <para>Implements
-	/// <seealso cref="IDisposable"/></para>
+	/// <seealso cref="T:System.IDisposable" /></para>
 	/// </summary>
 	public interface IAsyncClient : IDisposable
 	{

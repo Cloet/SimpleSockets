@@ -1,8 +1,6 @@
 ﻿using System.Net.Sockets;
-using AsyncClientServer.Model;
-using AsyncClientServer.Model.StateObjectState;
 
-namespace AsyncClientServer.Helper
+namespace AsyncClientServer.StateObject
 {
 	/// <summary>
 	/// Interface for stateobject
@@ -91,7 +89,7 @@ namespace AsyncClientServer.Helper
 		/// <summary>
 		/// The current state object.
 		/// </summary>
-		StateObjectState CurrentState { get; set; }
+		StateObjectState.StateObjectState CurrentState { get; set; }
 
 		/// <summary>
 		/// Reset the current state object.

@@ -1,12 +1,12 @@
-﻿using System;
+﻿using AsyncClientServer.ByteCreator;
 
-namespace AsyncClientServer.Helper
+namespace AsyncClientServer.Client
 {
 	/// <summary>
 	/// Implements methods to send messages to the server
-	/// <para>Extends <see cref="T:AsyncClientServer.Helper.SendTo" />, Implements <see cref="T:AsyncClientServer.Helper.ISendToServer" /></para>
+	/// <para>Extends <see cref="T:AsyncClientServer.ByteCreator.ByteConverter" />, Implements <see cref="ISendToServer"/></para>
 	/// </summary>
-	public abstract class SendToServer: SendTo,ISendToServer
+	public abstract class SendToServer: ByteConverter,ISendToServer
 	{
 
 		/// <inheritdoc />

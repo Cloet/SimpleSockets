@@ -1,15 +1,15 @@
-﻿using System;
-using AsyncClientServer.Model;
+﻿using AsyncClientServer.ByteCreator;
 
-namespace AsyncClientServer.Helper
+namespace AsyncClientServer.Server
 {
 	/// <summary>
 	/// This abstract class has classes to send messages, objects and files to the client.
-	/// <para>Extends <see cref="SendTo"/>, Implements <see cref="ISendToClient"/></para>
+	/// <para>Extends <see cref="T:AsyncClientServer.ByteCreator.ByteConverter" />, Implements <see cref="T:AsyncClientServer.Server.ISendToClient" /></para>
 	/// </summary>
-	public abstract class SendToClient: SendTo, ISendToClient
+	public abstract class SendToClient: ByteConverter, ISendToClient
 	{
 
+		/// <inheritdoc />
 		/// <summary>
 		/// Send a message to corresponding client.
 		/// <para>Id is not zero-based!</para>
@@ -23,6 +23,7 @@ namespace AsyncClientServer.Helper
 			SendBytes(id, data, close);
 		}
 
+		/// <inheritdoc />
 		/// <summary>
 		/// Sends an object to corresponding client.
 		/// <para>The id is not zero-based!</para>
@@ -88,6 +89,7 @@ namespace AsyncClientServer.Helper
 		/// <param name="close"></param>
 		protected abstract void SendBytes(int id, byte[] data, bool close);
 
+		/// <inheritdoc />
 		/// <summary>
 		/// Sends a file to all clients
 		/// </summary>
@@ -104,6 +106,7 @@ namespace AsyncClientServer.Helper
 
 		}
 
+		/// <inheritdoc />
 		/// <summary>
 		/// Sends a Message to all clients
 		/// </summary>
@@ -118,6 +121,7 @@ namespace AsyncClientServer.Helper
 
 		}
 
+		/// <inheritdoc />
 		/// <summary>
 		/// Sends an object to all clients
 		/// </summary>
@@ -131,6 +135,7 @@ namespace AsyncClientServer.Helper
 			}
 		}
 
+		/// <inheritdoc />
 		/// <summary>
 		/// Sends a command to all connected clients
 		/// </summary>
@@ -143,5 +148,6 @@ namespace AsyncClientServer.Helper
 				SendCommand(c.Key, command, close);
 			}
 		}
+
 	}
 }

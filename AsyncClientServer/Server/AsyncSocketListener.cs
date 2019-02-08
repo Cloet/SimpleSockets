@@ -1,16 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading;
 using System.Timers;
-using AsyncClientServer.Helper;
-using AsyncClientServer.Model.StateObjectState;
+using AsyncClientServer.StateObject;
+using AsyncClientServer.StateObject.StateObjectState;
 
-namespace AsyncClientServer.Model
+namespace AsyncClientServer.Server
 {
 
 	/// <summary>
@@ -58,6 +56,7 @@ namespace AsyncClientServer.Model
 		private readonly IDictionary<int, IStateObject> _clients = new Dictionary<int, IStateObject>();
 		private static System.Timers.Timer _keepAliveTimer;
 
+		//Events
 		public event MessageReceivedHandler MessageReceived;
 		public event MessageSubmittedHandler MessageSubmitted;
 		public event ClientDisconnectedHandler ClientDisconnected;
@@ -73,14 +72,17 @@ namespace AsyncClientServer.Model
 			return _clients;
 		}
 
+		/// <inheritdoc />
 		/// <summary>
 		/// Get the port used to start the server
 		/// </summary>
 		public int Port { get; private set; }
 
+		//Constructor (Singleton pattern)
 		private AsyncSocketListener()
 		{
-			_keepAliveTimer = new System.Timers.Timer(60000);
+			//Set timer that checks all clients every 5 minutes
+			_keepAliveTimer = new System.Timers.Timer(300000);
 			_keepAliveTimer.Elapsed += KeepAlive;
 			_keepAliveTimer.AutoReset = true;
 			_keepAliveTimer.Enabled = true;
@@ -91,6 +93,11 @@ namespace AsyncClientServer.Model
 		/// </summary>
 		public static AsyncSocketListener Instance { get; } = new AsyncSocketListener();
 
+		/// <inheritdoc />
+		/// <summary>
+		/// Check if a client with given di is connected.
+		/// </summary>
+		/// <param name="id"></param>
 		public void CheckClient(int id)
 		{
 			if (!IsConnected(id))
@@ -100,6 +107,9 @@ namespace AsyncClientServer.Model
 			}
 		}
 
+		/// <summary>
+		/// Check all clients and show which are disconnected.
+		/// </summary>
 		public void CheckAllClients()
 		{
 			lock (_clients)
@@ -114,13 +124,13 @@ namespace AsyncClientServer.Model
 			}
 		}
 
+		//Timer that checks client every x seconds
 		private void KeepAlive(Object source, ElapsedEventArgs e)
 		{
 			CheckAllClients();
 		}
 
-
-
+		/// <inheritdoc />
 		/// <summary>
 		/// Starts listening on the given port.
 		/// </summary>
@@ -162,6 +172,7 @@ namespace AsyncClientServer.Model
 			return _clients.TryGetValue(id, out state) ? state : null;
 		}
 
+		/// <inheritdoc />
 		/// <summary>
 		/// returns if a certain client is connected
 		/// </summary>
@@ -184,6 +195,7 @@ namespace AsyncClientServer.Model
 		}
 
 
+		/// <inheritdoc />
 		/// <summary>
 		/// Add a socket to the clients dictionary.
 		/// Lock clients temporary to handle mulitple access.
@@ -201,7 +213,7 @@ namespace AsyncClientServer.Model
 				{
 					var id = !_clients.Any() ? 1 : _clients.Keys.Max() + 1;
 
-					state = new StateObject(((Socket)result.AsyncState).EndAccept(result), id);
+					state = new StateObject.StateObject(((Socket)result.AsyncState).EndAccept(result), id);
 					_clients.Add(id, state);
 				}
 				StartReceiving(state);
@@ -212,11 +224,8 @@ namespace AsyncClientServer.Model
 			}
 		}
 
-		/// <summary>
-		/// Handles messages the server receives.
-		/// </summary>
-		/// <param name="result"></param>
-		public void ReceiveCallback(IAsyncResult result)
+		//Handles messages the server receives
+		private void ReceiveCallback(IAsyncResult result)
 		{
 			try
 			{
@@ -230,7 +239,7 @@ namespace AsyncClientServer.Model
 
 		}
 
-		
+		//Start receiving
 		private void StartReceiving(IStateObject state)
 		{
 
@@ -243,8 +252,9 @@ namespace AsyncClientServer.Model
 				this.ReceiveCallback, state);
 		}
 
+		/// <inheritdoc />
 		/// <summary>
-		/// Invokes filereceived event
+		/// Invokes FileReceived event
 		/// </summary>
 		/// <param name="id"></param>
 		/// <param name="filePath"></param>
@@ -253,6 +263,7 @@ namespace AsyncClientServer.Model
 			FileReceived?.Invoke(id, filePath);
 		}
 
+		/// <inheritdoc />
 		/// <summary>
 		/// Invokes MessageReceived event of the server.
 		/// </summary>
@@ -264,24 +275,14 @@ namespace AsyncClientServer.Model
 			MessageReceived?.Invoke(id, header, text);
 		}
 
-		/// <summary>
-		/// Invokes message received event
-		/// </summary>
-		/// <param name="id"></param>
-		/// <param name="header"></param>
-		/// <param name="text"></param>
-		public void InvokeMessage(int id, string header, string text)
-		{
-			MessageReceived?.Invoke(id, header, text);
-		}
-
+		//Handles messages
 		private void HandleMessage(IAsyncResult result)
 		{
 
 			try
 			{
 
-				var state = (StateObject)result.AsyncState;
+				var state = (StateObject.StateObject)result.AsyncState;
 				var receive = state.Listener.EndReceive(result);
 
 				if (state.Flag == 0)
@@ -292,7 +293,6 @@ namespace AsyncClientServer.Model
 				if (receive > 0)
 				{
 					state.CurrentState.Receive(receive);
-					//CurrentState.Receive(state, receive);
 				}
 
 				/*When the full message has been received. */
@@ -321,9 +321,10 @@ namespace AsyncClientServer.Model
 			}
 		}
 
+		/// <inheritdoc />
 		/// <summary>
 		/// Send data to client
-		/// <para>You should not use this method. Use "SendToClient" instead</para>
+		/// <para>Method used to send bytes to client. Easier to use methods in <see cref="SendToClient"/></para>
 		/// </summary>
 		/// <param name="id"></param>
 		/// <param name="bytes"></param>
@@ -361,6 +362,7 @@ namespace AsyncClientServer.Model
 			}
 		}
 
+		//End the send and invoke MessageSubmitted event.
 		private void SendCallback(IAsyncResult result)
 		{
 			var state = (IStateObject)result.AsyncState;
@@ -383,6 +385,7 @@ namespace AsyncClientServer.Model
 			}
 		}
 
+		/// <inheritdoc />
 		/// <summary>
 		/// Close a certain client
 		/// </summary>
@@ -409,12 +412,13 @@ namespace AsyncClientServer.Model
 			{
 				lock (_clients)
 				{
-					_clients.Remove(state.Id);
+					_clients.Remove(id);
 					ClientDisconnected?.Invoke(state.Id);
 				}
 			}
 		}
 
+		/// <inheritdoc />
 		/// <summary>
 		/// Properly dispose the class.
 		/// </summary>
@@ -424,10 +428,11 @@ namespace AsyncClientServer.Model
 			{
 				foreach (var id in _clients.Keys)
 				{
-					this.Close(id);
+					Close(id);
 				}
 
 				_mre.Dispose();
+				GC.SuppressFinalize(this);
 			}
 			catch (Exception)
 			{

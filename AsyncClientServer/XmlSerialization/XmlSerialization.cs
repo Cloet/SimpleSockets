@@ -3,7 +3,7 @@ using System.IO;
 using System.Xml;
 using System.Xml.Serialization;
 
-namespace AsyncClientServer.Model
+namespace AsyncClientServer.XmlSerialization
 {
 
 	public static class XmlSerialization
@@ -17,11 +17,11 @@ namespace AsyncClientServer.Model
 		{
 			try
 			{
-				XmlSerializer xmlSer = new XmlSerializer(obj.GetType());
+				var xmlSer = new XmlSerializer(obj.GetType());
 
 				using (var sww = new StringWriter())
 				{
-					using (XmlWriter writer = XmlWriter.Create(sww))
+					using (var writer = XmlWriter.Create(sww))
 					{
 						xmlSer.Serialize(writer, obj);
 						return sww.ToString();
@@ -45,8 +45,8 @@ namespace AsyncClientServer.Model
 		{
 			try
 			{
-				XmlSerializer xmlSer = new XmlSerializer(typeof(T));
-				StringReader stringReader = new StringReader(xml);
+				var xmlSer = new XmlSerializer(typeof(T));
+				var stringReader = new StringReader(xml);
 				return (T) xmlSer.Deserialize(stringReader);
 			}
 			catch (Exception ex)
@@ -98,7 +98,7 @@ namespace AsyncClientServer.Model
 
 			try
 			{
-				string xml = File.ReadAllText(path);
+				var xml = File.ReadAllText(path);
 				return DeserializeTo<T>(xml);
 			}
 			catch (Exception ex)

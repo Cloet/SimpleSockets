@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Linq;
 using System.Text;
-using AsyncClientServer.Helper;
+using AsyncClientServer.Client;
 
-namespace AsyncClientServer.Model.StateObjectState
+namespace AsyncClientServer.StateObject.StateObjectState
 {
 	public class InitialHandlerState: StateObjectState
 	{

@@ -1,18 +1,12 @@
 ﻿using System;
-using System.CodeDom;
-using System.Collections;
-using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Reflection;
-using System.Text;
 using System.Threading;
 using System.Timers;
-using AsyncClientServer.Helper;
-using AsyncClientServer.Model.StateObjectState;
+using AsyncClientServer.StateObject;
+using AsyncClientServer.StateObject.StateObjectState;
 
-namespace AsyncClientServer.Model
+namespace AsyncClientServer.Client
 {
 
 	/// <summary>
@@ -55,7 +49,6 @@ namespace AsyncClientServer.Model
 	/// </summary>
 	public class AsyncClient : SendToServer, IAsyncClient
 	{
-		private readonly string[] _messageTypes = { "FILETRANSFER", "COMMAND", "MESSAGE", "OBJECT" };
 		private Socket _listener;
 		private bool _close;
 		private readonly ManualResetEvent _connected = new ManualResetEvent(false);
@@ -63,16 +56,19 @@ namespace AsyncClientServer.Model
 		private IPEndPoint _endpoint;
 		private static System.Timers.Timer _keepAliveTimer;
 
+		/// <inheritdoc />
 		/// <summary>
 		/// The port of the server
 		/// </summary>
 		public int Port { get; private set; }
 
+		/// <inheritdoc />
 		/// <summary>
 		/// The ip of the server
 		/// </summary>
 		public string IpServer { get; private set; }
 
+		/// <inheritdoc />
 		/// <summary>
 		/// This is how many seconds te client waits to try and reconnect to the server
 		/// </summary>
@@ -114,7 +110,7 @@ namespace AsyncClientServer.Model
 			_keepAliveTimer.Enabled = false;
 		}
 
-
+		//Timer that tries reconnecting every x seconds
 		private void KeepAlive(Object source, ElapsedEventArgs e)
 		{
 			if (!IsConnected())
@@ -196,6 +192,7 @@ namespace AsyncClientServer.Model
 			}
 		}
 
+		//When client connects.
 		private void OnConnectCallback(IAsyncResult result)
 		{
 			var server = (Socket)result.AsyncState;
@@ -221,7 +218,7 @@ namespace AsyncClientServer.Model
 		public void Receive()
 		{
 			//Start receiving data
-			var state = new StateObject(_listener);
+			var state = new StateObject.StateObject(_listener);
 			StartReceiving(state);
 		}
 
@@ -245,6 +242,7 @@ namespace AsyncClientServer.Model
 			FileReceived?.Invoke(this, filePath);
 		}
 
+		//When client receives message
 		private void ReceiveCallback(IAsyncResult result)
 		{
 			try
@@ -272,13 +270,14 @@ namespace AsyncClientServer.Model
 				this.ReceiveCallback, state);
 		}
 
+		//Handle a message
 		private void HandleMessage(IAsyncResult result)
 		{
 
 			try
 			{
 
-				var state = (StateObject)result.AsyncState;
+				var state = (StateObject.StateObject)result.AsyncState;
 				var receive = state.Listener.EndReceive(result);
 
 				if (state.Flag == 0)
@@ -320,7 +319,7 @@ namespace AsyncClientServer.Model
 
 		/// <summary>
 		/// Sends data to server
-		/// <para>This method should not be used,instead use methods in "SendToServer"</para>
+		/// <para>This method should not be used,instead use methods in <see cref="SendToServer"/></para>
 		/// </summary>
 		/// <param name="bytes"></param>
 		/// <param name="close"></param>
@@ -348,6 +347,7 @@ namespace AsyncClientServer.Model
 			}
 		}
 
+		//Send message and invokes MessageSubmitted.
 		private void SendCallback(IAsyncResult result)
 		{
 			try
@@ -369,6 +369,7 @@ namespace AsyncClientServer.Model
 			_sent.Set();
 		}
 
+		//Close client
 		private void Close()
 		{
 			try
@@ -395,7 +396,7 @@ namespace AsyncClientServer.Model
 		{
 			_connected.Dispose();
 			_sent.Dispose();
-			this.Close();
+			Close();
 		}
 
 	}

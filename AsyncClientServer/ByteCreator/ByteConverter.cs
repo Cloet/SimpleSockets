@@ -1,16 +1,14 @@
 ﻿using System;
 using System.IO;
-using System.Runtime.Remoting.Messaging;
 using System.Text;
-using AsyncClientServer.Model;
 
-namespace AsyncClientServer.Helper
+namespace AsyncClientServer.ByteCreator
 {
 
 	/// <summary>
 	/// Abstract class used to send data to server/client
 	/// </summary>
-	public abstract class SendTo
+	public abstract class ByteConverter
 	{
 
 		//Writes a message to byte array
@@ -50,7 +48,7 @@ namespace AsyncClientServer.Helper
 		/// <param name="fileLocation"></param>
 		/// <param name="remoteSaveLocation"></param>
 		/// <returns>Byte[]</returns>
-		public byte[] CreateByteFile(string fileLocation, string remoteSaveLocation)
+		protected byte[] CreateByteFile(string fileLocation, string remoteSaveLocation)
 		{
 
 			try
@@ -87,7 +85,7 @@ namespace AsyncClientServer.Helper
 		/// </summary>
 		/// <param name="message"></param>
 		/// <returns>Byte[]</returns>
-		public byte[] CreateByteMessage(string message)
+		protected byte[] CreateByteMessage(string message)
 		{
 			return CreateByteArray(message, "MESSAGE");
 		}
@@ -97,7 +95,7 @@ namespace AsyncClientServer.Helper
 		/// </summary>
 		/// <param name="command"></param>
 		/// <returns></returns>
-		public byte[] CreateByteCommand(string command)
+		protected byte[] CreateByteCommand(string command)
 		{
 			return CreateByteArray(command, "COMMAND");
 		}
@@ -107,7 +105,7 @@ namespace AsyncClientServer.Helper
 		/// </summary>
 		/// <param name="newPath"></param>
 		/// <returns></returns>
-		public byte[] CreateByteFileTransfer(string newPath)
+		protected byte[] CreateByteFileTransfer(string newPath)
 		{
 			return CreateByteArray(newPath, "FILETRANSFER");
 		}
@@ -119,9 +117,9 @@ namespace AsyncClientServer.Helper
 		/// </summary>
 		/// <param name="serObj"></param>
 		/// <returns>Byte[]</returns>
-		public byte[] CreateByteObject(object serObj)
+		protected byte[] CreateByteObject(object serObj)
 		{
-			string message = XmlSerialization.SerializeToXml(serObj);
+			string message = XmlSerialization.XmlSerialization.SerializeToXml(serObj);
 			return CreateByteArray(message, "OBJECT");
 
 		}

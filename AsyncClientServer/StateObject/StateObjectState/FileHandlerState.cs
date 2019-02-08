@@ -1,8 +1,8 @@
 ﻿using System;
 using System.IO;
-using AsyncClientServer.Helper;
+using AsyncClientServer.Client;
 
-namespace AsyncClientServer.Model.StateObjectState
+namespace AsyncClientServer.StateObject.StateObjectState
 {
 	public class FileHandlerState : StateObjectState
 	{

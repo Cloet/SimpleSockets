@@ -1,6 +1,7 @@
-﻿using AsyncClientServer.Helper;
+﻿using AsyncClientServer.Client;
+using AsyncClientServer.Server;
 
-namespace AsyncClientServer.Model.StateObjectState
+namespace AsyncClientServer.StateObject.StateObjectState
 {
 	public class FileHasBeenReceivedState: StateObjectState
 	{
