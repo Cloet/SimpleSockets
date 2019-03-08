@@ -7,8 +7,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using AsyncClientServer.Helper;
-using AsyncClientServer.Model;
+using AsyncClientServer.Client;
 
 namespace AsyncClientServer.Example.Client
 {
@@ -27,18 +26,18 @@ namespace AsyncClientServer.Example.Client
 			Thread t = new Thread(StartClient);
 			t.Start();
 
-			//while (true)
-			//{
+			while (true)
+			{
 
-			//	if (_connected)
-			//	{
+				if (_connected)
+				{
 
-			//		Console.Write("Enter message:");
-			//		string msg = Console.ReadLine();
-			//		_client.SendMessage(msg, false);
-			//	}
+					Console.Write("Enter message:");
+					string msg = Console.ReadLine();
+					_client.SendMessage(msg, false);
+				}
 
-			//}
+			}
 
 			Console.ReadLine();
 
@@ -71,7 +70,7 @@ namespace AsyncClientServer.Example.Client
 			_client.SendFile(fileLocation, remoteLocation, close);
 		}
 
-		private static void SendObject(SerializableObject anyObj, bool close)
+		private static void SendObject(object anyObj, bool close)
 		{
 			_client.SendObject(anyObj, close);
 		}

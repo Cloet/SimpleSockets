@@ -4,8 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using AsyncClientServer.Helper;
-using AsyncClientServer.Model;
+using AsyncClientServer.Server;
 
 namespace AsyncClientServer.Example.Server
 {
@@ -68,14 +67,9 @@ namespace AsyncClientServer.Example.Server
 			AsyncSocketListener.Instance.SendFile(id, fileLocation, remoteLocation, close);
 		}
 
-		private static void SendObject(int id, SerializableObject anyObj, Boolean close)
+		private static void SendObject(int id, object anyObj, Boolean close)
 		{
 			AsyncSocketListener.Instance.SendObject(id, anyObj, close);
-		}
-
-		private static void requestfileTransfer(int id, string location, string remoteloc)
-		{
-			SendMessage(id, "transfer" + "/" + "D:\\stay.mp3" + "/" + "D:\\copy-stay.mp3", false);
 		}
 
 		/*Events*/

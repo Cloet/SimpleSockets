@@ -152,9 +152,9 @@ namespace AsyncClientServer.Server
 					ServerHasStarted?.Invoke();
 					while (true)
 					{
-						this._mre.Reset();
-						listener.BeginAccept(this.OnClientConnect, listener);
-						this._mre.WaitOne();
+						_mre.Reset();
+						listener.BeginAccept(OnClientConnect, listener);
+						_mre.WaitOne();
 					}
 				}
 			}

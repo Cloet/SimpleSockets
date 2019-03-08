@@ -1,14 +1,18 @@
 ﻿using System;
+using System.CodeDom;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Text;
+using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Serialization;
 
-namespace AsyncClientServer.XmlSerialization
+namespace XmlSerialization
 {
-
 	public static class XmlSerialization
 	{
-
 		/// <summary>
 		/// Serializes the object and returns a string
 		/// </summary>
@@ -17,11 +21,11 @@ namespace AsyncClientServer.XmlSerialization
 		{
 			try
 			{
-				var xmlSer = new XmlSerializer(obj.GetType());
+				XmlSerializer xmlSer = new XmlSerializer(obj.GetType());
 
 				using (var sww = new StringWriter())
 				{
-					using (var writer = XmlWriter.Create(sww))
+					using (XmlWriter writer = XmlWriter.Create(sww))
 					{
 						xmlSer.Serialize(writer, obj);
 						return sww.ToString();
@@ -32,8 +36,8 @@ namespace AsyncClientServer.XmlSerialization
 			{
 				throw new Exception("Unable to serialize the object of type " + obj.GetType() + " to an xml string.");
 			}
-
 		}
+
 
 		/// <summary>
 		/// Converts the xml string to an generic Object
@@ -45,9 +49,9 @@ namespace AsyncClientServer.XmlSerialization
 		{
 			try
 			{
-				var xmlSer = new XmlSerializer(typeof(T));
-				var stringReader = new StringReader(xml);
-				return (T) xmlSer.Deserialize(stringReader);
+				XmlSerializer xmlSer = new XmlSerializer(typeof(T));
+				StringReader stringReader = new StringReader(xml);
+				return (T)xmlSer.Deserialize(stringReader);
 			}
 			catch (Exception ex)
 			{
@@ -83,7 +87,7 @@ namespace AsyncClientServer.XmlSerialization
 			catch (Exception ex)
 			{
 				throw new Exception("Unable to serialize and write xml to file with object of type " + obj.GetType() +
-				                    ".\n" + ex);
+									".\n" + ex);
 			}
 		}
 
@@ -98,13 +102,13 @@ namespace AsyncClientServer.XmlSerialization
 
 			try
 			{
-				var xml = File.ReadAllText(path);
+				string xml = File.ReadAllText(path);
 				return DeserializeTo<T>(xml);
 			}
 			catch (Exception ex)
 			{
 				throw new Exception("Unable to deserialize xml from file to object of type " + typeof(T) + ".\n" +
-				                    ex);
+									ex);
 			}
 		}
 
