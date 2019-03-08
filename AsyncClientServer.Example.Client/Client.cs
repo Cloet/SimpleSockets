@@ -13,7 +13,7 @@ namespace AsyncClientServer.Example.Client
 {
 	class Client
 	{
-		private static Boolean _connected;
+		private static bool _connected;
 		private static AsyncClient _client;
 		static void Main(string[] args)
 		{
@@ -25,6 +25,8 @@ namespace AsyncClientServer.Example.Client
 			BindEvents();
 			Thread t = new Thread(StartClient);
 			t.Start();
+
+			SendFile("SourcePath", "TargetPath", false);
 
 			while (true)
 			{

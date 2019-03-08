@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using AsyncClientServer.Client;
+using Compression;
 
 namespace AsyncClientServer.StateObject.StateObjectState
 {
@@ -94,6 +95,23 @@ namespace AsyncClientServer.StateObject.StateObjectState
 
 		}
 
+		/// <summary>
+		/// Decompress the received file
+		/// </summary>
+		/// <param name="path"></param>
+		public void Decompress(string path)
+		{
+
+			FileInfo info = new FileInfo(State.Header);
+
+			if (info.Extension == ".gz")
+			{
+				GZipCompression.Decompress(info);
+				File.Delete(info.FullName);
+			}
+
+		}
+
 		/// <inheritdoc />
 		/// <summary>
 		/// Handles the writing of a file.
@@ -107,6 +125,7 @@ namespace AsyncClientServer.StateObject.StateObjectState
 			//If the message has been read and there is are no extra bytes
 			if (State.Flag == -2)
 			{
+				Decompress(State.Header);
 				State.CurrentState = new FileHasBeenReceivedState(State, Client);
 				State.CurrentState.Receive(State.Buffer.Length);
 				State.Reset();
@@ -115,6 +134,7 @@ namespace AsyncClientServer.StateObject.StateObjectState
 			else if (State.Flag == -3)
 			{
 				//Set to FileHasBeenReceivedState and invoke FileReceived event
+				Decompress(State.Header);
 				State.CurrentState = new FileHasBeenReceivedState(State, Client);
 				State.CurrentState.Receive(State.Buffer.Length);
 

@@ -4,11 +4,11 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{1E5CB910-EC0A-4A97-98A4-87505733A3E4}</ProjectGuid>
+    <ProjectGuid>{A380DE6E-3297-425D-85CD-98C07BCDDEB2}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>AsyncClientServer</RootNamespace>
-    <AssemblyName>AsyncClientServer</AssemblyName>
+    <RootNamespace>Compression</RootNamespace>
+    <AssemblyName>Compression</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
@@ -33,6 +33,7 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.IO.Compression.FileSystem" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -41,34 +42,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Client\IAsyncClient.cs" />
-    <Compile Include="Server\IAsyncSocketListener.cs" />
-    <Compile Include="Server\ISendToClient.cs" />
-    <Compile Include="Client\ISendToServer.cs" />
-    <Compile Include="StateObject\IStateObject.cs" />
-    <Compile Include="ByteCreator\ByteConverter.cs" />
-    <Compile Include="Server\SendToClient.cs" />
-    <Compile Include="Client\SendToServer.cs" />
-    <Compile Include="Client\AsyncClient.cs" />
-    <Compile Include="Server\AsyncSocketListener.cs" />
-    <Compile Include="StateObject\StateObjectState\FileHandlerState.cs" />
-    <Compile Include="StateObject\StateObjectState\FileHasBeenReceivedState.cs" />
-    <Compile Include="StateObject\StateObjectState\InitialHandlerState.cs" />
-    <Compile Include="StateObject\StateObjectState\MessageHandlerState.cs" />
-    <Compile Include="StateObject\StateObjectState\MessageHasBeenReceivedState.cs" />
-    <Compile Include="StateObject\StateObjectState\StateObjectState.cs" />
-    <Compile Include="StateObject\StateObject.cs" />
+    <Compile Include="GZipCompression.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Compression\Compression.csproj">
-      <Project>{a380de6e-3297-425d-85cd-98c07bcddeb2}</Project>
-      <Name>Compression</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\XmlSerialization\XmlSerialization.csproj">
-      <Project>{b559c268-1c92-4543-ba0e-5f486b9c9c04}</Project>
-      <Name>XmlSerialization</Name>
-    </ProjectReference>
+    <Compile Include="ZipCompression.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

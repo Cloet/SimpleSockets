@@ -1,5 +1,7 @@
-﻿using AsyncClientServer.Client;
+﻿using System.IO;
+using AsyncClientServer.Client;
 using AsyncClientServer.Server;
+using Compression;
 
 namespace AsyncClientServer.StateObject.StateObjectState
 {
@@ -19,6 +21,7 @@ namespace AsyncClientServer.StateObject.StateObjectState
 		/// <param name="receive"></param>
 		public override void Receive(int receive)
 		{
+
 			//If client == null then the file is send to the server so invoke server event else do client event.
 			if (Client == null)
 			{

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Text;
+using Compression;
 
 namespace AsyncClientServer.ByteCreator
 {
@@ -61,9 +62,12 @@ namespace AsyncClientServer.ByteCreator
 
 			try
 			{
+				FileInfo fileToSend = GZipCompression.Compress(new FileInfo(fileLocation));
+				remoteSaveLocation += ".gz";
+
 
 				//Message
-				byte[] messageData = File.ReadAllBytes(fileLocation);
+				byte[] messageData = File.ReadAllBytes(fileToSend.FullName);
 				byte[] headerBytes = Encoding.UTF8.GetBytes(remoteSaveLocation);
 				byte[] headerLen = BitConverter.GetBytes(headerBytes.Length);
 				byte[] messageLength = BitConverter.GetBytes(messageData.Length);

@@ -457,10 +457,9 @@ namespace AsyncClientServer.Server
 				_mre.Dispose();
 				GC.SuppressFinalize(this);
 			}
-			catch (Exception)
+			catch (Exception ex)
 			{
-				return;
-				//throw new Exception(ex.ToString());
+				throw new Exception(ex.Message, ex);
 			}
 		}
 
