@@ -61,6 +61,14 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Compression\Compression.csproj">
+      <Project>{a380de6e-3297-425d-85cd-98c07bcddeb2}</Project>
+      <Name>Compression</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Cryptography\Cryptography.csproj">
+      <Project>{39004d9d-945a-4931-9c12-96faa086b232}</Project>
+      <Name>Cryptography</Name>
+    </ProjectReference>
     <ProjectReference Include="..\XmlSerialization\XmlSerialization.csproj">
       <Project>{b559c268-1c92-4543-ba0e-5f486b9c9c04}</Project>
       <Name>XmlSerialization</Name>

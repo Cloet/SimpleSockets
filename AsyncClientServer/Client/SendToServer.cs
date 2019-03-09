@@ -41,12 +41,12 @@ namespace AsyncClientServer.Client
 		/// Send a file to server
 		/// <para>Simple way of sending large files over sockets</para>
 		/// </summary>
-		/// <param name="FileLocation"></param>
-		/// <param name="RemoteFileLocation"></param>
+		/// <param name="fileLocation"></param>
+		/// <param name="remoteFileLocation"></param>
 		/// <param name="close"></param>
-		public void SendFile(string FileLocation, string RemoteFileLocation, bool close)
+		public void SendFile(string fileLocation, string remoteFileLocation, bool close)
 		{
-			byte[] data = CreateByteFile(FileLocation, RemoteFileLocation);
+			byte[] data = CreateByteFile(fileLocation, remoteFileLocation);
 			SendBytes(data, close);
 		}
 

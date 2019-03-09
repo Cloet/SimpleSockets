@@ -55,9 +55,11 @@ namespace AsyncClientServer.StateObject.StateObjectState
 				bytes = State.Buffer;
 			}
 
+
+			State.AppendBytes(bytes);
 			//Convert from bytes to string and append to state stringBuilder.
-			string msg = Encoding.UTF8.GetString(bytes, 0, bytes.Length);
-			State.Append(msg);
+			//string msg = Encoding.UTF8.GetString(bytes, 0, bytes.Length);
+			//State.Append(msg);
 
 		}
 

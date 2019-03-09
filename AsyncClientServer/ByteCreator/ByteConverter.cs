@@ -1,6 +1,8 @@
 ﻿using System;
 using System.IO;
 using System.Text;
+using Compression;
+using Cryptography;
 
 namespace AsyncClientServer.ByteCreator
 {
@@ -24,10 +26,12 @@ namespace AsyncClientServer.ByteCreator
 		{
 			try
 			{
+				var encryptedHeader = AES256.EncryptStringToBytes_Aes(header);
+				var encryptedMessage = AES256.EncryptStringToBytes_Aes(message);
 
 				//Message
-				byte[] messageData = Encoding.UTF8.GetBytes(message);
-				byte[] headerBytes = Encoding.UTF8.GetBytes(header);
+				byte[] messageData = encryptedMessage;
+				byte[] headerBytes = encryptedHeader;
 				byte[] headerLen = BitConverter.GetBytes(headerBytes.Length);
 				byte[] messageLength = BitConverter.GetBytes(messageData.Length);
 
@@ -61,10 +65,18 @@ namespace AsyncClientServer.ByteCreator
 
 			try
 			{
+				FileInfo fileToSend = GZipCompression.Compress(new FileInfo(fileLocation));
+				remoteSaveLocation += ".gz";
+
+				AES256.FileEncrypt(fileToSend.FullName);
+				fileToSend = new FileInfo(fileToSend.FullName + ".aes");
+				remoteSaveLocation += ".aes";
+
+				var encryptedHeader = AES256.EncryptStringToBytes_Aes(remoteSaveLocation);
 
 				//Message
-				byte[] messageData = File.ReadAllBytes(fileLocation);
-				byte[] headerBytes = Encoding.UTF8.GetBytes(remoteSaveLocation);
+				byte[] messageData = File.ReadAllBytes(fileToSend.FullName);
+				byte[] headerBytes = encryptedHeader;
 				byte[] headerLen = BitConverter.GetBytes(headerBytes.Length);
 				byte[] messageLength = BitConverter.GetBytes(messageData.Length);
 				

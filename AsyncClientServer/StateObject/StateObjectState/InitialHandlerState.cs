@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Text;
 using AsyncClientServer.Client;
+using Cryptography;
 
 namespace AsyncClientServer.StateObject.StateObjectState
 {
@@ -24,13 +25,21 @@ namespace AsyncClientServer.StateObject.StateObjectState
 		/// <param name="receive"></param>
 		public override void Receive(int receive)
 		{
+
+			//TODO Check if received message has enough bytes.
+
 			//First check
 			if (State.Flag == 0)
 			{
 				//Get the size of the message, the header size and the header string and save it to the StateObject.
 				State.MessageSize = BitConverter.ToInt32(State.Buffer, 0);
 				State.HeaderSize = BitConverter.ToInt32(State.Buffer, 4);
-				State.Header = Encoding.UTF8.GetString(State.Buffer, 8, State.HeaderSize);
+
+				byte[] headerbytes =  new byte[State.HeaderSize];
+				Array.Copy(State.Buffer, 8, headerbytes, 0, State.HeaderSize);
+
+				State.Header = AES256.DecryptStringFromBytes_Aes(headerbytes);
+				//State.Header = Encoding.UTF8.GetString(State.Buffer, 8, State.HeaderSize);
 
 				//Get the bytes without the header and MessageSize and copy to new byte array.
 				byte[] bytes = new byte[receive - (8 + State.HeaderSize)];
@@ -54,8 +63,6 @@ namespace AsyncClientServer.StateObject.StateObjectState
 			State.CurrentState.Receive(receive - 8 - State.HeaderSize);
 
 		}
-
-
 
 	}
 }

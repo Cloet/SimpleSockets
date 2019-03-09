@@ -8,12 +8,13 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using AsyncClientServer.Client;
+using Cryptography;
 
 namespace AsyncClientServer.Example.Client
 {
 	class Client
 	{
-		private static Boolean _connected;
+		private static bool _connected;
 		private static AsyncClient _client;
 		static void Main(string[] args)
 		{
@@ -26,12 +27,13 @@ namespace AsyncClientServer.Example.Client
 			Thread t = new Thread(StartClient);
 			t.Start();
 
+			//SendFile("SourcePath", "TargetPath", false);
+
 			while (true)
 			{
 
 				if (_connected)
 				{
-
 					Console.Write("Enter message:");
 					string msg = Console.ReadLine();
 					_client.SendMessage(msg, false);

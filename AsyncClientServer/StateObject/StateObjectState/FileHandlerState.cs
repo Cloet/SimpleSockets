@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using AsyncClientServer.Client;
+using Compression;
 
 namespace AsyncClientServer.StateObject.StateObjectState
 {
@@ -93,6 +94,7 @@ namespace AsyncClientServer.StateObject.StateObjectState
 				State.Flag++;
 
 		}
+
 
 		/// <inheritdoc />
 		/// <summary>

@@ -283,41 +283,56 @@ namespace AsyncClientServer.Server
 			{
 
 				var state = (StateObject.StateObject)result.AsyncState;
-				var receive = state.Listener.EndReceive(result);
 
-				if (state.Flag == 0)
+				//Check if client is still connected.
+				//If client is disconnected, send disconnected message
+				//and remove from clients list
+				if (!IsConnected(state.Id))
 				{
-					state.CurrentState = new InitialHandlerState(state);
+					ClientDisconnected?.Invoke(state.Id);
+					_clients.Remove(state.Id);
 				}
-
-				if (receive > 0)
+				//Else start receiving and handle the message.
+				else
 				{
-					state.CurrentState.Receive(receive);
-				}
+					var receive = state.Listener.EndReceive(result);
 
-				/*When the full message has been received. */
-				if (state.Read == state.MessageSize)
-				{
+					if (state.Flag == 0)
+					{
+						state.CurrentState = new InitialHandlerState(state);
+					}
+
+					if (receive > 0)
+					{
+						state.CurrentState.Receive(receive);
+					}
+
+					/*When the full message has been received. */
+					if (state.Read == state.MessageSize)
+					{
+						StartReceiving(state);
+						return;
+					}
+
+					/*Check if there still are messages to be received.*/
+					if (receive == state.BufferSize)
+					{
+						StartReceiving(state);
+						return;
+					}
+
+					//When something goes wrong
+					state.Reset();
 					StartReceiving(state);
-					return;
 				}
 
-				/*Check if there still are messages to be received.*/
-				if (receive == state.BufferSize)
-				{
-					StartReceiving(state);
-					return;
-				}
 
-				//When something goes wrong
-				state.Reset();
-				StartReceiving(state);
 
 
 			}
 			catch (Exception ex)
 			{
-				throw new Exception(ex.ToString());
+				throw new Exception(ex.Message, ex);
 			}
 		}
 
@@ -354,11 +369,15 @@ namespace AsyncClientServer.Server
 			}
 			catch (SocketException se)
 			{
-				throw new Exception(se.ToString());
+				throw new SocketException(se.ErrorCode);
 			}
 			catch (ArgumentException ae)
 			{
-				throw new Exception(ae.ToString());
+				throw new ArgumentException(ae.Message, ae);
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message, ex);
 			}
 		}
 
@@ -373,11 +392,15 @@ namespace AsyncClientServer.Server
 			}
 			catch (SocketException se)
 			{
-				throw new Exception(se.ToString());
+				throw new SocketException(se.ErrorCode);
 			}
 			catch (ObjectDisposedException ode)
 			{
-				throw new Exception(ode.ToString());
+				throw new ObjectDisposedException(ode.ObjectName, ode.Message);
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message, ex);
 			}
 			finally
 			{
@@ -434,10 +457,9 @@ namespace AsyncClientServer.Server
 				_mre.Dispose();
 				GC.SuppressFinalize(this);
 			}
-			catch (Exception)
+			catch (Exception ex)
 			{
-				return;
-				//throw new Exception(ex.ToString());
+				throw new Exception(ex.Message, ex);
 			}
 		}
 

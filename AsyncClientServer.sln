@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.106
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AsyncClientServer", "AsyncClientServer\AsyncClientServer.csproj", "{1E5CB910-EC0A-4A97-98A4-87505733A3E4}"
 EndProject
@@ -10,6 +10,10 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AsyncClientServer.Example.Server", "AsyncClientServer.Example.Server\AsyncClientServer.Example.Server.csproj", "{967EE201-DD3F-4498-8B54-EDE15044B7A4}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XmlSerialization", "XmlSerialization\XmlSerialization.csproj", "{B559C268-1C92-4543-BA0E-5F486B9C9C04}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Compression", "Compression\Compression.csproj", "{A380DE6E-3297-425D-85CD-98C07BCDDEB2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cryptography", "Cryptography\Cryptography.csproj", "{39004D9D-945A-4931-9C12-96FAA086B232}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,6 +37,14 @@ Global
 		{B559C268-1C92-4543-BA0E-5F486B9C9C04}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B559C268-1C92-4543-BA0E-5F486B9C9C04}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B559C268-1C92-4543-BA0E-5F486B9C9C04}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A380DE6E-3297-425D-85CD-98C07BCDDEB2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A380DE6E-3297-425D-85CD-98C07BCDDEB2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A380DE6E-3297-425D-85CD-98C07BCDDEB2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A380DE6E-3297-425D-85CD-98C07BCDDEB2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{39004D9D-945A-4931-9C12-96FAA086B232}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{39004D9D-945A-4931-9C12-96FAA086B232}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{39004D9D-945A-4931-9C12-96FAA086B232}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{39004D9D-945A-4931-9C12-96FAA086B232}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

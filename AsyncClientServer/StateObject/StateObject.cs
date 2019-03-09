@@ -1,4 +1,7 @@
-﻿using System.Net.Sockets;
+﻿using System.Collections.Generic;
+using System.Linq;
+using System.Net.Sockets;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace AsyncClientServer.StateObject
@@ -17,6 +20,7 @@ namespace AsyncClientServer.StateObject
 		/* Contains the state information. */
 
 		private const int Buffer_Size = 8192;
+		private List<byte> _receivedBytes = new List<byte>();
 		private StringBuilder _sb;
 
 		/// <summary>
@@ -77,6 +81,16 @@ namespace AsyncClientServer.StateObject
 		/// </summary>
 		public string Text => this._sb.ToString();
 
+		public byte[] ReceivedBytes => _receivedBytes.ToArray();
+
+		public void AppendBytes(byte[] bytes)
+		{
+			foreach (var b in bytes)
+			{
+				_receivedBytes.Add(b);
+			}
+		}
+
 		/// <summary>
 		/// Add text to stringbuilder
 		/// </summary>
@@ -127,6 +141,7 @@ namespace AsyncClientServer.StateObject
 			Header = "";
 			MessageSize = 0;
 			HeaderSize = 0;
+			_receivedBytes = new List<byte>();
 			Read = 0;
 			Flag = 0;
 			_sb = new StringBuilder();
