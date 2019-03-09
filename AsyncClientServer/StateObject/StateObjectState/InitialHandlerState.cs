@@ -9,7 +9,7 @@ namespace AsyncClientServer.StateObject.StateObjectState
 	public class InitialHandlerState: StateObjectState
 	{
 		//The types of messages that can be send.
-		private readonly string[] _messageTypes = { "FILETRANSFER", "COMMAND", "MESSAGE", "OBJECT" };
+		private readonly string[] _messageTypes = { "COMMAND", "MESSAGE", "OBJECT" };
 
 		public InitialHandlerState(IStateObject state) : base(state, null)
 		{
