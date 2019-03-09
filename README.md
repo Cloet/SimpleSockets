@@ -33,6 +33,7 @@ AsyncSocketListener.Instance.StartListening(port);
 Bind the events to methods in your program
 ```C#
 //Events
+AsyncSocketListener.Instance.ProgressFileReceived += new FileTransferProgressHandler(Progress);
 AsyncSocketListener.Instance.MessageReceived += new MessageReceivedHandler(MessageReceived);
 AsyncSocketListener.Instance.MessageSubmitted += new MessageSubmittedHandler(MessageSubmitted);
 AsyncSocketListener.Instance.ClientDisconnected += new ClientDisconnectedHandler(ClientDisconnected);
@@ -41,17 +42,32 @@ AsyncSocketListener.Instance.ServerHasStarted += new ServerHasStartedHandler(Ser
 ```
 ```C#
 //Methods
-private static void MessageReceived(int id,string header, string msg)
+private static void MessageReceived(int id, string header,string msg)
 {
 	//Code
 }
 
 private static void MessageSubmitted(int id, bool close)
-{
+{	
 	//Code
 }
 
 private static void FileReceived(int id, string path)
+{
+	//Code
+}
+
+private static void Progress(int id, int bytes, int messageSize)
+{
+	//Code
+}
+
+private static void ServerHasStarted()
+{
+	//Code
+}
+
+private static void ClientDisconnected(int id)
 {
 	//Code
 }
@@ -71,10 +87,12 @@ client.Startclient(ipServer,portServer);
 Binding the events
 ```C#
 //Events
+client.ProgressFileReceived += new ProgressFileTransferHandler(Progress);
 client.Connected += new ConnectedHandler(ConnectedToServer);
 client.MessageReceived += new ClientMessageReceivedHandler(ServerMessageReceived);
 client.MessageSubmitted += new ClientMessageSubmittedHandler(ClientMessageSubmitted);
 client.FileReceived += new FileFromServerReceivedHandler(FileReceived);
+client.Disconnected += new DisconnectedFromServerHandler(Disconnected);
 ```
 
 ```C#
@@ -90,6 +108,16 @@ private static void ServerMessageReceived(IAsyncClient a,string header, String m
 }
 
 private static void FileReceived(string file)
+{
+	//Code
+}
+
+private static void Disconnected(string ip, int port)
+{
+	//Code
+}
+
+private static void Progress(IAsyncClient a, int bytes, int messageSize)
 {
 	//Code
 }
