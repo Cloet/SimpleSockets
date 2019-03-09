@@ -1,5 +1,6 @@
 ﻿using AsyncClientServer.Client;
 using AsyncClientServer.Server;
+using Cryptography;
 
 namespace AsyncClientServer.StateObject.StateObjectState
 {
@@ -19,13 +20,16 @@ namespace AsyncClientServer.StateObject.StateObjectState
 		/// <param name="receive"></param>
 		public override void Receive(int receive)
 		{
+			//Decrypt the received message
+			string text = AES256.DecryptStringFromBytes_Aes(State.ReceivedBytes);
+
 			if (Client == null)
 			{
-				AsyncSocketListener.Instance.InvokeMessageReceived(State.Id,State.Header,State.Text);
+				AsyncSocketListener.Instance.InvokeMessageReceived(State.Id,State.Header,text);
 				return;
 			}
 
-			Client.InvokeMessage(State.Header, State.Text);
+			Client.InvokeMessage(State.Header, text);
 
 		}
 	}

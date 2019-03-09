@@ -96,5 +96,11 @@ namespace AsyncClientServer.StateObject
 		/// </summary>
 		void Reset();
 
+
+
+		byte[] ReceivedBytes { get; }
+
+		void AppendBytes(byte[] bytes);
+
 	}
 }

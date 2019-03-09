@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using AsyncClientServer.Client;
+using Cryptography;
 
 namespace AsyncClientServer.Example.Client
 {
@@ -26,17 +27,20 @@ namespace AsyncClientServer.Example.Client
 			Thread t = new Thread(StartClient);
 			t.Start();
 
-			SendFile("SourcePath", "TargetPath", false);
+			//SendFile("SourcePath", "TargetPath", false);
 
 			while (true)
 			{
 
 				if (_connected)
 				{
+					Console.Write("Press enter to send file");
+					Console.ReadLine();
+					_client.SendFile("D:\\Stay.mp3", "D:\\Copy-Stay.mp3", false);
 
-					Console.Write("Enter message:");
-					string msg = Console.ReadLine();
-					_client.SendMessage(msg, false);
+					//Console.Write("Enter message:");
+					//string msg = Console.ReadLine();
+					//_client.SendMessage(msg, false);
 				}
 
 			}

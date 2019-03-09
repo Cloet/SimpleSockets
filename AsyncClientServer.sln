@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XmlSerialization", "XmlSeri
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Compression", "Compression\Compression.csproj", "{A380DE6E-3297-425D-85CD-98C07BCDDEB2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cryptography", "Cryptography\Cryptography.csproj", "{39004D9D-945A-4931-9C12-96FAA086B232}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{A380DE6E-3297-425D-85CD-98C07BCDDEB2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A380DE6E-3297-425D-85CD-98C07BCDDEB2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A380DE6E-3297-425D-85CD-98C07BCDDEB2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{39004D9D-945A-4931-9C12-96FAA086B232}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{39004D9D-945A-4931-9C12-96FAA086B232}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{39004D9D-945A-4931-9C12-96FAA086B232}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{39004D9D-945A-4931-9C12-96FAA086B232}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

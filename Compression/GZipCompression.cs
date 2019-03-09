@@ -124,7 +124,7 @@ namespace Compression
 		/// Decompresses a file
 		/// </summary>
 		/// <param name="fileToDecompress"></param>
-		public static void Decompress(FileInfo fileToDecompress)
+		public static FileInfo Decompress(FileInfo fileToDecompress)
 		{
 			try
 			{
@@ -144,9 +144,15 @@ namespace Compression
 							{
 								decompressionStream.CopyTo(decompressedFileStream);
 							}
+
+							return new FileInfo(newFileName);
 						}
 					}
+
+					throw new Exception("The file cannot be decompressed.");
+
 				}
+
 			}
 			catch (Exception ex)
 			{
