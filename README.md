@@ -12,11 +12,11 @@ The server and client can send & receive: files, objects and messages.
 - Add example
 - Clean up code
 - Compression algorithm (GZipStream and .zip support added)
+- Added Cryptography (AES256)
 
 ## TODO
-- Add more exceptions
-- Add Cryptography
 - Add More compression
+- Better support for sending files.
 - Ability to send large files (Only sends smaller files reliably for now)
 - ?
 
