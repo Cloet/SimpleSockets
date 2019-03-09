@@ -7,17 +7,15 @@ The server and client can send & receive: files, objects and messages.
 - Send messages from server -> client & server -> client
 - Ability to send files from client -> server & server -> client
 - Serialize objects into xml and send from client -> server & server -> client
-- Get a list of all connected clients
-- Make it simpler to use
-- Add example
-- Clean up code
 - Compression algorithm (GZipStream and .zip support added)
 - Added Cryptography (AES256)
+- Can send large files.
 
 ## TODO
+- Convert objects to json and send these.
 - Add More compression
 - Better support for sending files.
-- Ability to send large files (Only sends smaller files reliably for now)
+- Make filetransfer for big files faster.
 - ?
 
 ## Usage
