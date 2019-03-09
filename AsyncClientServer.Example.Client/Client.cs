@@ -34,13 +34,9 @@ namespace AsyncClientServer.Example.Client
 
 				if (_connected)
 				{
-					Console.Write("Press enter to send file");
-					Console.ReadLine();
-					_client.SendFile("D:\\Stay.mp3", "D:\\Copy-Stay.mp3", false);
-
-					//Console.Write("Enter message:");
-					//string msg = Console.ReadLine();
-					//_client.SendMessage(msg, false);
+					Console.Write("Enter message:");
+					string msg = Console.ReadLine();
+					_client.SendMessage(msg, false);
 				}
 
 			}
