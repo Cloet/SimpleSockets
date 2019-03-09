@@ -50,17 +50,6 @@ namespace AsyncClientServer.Client
 			SendBytes(data, close);
 		}
 
-		/// <summary>
-		/// Send fileTransfer data to server
-		/// </summary>
-		/// <param name="path"></param>
-		/// <param name="close"></param>
-		public void SendFileTransfer(string path, bool close)
-		{
-			byte[] data = CreateByteFileTransfer(path);
-			SendBytes(data, close);
-		}
-
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends a file to server

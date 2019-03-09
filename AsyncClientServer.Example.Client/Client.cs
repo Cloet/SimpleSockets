@@ -27,16 +27,19 @@ namespace AsyncClientServer.Example.Client
 			Thread t = new Thread(StartClient);
 			t.Start();
 
-			//SendFile("SourcePath", "TargetPath", false);
+			
 
 			while (true)
 			{
 
 				if (_connected)
 				{
-					Console.Write("Enter message:");
-					string msg = Console.ReadLine();
-					_client.SendMessage(msg, false);
+					//Console.Write("Enter message:");
+					//string msg = Console.ReadLine();
+					//_client.SendMessage(msg, false);
+					Console.Write("Press enter to continue.");
+					Console.ReadLine();
+					SendFile(@"source", @"target", false);
 				}
 
 			}
@@ -54,6 +57,7 @@ namespace AsyncClientServer.Example.Client
 
 		private static void BindEvents()
 		{
+			_client.ProgressFileReceived += new ProgressFileTransferHandler(Progress);
 			_client.Connected += new ConnectedHandler(ConnectedToServer);
 			_client.MessageReceived += new ClientMessageReceivedHandler(ServerMessageReceived);
 			_client.MessageSubmitted += new ClientMessageSubmittedHandler(ClientMessageSubmitted);
@@ -99,6 +103,12 @@ namespace AsyncClientServer.Example.Client
 		private static void Disconnected(string ip, int port)
 		{
 			Console.WriteLine("Client has disconnected from server with ip: " + ip + " and port " + port);
+		}
+
+		private static void Progress(IAsyncClient a, int bytes, int messageSize)
+		{
+			var percentageDone = bytes / messageSize *100;
+			Console.WriteLine("The filetransfer is " + percentageDone + " % Done.");
 		}
 
 		private static void ClientMessageSubmitted(IAsyncClient a, bool close)

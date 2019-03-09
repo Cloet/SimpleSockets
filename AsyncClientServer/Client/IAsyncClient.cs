@@ -32,6 +32,11 @@ namespace AsyncClientServer.Client
 		event FileFromServerReceivedHandler FileReceived;
 
 		/// <summary>
+		/// Event that tracks the progress of a filetransfer.
+		/// </summary>
+		event ProgressFileTransferHandler ProgressFileReceived;
+
+		/// <summary>
 		/// Event that is used to check if the client is still connected to the server.
 		/// </summary>
 		event DisconnectedFromServerHandler Disconnected;
@@ -91,6 +96,13 @@ namespace AsyncClientServer.Client
 		/// </summary>
 		/// <param name="filePath">Location where the file is stored.</param>
 		void InvokeFileReceived(string filePath);
+
+		/// <summary>
+		/// Invokes ProgressReceived event
+		/// </summary>
+		/// <param name="bytesReceived"></param>
+		/// <param name="messageSize"></param>
+		void InvokeFileTransferProgress(int bytesReceived, int messageSize);
 
 	}
 }

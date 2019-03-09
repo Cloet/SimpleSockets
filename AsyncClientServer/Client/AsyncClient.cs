@@ -39,6 +39,14 @@ namespace AsyncClientServer.Client
 	/// <param name="path"></param>
 	public delegate void FileFromServerReceivedHandler(IAsyncClient a, string path);
 
+	/// <summary>
+	/// Event that is triggered when a file is received from the server and show the progress.
+	/// </summary>
+	/// <param name="a"></param>
+	/// <param name="bytesReceived"></param>
+	/// <param name="messageSize"></param>
+	public delegate void ProgressFileTransferHandler(IAsyncClient a, int bytesReceived, int messageSize);
+
 
 	/// <summary>
 	/// The Following code handles the client in an Async fashion.
@@ -92,6 +100,11 @@ namespace AsyncClientServer.Client
 		/// Event that is used to check when a file is received from the server
 		/// </summary>
 		public event FileFromServerReceivedHandler FileReceived;
+
+		/// <summary>
+		/// Event that tracks the progress of a FileTransfer.
+		/// </summary>
+		public event ProgressFileTransferHandler ProgressFileReceived;
 
 		/// <summary>
 		/// Event that is used to check if the client is still connected to the server.
@@ -240,6 +253,16 @@ namespace AsyncClientServer.Client
 		public void InvokeFileReceived(string filePath)
 		{
 			FileReceived?.Invoke(this, filePath);
+		}
+
+		/// <summary>
+		/// Invokes ProgressReceived event
+		/// </summary>
+		/// <param name="bytesReceived"></param>
+		/// <param name="messageSize"></param>
+		public void InvokeFileTransferProgress(int bytesReceived, int messageSize)
+		{
+			ProgressFileReceived?.Invoke(this,bytesReceived, messageSize);
 		}
 
 		//When client receives message

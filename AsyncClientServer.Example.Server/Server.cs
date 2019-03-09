@@ -49,6 +49,7 @@ namespace AsyncClientServer.Example.Server
 
 		private static void BindEvents()
 		{
+			AsyncSocketListener.Instance.ProgressFileReceived += new FileTransferProgressHandler(Progress);
 			AsyncSocketListener.Instance.MessageReceived += new MessageReceivedHandler(MessageReceived);
 			AsyncSocketListener.Instance.MessageSubmitted += new MessageSubmittedHandler(MessageSubmitted);
 			AsyncSocketListener.Instance.ClientDisconnected += new ClientDisconnectedHandler(ClientDisconnected);
@@ -88,6 +89,15 @@ namespace AsyncClientServer.Example.Server
 		{
 			AsyncSocketListener.Instance.SendMessage(id, "Received", false);
 			Console.WriteLine("Server received a file from client "+ id + " and is stored at " + path);
+		}
+
+		private static void Progress(int id, int bytes, int messageSize)
+		{
+			double b = double.Parse(bytes.ToString());
+			double m = double.Parse(messageSize.ToString());
+
+			double percentageDone = b / m * 100;
+			Console.WriteLine("The filetransfer is " + percentageDone.ToString("#0.00") + " % Done for client " + id + ".");
 		}
 
 		private static void ServerHasStarted()

@@ -40,14 +40,6 @@
 		void SendCommand(int id, string command, bool close);
 
 		/// <summary>
-		/// Sends a request for fileTransfer to corresponding client
-		/// </summary>
-		/// <param name="id">client id</param>
-		/// <param name="path">path of which you request child files</param>
-		/// <param name="close">true if the client should be closed after this message</param>
-		void SendFileTransfer(int id, string path, bool close);
-
-		/// <summary>
 		/// Sends files to all currently connected clients.
 		/// </summary>
 		/// <param name="fileLocation">Path of the file you want to send</param>

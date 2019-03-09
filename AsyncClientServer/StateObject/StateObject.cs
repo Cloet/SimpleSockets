@@ -19,7 +19,10 @@ namespace AsyncClientServer.StateObject
 
 		/* Contains the state information. */
 
-		private const int Buffer_Size = 8192;
+		//8192 = 8kb
+		//16384 = 16kb
+		//131072 = 0.131072Mb
+		private const int Buffer_Size = 131072;
 		private List<byte> _receivedBytes = new List<byte>();
 		private StringBuilder _sb;
 

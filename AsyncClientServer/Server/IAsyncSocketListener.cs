@@ -32,6 +32,11 @@ namespace AsyncClientServer.Server
 		event FileFromClientReceivedHandler FileReceived;
 
 		/// <summary>
+		/// Event that is triggered for every part of the message that is received from a client.
+		/// </summary>
+		event FileTransferProgressHandler ProgressFileReceived;
+
+		/// <summary>
 		/// Event that is triggered when the server has started.
 		/// </summary>
 		event ServerHasStartedHandler ServerHasStarted;
@@ -97,6 +102,14 @@ namespace AsyncClientServer.Server
 		/// <param name="header">Message type</param>
 		/// <param name="text">the message</param>
 		void InvokeMessageReceived(int id, string header, string text);
+
+		/// <summary>
+		/// Invokes ProgressReceived event
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="bytesReceived"></param>
+		/// <param name="messageSize"></param>
+		void InvokeFileTransferProgress(int id, int bytesReceived, int messageSize);
 
 	}
 }

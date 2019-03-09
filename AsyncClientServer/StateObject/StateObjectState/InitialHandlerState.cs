@@ -35,10 +35,10 @@ namespace AsyncClientServer.StateObject.StateObjectState
 				State.MessageSize = BitConverter.ToInt32(State.Buffer, 0);
 				State.HeaderSize = BitConverter.ToInt32(State.Buffer, 4);
 
-				byte[] headerbytes =  new byte[State.HeaderSize];
-				Array.Copy(State.Buffer, 8, headerbytes, 0, State.HeaderSize);
+				byte[] headerBytes =  new byte[State.HeaderSize];
+				Array.Copy(State.Buffer, 8, headerBytes, 0, State.HeaderSize);
 
-				State.Header = AES256.DecryptStringFromBytes_Aes(headerbytes);
+				State.Header = AES256.DecryptStringFromBytes_Aes(headerBytes);
 				//State.Header = Encoding.UTF8.GetString(State.Buffer, 8, State.HeaderSize);
 
 				//Get the bytes without the header and MessageSize and copy to new byte array.

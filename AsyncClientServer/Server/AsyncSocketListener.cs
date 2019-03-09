@@ -39,6 +39,14 @@ namespace AsyncClientServer.Server
 	public delegate void FileFromClientReceivedHandler(int id, string filepath);
 
 	/// <summary>
+	/// Event that is triggered when a part of the message is received.
+	/// </summary>
+	/// <param name="id"></param>
+	/// <param name="bytes"></param>
+	/// <param name="messageSize"></param>
+	public delegate void FileTransferProgressHandler(int id, int bytes, int messageSize);
+
+	/// <summary>
 	/// Event that is triggered when the server has started
 	/// </summary>
 	public delegate void ServerHasStartedHandler();
@@ -61,6 +69,7 @@ namespace AsyncClientServer.Server
 		public event MessageSubmittedHandler MessageSubmitted;
 		public event ClientDisconnectedHandler ClientDisconnected;
 		public event FileFromClientReceivedHandler FileReceived;
+		public event FileTransferProgressHandler ProgressFileReceived;
 		public event ServerHasStartedHandler ServerHasStarted;
 
 		/// <summary>
@@ -261,6 +270,17 @@ namespace AsyncClientServer.Server
 		public void InvokeFileReceived(int id, string filePath)
 		{
 			FileReceived?.Invoke(id, filePath);
+		}
+
+		/// <summary>
+		/// Invokes ProgressReceived event
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="bytesReceived"></param>
+		/// <param name="messageSize"></param>
+		public void InvokeFileTransferProgress(int id,int bytesReceived, int messageSize)
+		{
+			ProgressFileReceived?.Invoke(id, bytesReceived, messageSize);
 		}
 
 		/// <inheritdoc />

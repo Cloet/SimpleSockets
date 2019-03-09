@@ -66,20 +66,6 @@ namespace AsyncClientServer.Server
 			SendBytes(id, data, close);
 		}
 
-		/// <inheritdoc />
-		/// <summary>
-		/// Requests info of a certain path
-		/// <para>The id is not zero-based!</para>
-		/// </summary>
-		/// <param name="id">Client id</param>
-		/// <param name="path">the path</param>
-		/// <param name="close">true if client should be closed afterwards</param>
-		public void SendFileTransfer(int id, string path, bool close)
-		{
-			byte[] data = CreateByteFileTransfer(path);
-			SendBytes(id, data, close);
-		}
-
 		/// <summary>
 		/// Sends bytes to corresponding client.
 		/// <para>The id is not zero-based!</para>

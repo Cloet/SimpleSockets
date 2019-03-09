@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using AsyncClientServer.Client;
+using AsyncClientServer.Server;
 using Compression;
 
 namespace AsyncClientServer.StateObject.StateObjectState
@@ -89,6 +90,9 @@ namespace AsyncClientServer.StateObject.StateObjectState
 				writer.Close();
 			}
 
+			//Append the read bytes.
+			State.AppendBytes(bytes);
+
 			//Increment the state flag
 			if (State.Flag == 1)
 				State.Flag++;
@@ -105,6 +109,14 @@ namespace AsyncClientServer.StateObject.StateObjectState
 		{
 			//Write
 			Write(receive);
+
+			//Tracks the progress
+			if (Client == null)
+				AsyncSocketListener.Instance.InvokeFileTransferProgress(State.Id, State.ReceivedBytes.Length,
+					State.MessageSize);
+			else
+				Client.InvokeFileTransferProgress(State.ReceivedBytes.Length, State.MessageSize);
+
 
 			//If the message has been read and there is are no extra bytes
 			if (State.Flag == -2)
