@@ -35,34 +35,42 @@ namespace AsyncClientServer.StateObject.StateObjectState
 			File.Delete(State.Header);
 
 			//Decompresses the file using gzip.
-			FileInfo receivedFile = Decompress(newFileName);
-
+			string decompressed = Decompress(newFileName);
 
 			//If client == null then the file is send to the server so invoke server event else do client event.
 			if (Client == null)
 			{
-				AsyncSocketListener.Instance.InvokeFileReceived(State.Id, receivedFile.FullName);
+				AsyncSocketListener.Instance.InvokeFileReceived(State.Id, decompressed);
 				return;
 			}
 
-			Client.InvokeFileReceived(receivedFile.FullName);
+			Client.InvokeFileReceived(decompressed);
 		}
 
 
 		/// <summary>
-		/// Decompress the received file
+		/// Decompress the received file or folder
+		/// <para>Returns the path of the folder or file.</para>
 		/// </summary>
 		/// <param name="path"></param>
-		public FileInfo Decompress(string path)
+		public string Decompress(string path)
 		{
 			FileInfo info = new FileInfo(path);
 
-			if (info.Extension == ".gz")
+			if (info.Extension == ".compressedGz")
 			{
 				FileInfo decompressedFile;
 				decompressedFile = GZipCompression.Decompress(info);
 				File.Delete(info.FullName);
-				return decompressedFile;
+				return decompressedFile.FullName;
+			}
+			
+			if (info.Extension == ".compressedZip")
+			{
+				DirectoryInfo extractedFolder = new DirectoryInfo(info.FullName.Remove(info.FullName.Length - info.Extension.Length));
+				ZipCompression.Extract(info.FullName, extractedFolder.FullName);
+				File.Delete(info.FullName);
+				return extractedFolder.FullName;
 			}
 
 			return null;

@@ -66,9 +66,13 @@ namespace AsyncClientServer.ByteCreator
 			try
 			{
 				FileInfo fileToSend = GZipCompression.Compress(new FileInfo(fileLocation));
-				remoteSaveLocation += ".gz";
+				remoteSaveLocation += ".compressedGz";
 
 				AES256.FileEncrypt(fileToSend.FullName);
+
+				//Delete compressed file
+				File.Delete(fileToSend.FullName);
+
 				fileToSend = new FileInfo(fileToSend.FullName + ".aes");
 				remoteSaveLocation += ".aes";
 
@@ -79,7 +83,63 @@ namespace AsyncClientServer.ByteCreator
 				byte[] headerBytes = encryptedHeader;
 				byte[] headerLen = BitConverter.GetBytes(headerBytes.Length);
 				byte[] messageLength = BitConverter.GetBytes(messageData.Length);
-				
+
+				//Delete encrypted file after it has been read.
+				File.Delete(fileToSend.FullName);
+
+				var data = new byte[4 + 4 + headerBytes.Length + messageData.Length];
+
+				messageLength.CopyTo(data, 0);
+				headerLen.CopyTo(data, 4);
+				headerBytes.CopyTo(data, 8);
+				messageData.CopyTo(data, 8 + headerBytes.Length);
+
+				return data;
+
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.ToString());
+			}
+
+		}
+
+		/// <summary>
+		/// Creates an array of bytes of a folder
+		/// <para>This method zips all files in a folder encrypts it with aes and sends the files.</para>
+		/// </summary>
+		/// <param name="folderLocation"></param>
+		/// <param name="remoteFolderLocation"></param>
+		/// <returns></returns>
+		protected byte[] CreateByteFolder(string folderLocation, string remoteFolderLocation)
+		{
+
+			try
+			{
+
+				string tempPath = Path.GetTempFileName() +".compressedZip";
+
+				ZipCompression.Compress(folderLocation, tempPath);
+				remoteFolderLocation += ".compressedZip";
+
+				AES256.FileEncrypt(tempPath);
+
+				//Delete compressed file
+				File.Delete(tempPath);
+
+				string folderToSend = tempPath + ".aes";
+				remoteFolderLocation += ".aes";
+
+				var encryptedHeader = AES256.EncryptStringToBytes_Aes(remoteFolderLocation);
+
+				//Message
+				byte[] messageData = File.ReadAllBytes(folderToSend);
+				byte[] headerBytes = encryptedHeader;
+				byte[] headerLen = BitConverter.GetBytes(headerBytes.Length);
+				byte[] messageLength = BitConverter.GetBytes(messageData.Length);
+
+				//Delete encrypted file after it has been read.
+				File.Delete(folderToSend);
 
 				var data = new byte[4 + 4 + headerBytes.Length + messageData.Length];
 
@@ -118,16 +178,6 @@ namespace AsyncClientServer.ByteCreator
 		protected byte[] CreateByteCommand(string command)
 		{
 			return CreateByteArray(command, "COMMAND");
-		}
-
-		/// <summary>
-		/// Creates an array of bytes to send a command
-		/// </summary>
-		/// <param name="newPath"></param>
-		/// <returns>Byte[]</returns>
-		protected byte[] CreateByteFileTransfer(string newPath)
-		{
-			return CreateByteArray(newPath, "FILETRANSFER");
 		}
 
 		/// <summary>

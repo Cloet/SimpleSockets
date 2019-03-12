@@ -39,7 +39,7 @@ namespace AsyncClientServer.Example.Client
 					//_client.SendMessage(msg, false);
 					Console.Write("Press enter to continue.");
 					Console.ReadLine();
-					SendFile(@"source", @"target", false);
+					SendFolder(@"D:\Torrents\OrganizrPlexCss", @"D:\Torrents\Test", false);
 				}
 
 			}
@@ -74,6 +74,11 @@ namespace AsyncClientServer.Example.Client
 		private static void SendFile(string fileLocation, string remoteLocation, bool close)
 		{
 			_client.SendFile(fileLocation, remoteLocation, close);
+		}
+
+		private static void SendFolder(string folderLocation, string remoteLocation, bool close)
+		{
+			_client.SendFolder(folderLocation, remoteLocation, close);
 		}
 
 		private static void SendObject(object anyObj, bool close)

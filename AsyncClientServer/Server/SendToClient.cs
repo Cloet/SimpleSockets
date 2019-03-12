@@ -54,6 +54,20 @@ namespace AsyncClientServer.Server
 
 		/// <inheritdoc />
 		/// <summary>
+		/// Sends a folder to the corresponding client.
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="folderLocation"></param>
+		/// <param name="remoteFolderLocation"></param>
+		/// <param name="close"></param>
+		public void SendFolder(int id, string folderLocation, string remoteFolderLocation, bool close)
+		{
+			byte[] data = CreateByteFolder(folderLocation, remoteFolderLocation);
+			SendBytes(id, data, close);
+		}
+
+		/// <inheritdoc />
+		/// <summary>
 		/// Sends a command to the corresponding client and waits for an answer.
 		/// <para>The id is not zero-based!</para>
 		/// </summary>
@@ -90,6 +104,21 @@ namespace AsyncClientServer.Server
 				SendFile(c.Key, fileLocation, remoteSaveLocation, close);
 			}
 
+		}
+
+		/// <inheritdoc />
+		/// <summary>
+		/// Sends a folder to all clients.
+		/// </summary>
+		/// <param name="folderLocation"></param>
+		/// <param name="remoteFolderLocation"></param>
+		/// <param name="close"></param>
+		public void SendFolderToAllClients(string folderLocation, string remoteFolderLocation, bool close)
+		{
+			foreach (var c in AsyncSocketListener.Instance.GetClients())
+			{
+				SendFolder(c.Key, folderLocation, remoteFolderLocation, close);
+			}
 		}
 
 		/// <inheritdoc />

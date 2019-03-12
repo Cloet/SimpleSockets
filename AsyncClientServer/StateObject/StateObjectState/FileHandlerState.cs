@@ -18,12 +18,12 @@ namespace AsyncClientServer.StateObject.StateObjectState
 
 		//Checks if the file already exists and deletes when it has to.
 		//Checks if the file is located in a folder that doesn't exist and creates that folder when it has to.
-		private void DeleteCreateFile()
+		private void DeleteCreateFile(string path)
 		{
 			if (State.Flag == 1)
 			{
 
-				FileInfo file = new FileInfo(State.Header);
+				FileInfo file = new FileInfo(path);
 				file.Directory?.Create();
 				if (file.Exists)
 				{
@@ -42,8 +42,11 @@ namespace AsyncClientServer.StateObject.StateObjectState
 			//Adds bytes to read value
 			State.AppendRead(receive);
 
+			FileInfo temp = new FileInfo(State.Header);
+			FileInfo receivingFile = new FileInfo(Path.GetTempPath() + temp.Name);
+
 			//Checks if it is the first write and if the file has to be deleted.
-			DeleteCreateFile();
+			DeleteCreateFile(receivingFile.FullName);
 
 			//If there is more data read then the server expects handle this accordingly.
 			if (State.Read > State.MessageSize)
@@ -84,14 +87,11 @@ namespace AsyncClientServer.StateObject.StateObjectState
 			}
 
 			//Write the bytes to the corresponding file.
-			using (BinaryWriter writer = new BinaryWriter(File.Open(State.Header, FileMode.Append)))
+			using (BinaryWriter writer = new BinaryWriter(File.Open(receivingFile.FullName, FileMode.Append)))
 			{
 				writer.Write(bytes, 0, bytes.Length);
 				writer.Close();
 			}
-
-			//Append the read bytes.
-			State.AppendBytes(bytes);
 
 			//Increment the state flag
 			if (State.Flag == 1)
@@ -112,10 +112,10 @@ namespace AsyncClientServer.StateObject.StateObjectState
 
 			//Tracks the progress
 			if (Client == null)
-				AsyncSocketListener.Instance.InvokeFileTransferProgress(State.Id, State.ReceivedBytes.Length,
+				AsyncSocketListener.Instance.InvokeFileTransferProgress(State.Id, State.Read,
 					State.MessageSize);
 			else
-				Client.InvokeFileTransferProgress(State.ReceivedBytes.Length, State.MessageSize);
+				Client.InvokeFileTransferProgress(State.Read, State.MessageSize);
 
 
 			//If the message has been read and there is are no extra bytes
