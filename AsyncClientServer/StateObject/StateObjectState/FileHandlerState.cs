@@ -16,6 +16,9 @@ namespace AsyncClientServer.StateObject.StateObjectState
 		{
 		}
 
+
+		private string _tempFilePath = string.Empty;
+
 		//Checks if the file already exists and deletes when it has to.
 		//Checks if the file is located in a folder that doesn't exist and creates that folder when it has to.
 		private void DeleteCreateFile(string path)
@@ -42,11 +45,16 @@ namespace AsyncClientServer.StateObject.StateObjectState
 			//Adds bytes to read value
 			State.AppendRead(receive);
 
-			FileInfo temp = new FileInfo(State.Header);
-			FileInfo receivingFile = new FileInfo(Path.GetTempPath() + temp.Name);
+			if (_tempFilePath == string.Empty)
+			{
+				FileInfo temp = new FileInfo(State.Header);
+				_tempFilePath = Path.GetTempPath() + temp.Name;
+			}
+
+
 
 			//Checks if it is the first write and if the file has to be deleted.
-			DeleteCreateFile(receivingFile.FullName);
+			DeleteCreateFile(_tempFilePath);
 
 			//If there is more data read then the server expects handle this accordingly.
 			if (State.Read > State.MessageSize)
@@ -87,7 +95,7 @@ namespace AsyncClientServer.StateObject.StateObjectState
 			}
 
 			//Write the bytes to the corresponding file.
-			using (BinaryWriter writer = new BinaryWriter(File.Open(receivingFile.FullName, FileMode.Append)))
+			using (BinaryWriter writer = new BinaryWriter(File.Open(_tempFilePath, FileMode.Append)))
 			{
 				writer.Write(bytes, 0, bytes.Length);
 				writer.Close();
@@ -121,7 +129,7 @@ namespace AsyncClientServer.StateObject.StateObjectState
 			//If the message has been read and there is are no extra bytes
 			if (State.Flag == -2)
 			{
-				State.CurrentState = new FileHasBeenReceivedState(State, Client);
+				State.CurrentState = new FileHasBeenReceivedState(State, Client,_tempFilePath);
 				State.CurrentState.Receive(State.Buffer.Length);
 				State.Reset();
 			}
@@ -129,7 +137,7 @@ namespace AsyncClientServer.StateObject.StateObjectState
 			else if (State.Flag == -3)
 			{
 				//Set to FileHasBeenReceivedState and invoke FileReceived event
-				State.CurrentState = new FileHasBeenReceivedState(State, Client);
+				State.CurrentState = new FileHasBeenReceivedState(State, Client,_tempFilePath);
 				State.CurrentState.Receive(State.Buffer.Length);
 
 				//Change state to InitState to handle the extra bytes for new message

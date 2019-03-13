@@ -39,7 +39,7 @@ namespace AsyncClientServer.Example.Client
 					//_client.SendMessage(msg, false);
 					Console.Write("Press enter to continue.");
 					Console.ReadLine();
-					SendFolder(@"D:\Torrents\OrganizrPlexCss", @"D:\Torrents\Test", false);
+					SendFolder(@"source", @"target", false);
 				}
 
 			}

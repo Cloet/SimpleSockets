@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using AsyncClientServer.Client;
 using AsyncClientServer.Server;
 using Compression;
@@ -8,12 +9,56 @@ namespace AsyncClientServer.StateObject.StateObjectState
 {
 	public class FileHasBeenReceivedState: StateObjectState
 	{
-		public FileHasBeenReceivedState(IStateObject state) : base(state)
+		public FileHasBeenReceivedState(IStateObject state,string tempFilePath) : base(state)
 		{
+			_tempFilePath = tempFilePath;
 		}
 
-		public FileHasBeenReceivedState(IStateObject state, IAsyncClient client) : base(state, client)
+		public FileHasBeenReceivedState(IStateObject state, IAsyncClient client,string tempFilePath) : base(state, client)
 		{
+			_tempFilePath = tempFilePath;
+		}
+
+		private readonly string _tempFilePath;
+
+
+		private void Move(string source, string destPath)
+		{
+
+			if (File.Exists(source))
+			{
+				if (Path.GetPathRoot(source) == Path.GetPathRoot(destPath))
+				{
+					File.Move(source, destPath);
+				}
+				else
+				{
+					File.Copy(source, destPath);
+					File.Delete(source);
+				}
+			}
+
+			if (Directory.Exists(source))
+			{
+				if (Path.GetPathRoot(source) == Path.GetPathRoot(destPath))
+				{
+					Directory.Move(source, destPath);
+				}
+				else
+				{
+					//Now Create all of the directories
+					foreach (string dirPath in Directory.GetDirectories(source, "*",SearchOption.AllDirectories))
+						Directory.CreateDirectory(dirPath.Replace(source, destPath));
+
+					//Copy all the files & Replaces any files with the same name
+					foreach (string newPath in Directory.GetFiles(source, "*.*",SearchOption.AllDirectories))
+						File.Copy(newPath, newPath.Replace(source, destPath), true);
+
+					Directory.Delete(source, true);
+
+				}
+			}
+
 		}
 
 		/// <summary>
@@ -25,17 +70,25 @@ namespace AsyncClientServer.StateObject.StateObjectState
 
 
 			//Received file
-			FileInfo info = new FileInfo(State.Header);
+			FileInfo info = new FileInfo(_tempFilePath);
+			FileInfo targetPath = new FileInfo(State.Header);
+
+			//Gets the path without name
+			string tPath = targetPath.FullName.Remove(targetPath.FullName.Length - targetPath.Name.Length);
 
 			//Remove the .aes extension of the new file
 			string newFileName = info.FullName.Remove(info.FullName.Length - info.Extension.Length);
 
 			//Decrypts the file and save at new location. Deletes the encrypted file after decrypting.
-			AES256.FileDecrypt(State.Header, newFileName);
-			File.Delete(State.Header);
+			AES256.FileDecrypt(_tempFilePath, newFileName);
+			File.Delete(_tempFilePath);
 
 			//Decompresses the file using gzip.
-			string decompressed = Decompress(newFileName);
+			string targetName = Decompress(newFileName);
+			string decompressed = tPath + targetName;
+			newFileName = info.FullName.Remove(info.FullName.Length - info.Name.Length) + targetName;
+
+			Move(newFileName, decompressed);
 
 			//If client == null then the file is send to the server so invoke server event else do client event.
 			if (Client == null)
@@ -57,20 +110,19 @@ namespace AsyncClientServer.StateObject.StateObjectState
 		{
 			FileInfo info = new FileInfo(path);
 
-			if (info.Extension == ".compressedGz")
+			if (info.Extension == ".CGz")
 			{
-				FileInfo decompressedFile;
-				decompressedFile = GZipCompression.Decompress(info);
+				FileInfo decompressedFile = GZipCompression.Decompress(info);
 				File.Delete(info.FullName);
-				return decompressedFile.FullName;
+				return decompressedFile.Name;
 			}
 			
-			if (info.Extension == ".compressedZip")
+			if (info.Extension == ".CZip")
 			{
 				DirectoryInfo extractedFolder = new DirectoryInfo(info.FullName.Remove(info.FullName.Length - info.Extension.Length));
 				ZipCompression.Extract(info.FullName, extractedFolder.FullName);
 				File.Delete(info.FullName);
-				return extractedFolder.FullName;
+				return extractedFolder.Name;
 			}
 
 			return null;

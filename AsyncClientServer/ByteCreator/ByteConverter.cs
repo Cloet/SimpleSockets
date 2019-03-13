@@ -117,10 +117,12 @@ namespace AsyncClientServer.ByteCreator
 			try
 			{
 
-				string tempPath = Path.GetTempFileName() +".compressedZip";
+				string tempPath = Path.GetTempFileName();
+				File.Delete(tempPath);
+				tempPath += ".CZip";
 
 				ZipCompression.Compress(folderLocation, tempPath);
-				remoteFolderLocation += ".compressedZip";
+				remoteFolderLocation += ".CZip";
 
 				AES256.FileEncrypt(tempPath);
 
