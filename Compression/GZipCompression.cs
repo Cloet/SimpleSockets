@@ -66,6 +66,11 @@ namespace Compression
 			}
 		}
 
+		/// <summary>
+		/// Compress a file and return the FileInfo of the new file.
+		/// </summary>
+		/// <param name="fileToCompress"></param>
+		/// <returns></returns>
 		public static FileInfo Compress(FileInfo fileToCompress)
 		{
 			try
@@ -84,7 +89,7 @@ namespace Compression
 						using (FileStream compressedFileStream = File.Create(compressedFile.FullName))
 						{
 							using (GZipStream compressionStream =
-								new GZipStream(compressedFileStream, CompressionMode.Compress))
+								new GZipStream(compressedFileStream, CompressionLevel.Fastest))
 							{
 								originalFileStream.CopyTo(compressionStream);
 							}
@@ -131,7 +136,7 @@ namespace Compression
 				using (FileStream originalFileStream = fileToDecompress.OpenRead())
 				{
 					if ((File.GetAttributes(fileToDecompress.FullName) &
-						 FileAttributes.Hidden) != FileAttributes.Hidden & fileToDecompress.Extension == ".gz")
+						 FileAttributes.Hidden) != FileAttributes.Hidden)
 					{
 
 						string currentFileName = fileToDecompress.FullName;

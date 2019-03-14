@@ -32,6 +32,12 @@ namespace AsyncClientServer.Server
 	public delegate void ClientDisconnectedHandler(int id);
 
 	/// <summary>
+	/// Event that is triggered when a client has connected;
+	/// </summary>
+	/// <param name="id"></param>
+	public delegate void ClientConnectedHandler(int id);
+
+	/// <summary>
 	/// Event that is triggered when the server receives a file
 	/// </summary>
 	/// <param name="id"></param>
@@ -68,6 +74,7 @@ namespace AsyncClientServer.Server
 		public event MessageReceivedHandler MessageReceived;
 		public event MessageSubmittedHandler MessageSubmitted;
 		public event ClientDisconnectedHandler ClientDisconnected;
+		public event ClientConnectedHandler ClientConnected;
 		public event FileFromClientReceivedHandler FileReceived;
 		public event FileTransferProgressHandler ProgressFileReceived;
 		public event ServerHasStartedHandler ServerHasStarted;
@@ -224,6 +231,7 @@ namespace AsyncClientServer.Server
 
 					state = new StateObject.StateObject(((Socket)result.AsyncState).EndAccept(result), id);
 					_clients.Add(id, state);
+					ClientConnected?.Invoke(id);
 				}
 				StartReceiving(state);
 			}

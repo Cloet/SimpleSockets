@@ -1,7 +1,8 @@
 # AsyncClientServer
-Simple library using Asynchronous client and Asynchronous server and connecting using tcp.
-
-The server and client can send & receive: files, objects and messages.
+Library implementing Async client and Async Server.
+The client and server connect using tcp.
+It supports sending objects as xml, sending files and folder, sending messages and sending commands.
+I've implemented basic compression and encryption for files. Messages are encrypted using aes256.
 
 ## Done
 - Send messages from server -> client & server -> client
@@ -16,6 +17,7 @@ The server and client can send & receive: files, objects and messages.
 - Add More compression
 - Better support for sending files.
 - Make filetransfer for big files faster.
+- Implement more threading and Tasks.
 - ?
 
 ## Usage
@@ -35,40 +37,19 @@ AsyncSocketListener.Instance.ProgressFileReceived += new FileTransferProgressHan
 AsyncSocketListener.Instance.MessageReceived += new MessageReceivedHandler(MessageReceived);
 AsyncSocketListener.Instance.MessageSubmitted += new MessageSubmittedHandler(MessageSubmitted);
 AsyncSocketListener.Instance.ClientDisconnected += new ClientDisconnectedHandler(ClientDisconnected);
+AsyncSocketListener.Instance.ClientConnected += new ClientConnectedHandler(ClientConnected);
 AsyncSocketListener.Instance.FileReceived += new FileFromClientReceivedHandler(FileReceived);
 AsyncSocketListener.Instance.ServerHasStarted += new ServerHasStartedHandler(ServerHasStarted);
 ```
 ```C#
 //Methods
-private static void MessageReceived(int id, string header,string msg)
-{
-	//Code
-}
-
-private static void MessageSubmitted(int id, bool close)
-{	
-	//Code
-}
-
-private static void FileReceived(int id, string path)
-{
-	//Code
-}
-
-private static void Progress(int id, int bytes, int messageSize)
-{
-	//Code
-}
-
-private static void ServerHasStarted()
-{
-	//Code
-}
-
-private static void ClientDisconnected(int id)
-{
-	//Code
-}
+void MessageReceived(int id, string header, string msg);
+void MessageSubmitted(int id, bool close);
+void FileReceived(int id, string path);
+void Progress(int id, int bytes, int messageSize);
+void ServerHasStarted();
+void ClientConnected(int id);
+private void ClientDisconnected(int id);
 ```
 
 ### Client
@@ -95,33 +76,10 @@ client.Disconnected += new DisconnectedFromServerHandler(Disconnected);
 
 ```C#
 //Events
-private static void ConnectedToServer(IAsyncClient a)
-{
-	//Code
-}
-
-private static void ServerMessageReceived(IAsyncClient a,string header, String msg)
-{
-	//Code
-}
-
-private static void FileReceived(string file)
-{
-	//Code
-}
-
-private static void Disconnected(string ip, int port)
-{
-	//Code
-}
-
-private static void Progress(IAsyncClient a, int bytes, int messageSize)
-{
-	//Code
-}
-
-private static void ClientMessageSubmitted(IAsyncClient a, bool close)
-{
-	//Code
-}
+void ConnectedToServer(IAsyncClient a);
+void ServerMessageReceived(IAsyncClient a, string header, string msg);
+void FileReceived(IAsyncClient a, string file);
+void Disconnected(string ip, int port);
+void Progress(IAsyncClient a, int bytes, int messageSize);
+void ClientMessageSubmitted(IAsyncClient a, bool close);
 ```

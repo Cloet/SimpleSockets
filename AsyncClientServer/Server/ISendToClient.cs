@@ -32,6 +32,15 @@
 		void SendFile(int id,string fileLocation, string remoteFileLocation, bool close);
 
 		/// <summary>
+		/// Sends a folder to the corresponding client.
+		/// </summary>
+		/// <param name="id">Client id</param>
+		/// <param name="folderLocation">The path of the folder that you want to send.</param>
+		/// <param name="remoteFolderLocation">The path where it should be saved on the client.</param>
+		/// <param name="close">True if the client should be closed after this message.</param>
+		void SendFolder(int id, string folderLocation, string remoteFolderLocation, bool close);
+
+		/// <summary>
 		/// Sends a command to the corresponding client.
 		/// </summary>
 		/// <param name="id">Client id</param>
@@ -46,6 +55,14 @@
 		/// <param name="remoteSaveLocation">Path where the file should be saved on the client</param>
 		/// <param name="close">true if the client should be closed after this message</param>
 		void SendFileToAllClients(string fileLocation, string remoteSaveLocation, bool close);
+
+		/// <summary>
+		/// Sends a folder to all the currently connected clients.
+		/// </summary>
+		/// <param name="folderLocation">Path of the folder you want to send</param>
+		/// <param name="remoteFolderLocation">Path where the file should be saved on the client</param>
+		/// <param name="close">True if the client should be closed after the message.</param>
+		void SendFolderToAllClients(string folderLocation, string remoteFolderLocation, bool close);
 
 		/// <summary>
 		/// Sends message to all currently connected clients.

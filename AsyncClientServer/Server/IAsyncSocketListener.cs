@@ -27,6 +27,11 @@ namespace AsyncClientServer.Server
 		event ClientDisconnectedHandler ClientDisconnected;
 
 		/// <summary>
+		/// Event that triggers when a client connects to the server.
+		/// </summary>
+		event ClientConnectedHandler ClientConnected;
+
+		/// <summary>
 		/// Event that is triggered when a file has been received from a client.
 		/// </summary>
 		event FileFromClientReceivedHandler FileReceived;

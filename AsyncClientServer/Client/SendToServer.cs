@@ -26,7 +26,6 @@ namespace AsyncClientServer.Client
 		/// <summary>
 		/// Send an object to server
 		/// <para>This object will be serialized using xml</para>
-		/// <para>If you want to send your own objects use "SerializableObject" wrapper</para>
 		/// </summary>
 		/// <param name="anyObj"></param>
 		/// <param name="close"></param>
@@ -47,6 +46,19 @@ namespace AsyncClientServer.Client
 		public void SendFile(string fileLocation, string remoteFileLocation, bool close)
 		{
 			byte[] data = CreateByteFile(fileLocation, remoteFileLocation);
+			SendBytes(data, close);
+		}
+
+		/// <summary>
+		/// Sends a folder to the server.
+		/// <para>Simple way of sending a folder over sockets</para>
+		/// </summary>
+		/// <param name="folderLocation"></param>
+		/// <param name="remoteFolderLocation"></param>
+		/// <param name="close"></param>
+		public void SendFolder(string folderLocation, string remoteFolderLocation, bool close)
+		{
+			byte[] data = CreateByteFolder(folderLocation, remoteFolderLocation);
 			SendBytes(data, close);
 		}
 

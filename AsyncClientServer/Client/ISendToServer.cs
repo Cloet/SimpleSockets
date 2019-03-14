@@ -29,6 +29,14 @@
 		void SendFile(string fileLocation, string remoteFileLocation, bool close);
 
 		/// <summary>
+		/// Sends a folder to the server
+		/// </summary>
+		/// <param name="folderLocation">Location of the folder you want to send on the local machine</param>
+		/// <param name="remoteFolderLocation">The location of the folder where the folder will be saved on the remote machine.</param>
+		/// <param name="close">True if the client should be closed after this message.</param>
+		void SendFolder(string folderLocation, string remoteFolderLocation, bool close);
+
+		/// <summary>
 		/// Sends a command to the server
 		/// </summary>
 		/// <param name="command">Command that should be executed by the server.</param>

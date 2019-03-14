@@ -41,13 +41,27 @@ namespace Compression
 		{
 			try
 			{
-				if (!Directory.Exists(targetDirPath))
-					Directory.CreateDirectory(targetDirPath);
-
+				//Check if the file exists.
 				if (!File.Exists(sourceZipPath))
 					throw new ArgumentException("The zip file does not exist.");
 
-				ZipFile.ExtractToDirectory(sourceZipPath, targetDirPath);
+				//Extract all entries from the archive.
+				using (ZipArchive archive = ZipFile.OpenRead(sourceZipPath))
+				{
+					foreach (ZipArchiveEntry entry in archive.Entries)
+					{
+						FileInfo destFile = new FileInfo(Path.GetFullPath(Path.Combine(targetDirPath, entry.FullName)));
+
+						//Make sure subdirectories exist. If not create them.
+						if (!Directory.Exists(destFile.DirectoryName) && destFile.DirectoryName != null)
+							Directory.CreateDirectory(destFile.DirectoryName);
+
+						//Make sure the destination is a file and not a directory without files in it. Then extract the file.
+						if(destFile.Name != string.Empty)
+							entry.ExtractToFile(destFile.FullName, true);
+
+					}
+				}
 			}
 			catch (Exception ex)
 			{

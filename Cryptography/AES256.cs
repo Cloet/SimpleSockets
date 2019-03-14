@@ -14,9 +14,16 @@ namespace Cryptography
 	{
 
 		private static readonly byte[] _key = Encoding.UTF8.GetBytes("AEJ46SDLZOEER467");
-		private static readonly byte[] _IV = Encoding.UTF8.GetBytes ("JFKZER82340qsdDF");
+		private static readonly byte[] _IV = Encoding.UTF8.GetBytes("JFKZER82340qsdDF");
 
 
+		//String
+
+		/// <summary>
+		/// Encrypt a string to bytes
+		/// </summary>
+		/// <param name="plainText"></param>
+		/// <returns></returns>
 		public static byte[] EncryptStringToBytes_Aes(string plainText)
 		{
 			// Check arguments.
@@ -57,7 +64,11 @@ namespace Cryptography
 
 		}
 
-
+		/// <summary>
+		/// Decrypt bytes to string
+		/// </summary>
+		/// <param name="cipherText"></param>
+		/// <returns></returns>
 		public static string DecryptStringFromBytes_Aes(byte[] cipherText)
 		{
 			// Check arguments.
@@ -100,6 +111,9 @@ namespace Cryptography
 		}
 
 
+
+		//Files
+
 		/// <summary>
 		/// Creates a random salt that will be used to encrypt your file. This method is required on FileEncrypt.
 		/// </summary>
@@ -124,7 +138,6 @@ namespace Cryptography
 		/// Encrypts a file from its path and a plain password.
 		/// </summary>
 		/// <param name="inputFile"></param>
-		/// <param name="password"></param>
 		public static void FileEncrypt(string inputFile)
 		{
 
@@ -134,7 +147,7 @@ namespace Cryptography
 			//create output file name
 			FileStream fsCrypt = new FileStream(inputFile + ".aes", FileMode.Create);
 
-			//convert password string to byte arrray
+			//convert password string to byte array
 			byte[] passwordBytes = _key;
 
 			//Set Rijndael symmetric encryption algorithm
@@ -187,7 +200,6 @@ namespace Cryptography
 		/// </summary>
 		/// <param name="inputFile"></param>
 		/// <param name="outputFile"></param>
-		/// <param name="password"></param>
 		public static void FileDecrypt(string inputFile, string outputFile)
 		{
 			byte[] passwordBytes = _key;
@@ -225,7 +237,7 @@ namespace Cryptography
 			}
 			catch (Exception ex)
 			{
-				throw new Exception(ex.Message,ex);
+				throw new Exception(ex.Message, ex);
 			}
 
 			try
