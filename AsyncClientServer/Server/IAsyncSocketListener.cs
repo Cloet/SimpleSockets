@@ -65,12 +65,6 @@ namespace AsyncClientServer.Server
 		bool IsConnected(int id);
 
 		/// <summary>
-		/// Triggered in when a client connects to the server
-		/// </summary>
-		/// <param name="result"></param>
-		void OnClientConnect(IAsyncResult result);
-
-		/// <summary>
 		/// Gets all connected clients
 		/// </summary>
 		/// <returns></returns>
@@ -83,7 +77,7 @@ namespace AsyncClientServer.Server
 		void CheckClient(int id);
 
 		/// <summary>
-		/// Checks all clients if they are still active and removes them if they are deactive.
+		/// Checks all clients if they are still active and removes them if they are inactive.
 		/// </summary>
 		void CheckAllClients();
 

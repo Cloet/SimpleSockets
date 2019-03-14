@@ -151,7 +151,6 @@ namespace AsyncClientServer.Example.Client
 
 			try
 			{
-
 				if (TextBlockTarget.Text == string.Empty)
 					throw new Exception("The target cannot be empty.");
 				if (_selectedFileFolder == string.Empty)

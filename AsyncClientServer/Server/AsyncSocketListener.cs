@@ -111,7 +111,7 @@ namespace AsyncClientServer.Server
 
 		/// <inheritdoc />
 		/// <summary>
-		/// Check if a client with given di is connected.
+		/// Check if a client with given id is connected, remove if inactive.
 		/// </summary>
 		/// <param name="id"></param>
 		public void CheckClient(int id)
@@ -211,14 +211,13 @@ namespace AsyncClientServer.Server
 		}
 
 
-		/// <inheritdoc />
 		/// <summary>
 		/// Add a socket to the clients dictionary.
 		/// Lock clients temporary to handle mulitple access.
 		/// ReceiveCallback raise an event, after the message receiving is complete.
 		/// </summary>
 		/// <param name="result"></param>
-		public void OnClientConnect(IAsyncResult result)
+		private void OnClientConnect(IAsyncResult result)
 		{
 			_mre.Set();
 			try
@@ -269,6 +268,8 @@ namespace AsyncClientServer.Server
 				this.ReceiveCallback, state);
 		}
 
+		#region Invokes
+
 		/// <inheritdoc />
 		/// <summary>
 		/// Invokes FileReceived event
@@ -286,7 +287,7 @@ namespace AsyncClientServer.Server
 		/// <param name="id"></param>
 		/// <param name="bytesReceived"></param>
 		/// <param name="messageSize"></param>
-		public void InvokeFileTransferProgress(int id,int bytesReceived, int messageSize)
+		public void InvokeFileTransferProgress(int id, int bytesReceived, int messageSize)
 		{
 			ProgressFileReceived?.Invoke(id, bytesReceived, messageSize);
 		}
@@ -302,6 +303,10 @@ namespace AsyncClientServer.Server
 		{
 			MessageReceived?.Invoke(id, header, text);
 		}
+
+		#endregion
+
+
 
 		//Handles messages
 		private void HandleMessage(IAsyncResult result)

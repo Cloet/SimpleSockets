@@ -16,7 +16,11 @@ namespace AsyncClientServer.Client
 		/// <param name="close">if you want to close the client after sending the message.</param>
 		protected abstract void SendBytes(byte[] msg, bool close);
 
-
+		/*=================================
+		*
+		*	MESSAGE
+		*
+		*===========================================*/
 
 		/// <inheritdoc />
 		/// <summary>
@@ -43,7 +47,11 @@ namespace AsyncClientServer.Client
 			SendMessage(message, true, close);
 		}
 
-
+		/*=================================
+		*
+		*	OBJECT
+		*
+		*===========================================*/
 
 		/// <inheritdoc />
 		/// <summary>
@@ -73,7 +81,11 @@ namespace AsyncClientServer.Client
 		}
 
 
-
+		/*=================================
+		*
+		*	FILE
+		*
+		*===========================================*/
 
 		/// <inheritdoc />
 		/// <summary>
@@ -105,6 +117,11 @@ namespace AsyncClientServer.Client
 			SendFile(fileLocation, remoteFileLocation, true, true, close);
 		}
 
+		/*=================================
+		*
+		*	FOLDER
+		*
+		*===========================================*/
 
 		/// <summary>
 		/// Sends a folder to the server.
@@ -134,7 +151,11 @@ namespace AsyncClientServer.Client
 		}
 
 
-
+		/*=================================
+		*
+		*	COMMAND
+		*
+		*===========================================*/
 
 		/// <inheritdoc />
 		/// <summary>

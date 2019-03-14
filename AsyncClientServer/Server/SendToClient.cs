@@ -20,9 +20,11 @@ namespace AsyncClientServer.Server
 		/// <param name="close"></param>
 		protected abstract void SendBytes(int id, byte[] data, bool close);
 
-		////////////
-		//Message//
-		///////////
+		/*==========================================
+		*
+		*	MESSAGE
+		*
+		*===========================================*/
 
 		/// <inheritdoc />
 		/// <summary>
@@ -52,9 +54,11 @@ namespace AsyncClientServer.Server
 			SendMessage(id, message, true, close);
 		}
 
-		////////////
-		//Object///
-		///////////
+		/*=============================================
+		*
+		*	OBJECT
+		*
+		*===========================================*/
 
 		/// <inheritdoc />
 		/// <summary>
@@ -84,9 +88,11 @@ namespace AsyncClientServer.Server
 			SendObject(id, anyObj, true, close);
 		}
 
-		////////////
-		////File///
-		///////////
+		/*================================
+		*
+		*	FILE
+		*
+		*===========================================*/
 
 		/// <inheritdoc />
 		/// <summary>
@@ -120,9 +126,11 @@ namespace AsyncClientServer.Server
 			SendFile(id, fileLocation, remoteSaveLocation, true, true, close);
 		}
 
-		////////////
-		//Folder///
-		///////////
+		/*=================================
+		*
+		*	FOLDER
+		*
+		*===========================================*/
 
 		/// <inheritdoc />
 		/// <summary>
@@ -154,9 +162,11 @@ namespace AsyncClientServer.Server
 			SendFolder(id, folderLocation, remoteFolderLocation, true, close);
 		}
 
-		////////////
-		//Command//
-		///////////
+		/*=================================
+		*
+		*	COMMAND
+		*
+		*===========================================*/
 
 		/// <inheritdoc />
 		/// <summary>
@@ -191,9 +201,11 @@ namespace AsyncClientServer.Server
 		//Broadcasts//
 		//////////////
 
-		////////
-		//File//
-		////////
+		/*=================================
+		*
+		*	FILE
+		*
+		*===========================================*/
 
 		/// <inheritdoc />
 		/// <summary>
@@ -227,9 +239,11 @@ namespace AsyncClientServer.Server
 		}
 
 
-		//////////
-		//Folder//
-		/////////
+		/*=================================
+		*
+		*	FOLDER
+		*
+		*===========================================*/
 
 		/// <inheritdoc />
 		/// <summary>
@@ -261,9 +275,11 @@ namespace AsyncClientServer.Server
 			SendFolderToAllClients(folderLocation, remoteFolderLocation, true, close);
 		}
 
-		///////////
-		//Message//
-		//////////
+		/*=================================
+		*
+		*	MESSAGE
+		*
+		*===========================================*/
 
 		/// <inheritdoc />
 		/// <summary>
@@ -294,9 +310,11 @@ namespace AsyncClientServer.Server
 			SendMessageToAllClients(message, true, close);
 		}
 
-		//////////
-		//Object//
-		//////////
+		/*=================================
+		*
+		*	OBJECT
+		*
+		*===========================================*/
 
 		/// <inheritdoc />
 		/// <summary>
@@ -326,9 +344,11 @@ namespace AsyncClientServer.Server
 			SendObjectToAllClients(obj, true, close);
 		}
 
-		///////////
-		//Command//
-		//////////
+		/*=================================
+		*
+		*	COMMAND
+		*
+		*===========================================*/
 
 		/// <inheritdoc />
 		/// <summary>

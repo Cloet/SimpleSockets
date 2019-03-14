@@ -2,7 +2,6 @@
 
 namespace AsyncClientServer.Client
 {
-	/// <inheritdoc />
 	/// <summary>
 	/// Interface for AsyncClient
 	/// <para>Implements
@@ -32,7 +31,7 @@ namespace AsyncClientServer.Client
 		event FileFromServerReceivedHandler FileReceived;
 
 		/// <summary>
-		/// Event that tracks the progress of a filetransfer.
+		/// Event that tracks the progress of a FileTransfer.
 		/// </summary>
 		event ProgressFileTransferHandler ProgressFileReceived;
 
@@ -78,11 +77,6 @@ namespace AsyncClientServer.Client
 		/// </summary>
 		/// <returns></returns>
 		bool IsConnected();
-
-		/// <summary>
-		/// Starts receiving from the server
-		/// </summary>
-		void Receive();
 
 		/// <summary>
 		/// Invokes a MessageReceived Event.

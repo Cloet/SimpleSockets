@@ -228,42 +228,13 @@ namespace AsyncClientServer.Client
 		/// <summary>
 		/// Start receiving data from server.
 		/// </summary>
-		public void Receive()
+		private void Receive()
 		{
 			//Start receiving data
 			var state = new StateObject.StateObject(_listener);
 			StartReceiving(state);
 		}
 
-		/// <summary>
-		/// Invokes MessageReceived event of the client.
-		/// </summary>
-		/// <param name="header"></param>
-		/// <param name="text"></param>
-		public void InvokeMessage(string header, string text)
-		{
-			MessageReceived?.Invoke(this, header, text);
-		}
-
-		/// <inheritdoc />
-		/// <summary>
-		/// Invokes FileReceived event of the client
-		/// </summary>
-		/// <param name="filePath"></param>
-		public void InvokeFileReceived(string filePath)
-		{
-			FileReceived?.Invoke(this, filePath);
-		}
-
-		/// <summary>
-		/// Invokes ProgressReceived event
-		/// </summary>
-		/// <param name="bytesReceived"></param>
-		/// <param name="messageSize"></param>
-		public void InvokeFileTransferProgress(int bytesReceived, int messageSize)
-		{
-			ProgressFileReceived?.Invoke(this,bytesReceived, messageSize);
-		}
 
 		//When client receives message
 		private void ReceiveCallback(IAsyncResult result)
@@ -421,6 +392,42 @@ namespace AsyncClientServer.Client
 			_sent.Dispose();
 			Close();
 		}
+
+
+
+		#region Invokes
+
+		/// <summary>
+		/// Invokes MessageReceived event of the client.
+		/// </summary>
+		/// <param name="header"></param>
+		/// <param name="text"></param>
+		public void InvokeMessage(string header, string text)
+		{
+			MessageReceived?.Invoke(this, header, text);
+		}
+
+		/// <inheritdoc />
+		/// <summary>
+		/// Invokes FileReceived event of the client
+		/// </summary>
+		/// <param name="filePath"></param>
+		public void InvokeFileReceived(string filePath)
+		{
+			FileReceived?.Invoke(this, filePath);
+		}
+
+		/// <summary>
+		/// Invokes ProgressReceived event
+		/// </summary>
+		/// <param name="bytesReceived"></param>
+		/// <param name="messageSize"></param>
+		public void InvokeFileTransferProgress(int bytesReceived, int messageSize)
+		{
+			ProgressFileReceived?.Invoke(this, bytesReceived, messageSize);
+		}
+
+		#endregion
 
 	}
 }
