@@ -179,7 +179,7 @@ namespace AsyncClientServer.Example.Server
 					else
 					{
 						AsyncSocketListener.Instance.SendFile(clientId, Path.GetFullPath(_selectedFileFolder),
-							Path.GetFullPath(TextBlockTarget.Text), encrypt, encrypt, false);
+							Path.GetFullPath(TextBlockTarget.Text), encrypt, true, false);
 					}
 
 				}

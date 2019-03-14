@@ -165,7 +165,7 @@ namespace AsyncClientServer.Example.Client
 				}
 				else
 				{
-					_client.SendFile(Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text),false,encrypt, false);
+					_client.SendFile(Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text),encrypt,true, false);
 				}
 
 			}
