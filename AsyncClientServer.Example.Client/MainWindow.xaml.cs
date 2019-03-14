@@ -35,6 +35,7 @@ namespace AsyncClientServer.Example.Client
 			InitializeComponent();
 		}
 
+		//Starts the client in a separate thread
 		private void Window_Loaded(object sender, RoutedEventArgs e)
 		{
 			Thread t = new Thread(StartClient);
@@ -58,44 +59,8 @@ namespace AsyncClientServer.Example.Client
 
 		}
 
-		//Folder
-		private void ButtonFolder_Click(object sender, RoutedEventArgs e)
-		{
-			FolderBrowserDialog dialog = new FolderBrowserDialog();
-			DialogResult result = dialog.ShowDialog();
 
-			if (result == System.Windows.Forms.DialogResult.OK)
-			{
-				_selectedFileFolder = dialog.SelectedPath;
-			}
 
-			TextBlockSource.Text = _selectedFileFolder;
-		}
-
-		//File
-		private void Button_Click(object sender, RoutedEventArgs e)
-		{
-			OpenFileDialog dialog = new OpenFileDialog();
-			dialog.InitialDirectory = "c:\\";
-			var filter = "All Files | *.*";
-			dialog.Filter = filter;
-			dialog.FilterIndex = 1;
-			dialog.RestoreDirectory = true;
-			dialog.Multiselect = false;
-
-			if (dialog.ShowDialog() == true)
-			{
-				_selectedFileFolder = dialog.FileNames[0];
-			}
-
-			TextBlockSource.Text = _selectedFileFolder;
-
-		}
-
-		private void AppendRichtTextBox(string append)
-		{
-			Dispatcher.Invoke(() => { RichTextBoxOutput.AppendText(append); });
-		}
 
 		//Events
 		private void ConnectedToServer(IAsyncClient a)
@@ -137,6 +102,50 @@ namespace AsyncClientServer.Example.Client
 			//Nothing
 		}
 
+		//End Events
+
+		//Append to textbox from separate thread
+		private void AppendRichtTextBox(string append)
+		{
+			Dispatcher.Invoke(() => { RichTextBoxOutput.AppendText(append); });
+		}
+
+		//Buttons
+		//Searches for a file
+		private void Button_Click(object sender, RoutedEventArgs e)
+		{
+			OpenFileDialog dialog = new OpenFileDialog();
+			dialog.InitialDirectory = "c:\\";
+			var filter = "All Files | *.*";
+			dialog.Filter = filter;
+			dialog.FilterIndex = 1;
+			dialog.RestoreDirectory = true;
+			dialog.Multiselect = false;
+
+			if (dialog.ShowDialog() == true)
+			{
+				_selectedFileFolder = dialog.FileNames[0];
+			}
+
+			TextBlockSource.Text = _selectedFileFolder;
+
+		}
+
+		//Searches for a folder
+		private void ButtonFolder_Click(object sender, RoutedEventArgs e)
+		{
+			FolderBrowserDialog dialog = new FolderBrowserDialog();
+			DialogResult result = dialog.ShowDialog();
+
+			if (result == System.Windows.Forms.DialogResult.OK)
+			{
+				_selectedFileFolder = dialog.SelectedPath;
+			}
+
+			TextBlockSource.Text = _selectedFileFolder;
+		}
+
+		//Send a file or folder
 		private void ButtonSendFileFolder_Click(object sender, RoutedEventArgs e)
 		{
 
@@ -166,6 +175,7 @@ namespace AsyncClientServer.Example.Client
 
 		}
 
+		//Send a command
 		private void ButtonSendCommand_Click(object sender, RoutedEventArgs e)
 		{
 			try
@@ -181,6 +191,7 @@ namespace AsyncClientServer.Example.Client
 			}
 		}
 
+		//Send a message
 		private void ButtonSendMessage_Click(object sender, RoutedEventArgs e)
 		{
 			try
@@ -196,6 +207,7 @@ namespace AsyncClientServer.Example.Client
 			}
 		}
 
+		//Properly exists the app (closes the client thread)
 		private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
 		{
 			Environment.Exit(0);

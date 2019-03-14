@@ -29,6 +29,7 @@ namespace AsyncClientServer.Example.Server
 			InitializeComponent();
 		}
 
+		//Starts the server thread
 		private void Window_Loaded_1(object sender, RoutedEventArgs e)
 		{
 			Thread t = new Thread(StartServer);
@@ -43,16 +44,17 @@ namespace AsyncClientServer.Example.Server
 			AsyncSocketListener.Instance.MessageReceived += new MessageReceivedHandler(MessageReceived);
 			AsyncSocketListener.Instance.MessageSubmitted += new MessageSubmittedHandler(MessageSubmitted);
 			AsyncSocketListener.Instance.ClientDisconnected += new ClientDisconnectedHandler(ClientDisconnected);
+			AsyncSocketListener.Instance.ClientConnected += new ClientConnectedHandler(ClientConnected);
 			AsyncSocketListener.Instance.FileReceived += new FileFromClientReceivedHandler(FileReceived);
 			AsyncSocketListener.Instance.ServerHasStarted += new ServerHasStartedHandler(ServerHasStarted);
 
 			AsyncSocketListener.Instance.StartListening(port);
 		}
 
+		//Append to textbox from separate thread.
 		private void AppendRichtTextBox(string append)
 		{
 			Dispatcher.Invoke(() => { RichTextBoxOutput.AppendText(append); });
-			//RichTextBoxOutput.AppendText(append);
 		}
 
 		//Events
@@ -89,12 +91,57 @@ namespace AsyncClientServer.Example.Server
 			AppendRichtTextBox("\nThe server has started");
 		}
 
+		private void ClientConnected(int id)
+		{
+			AppendRichtTextBox("\nA new Client has connected with id " + id);
+		}
+
 		private void ClientDisconnected(int id)
 		{
 			AppendRichtTextBox("\nClient with id " + id + " has disconnected from the server.");
 		}
 
+		//End Events
+
 		private string _selectedFileFolder = string.Empty;
+
+		//Search Folder
+		private void ButtonFolder_Click(object sender, RoutedEventArgs e)
+		{
+			FolderBrowserDialog dialog = new FolderBrowserDialog();
+			DialogResult result = dialog.ShowDialog();
+
+			if (result == System.Windows.Forms.DialogResult.OK)
+			{
+				_selectedFileFolder = dialog.SelectedPath;
+			}
+
+			TextBlockSource.Text = _selectedFileFolder;
+		}
+
+		//Search file.
+		private void Button_Click(object sender, RoutedEventArgs e)
+		{
+			OpenFileDialog dialog = new OpenFileDialog();
+
+			dialog.InitialDirectory = "c:\\";
+			var filter = "All Files | *.*";
+			dialog.Filter = filter;
+			dialog.FilterIndex = 1;
+			dialog.RestoreDirectory = true;
+			dialog.Multiselect = false;
+
+			if (dialog.ShowDialog() == true)
+			{
+				_selectedFileFolder = dialog.FileNames[0];
+			}
+
+			TextBlockSource.Text = _selectedFileFolder;
+		}
+
+		//Buttons
+
+		//Send File or folder.
 		private void ButtonSendFileFolder_Click(object sender, RoutedEventArgs e)
 		{
 
@@ -144,39 +191,7 @@ namespace AsyncClientServer.Example.Server
 			}
 		}
 
-		//Folder
-		private void ButtonFolder_Click(object sender, RoutedEventArgs e)
-		{
-			FolderBrowserDialog dialog = new FolderBrowserDialog();
-			DialogResult result = dialog.ShowDialog();
-
-			if (result == System.Windows.Forms.DialogResult.OK)
-			{
-				_selectedFileFolder = dialog.SelectedPath;
-			}
-
-			TextBlockSource.Text = _selectedFileFolder;
-		}
-
-		private void Button_Click(object sender, RoutedEventArgs e)
-		{
-			OpenFileDialog dialog = new OpenFileDialog();
-
-			dialog.InitialDirectory = "c:\\";
-			var filter = "All Files | *.*";
-			dialog.Filter = filter;
-			dialog.FilterIndex = 1;
-			dialog.RestoreDirectory = true;
-			dialog.Multiselect = false;
-
-			if (dialog.ShowDialog() == true)
-			{
-				_selectedFileFolder = dialog.FileNames[0];
-			}
-
-			TextBlockSource.Text = _selectedFileFolder;
-		}
-
+		//Send command
 		private void ButtonSendCommand_Click(object sender, RoutedEventArgs e)
 		{
 			try
@@ -208,6 +223,7 @@ namespace AsyncClientServer.Example.Server
 			}
 		}
 
+		//Send Message
 		private void ButtonSendMessage_Click(object sender, RoutedEventArgs e)
 		{
 			try
@@ -239,6 +255,7 @@ namespace AsyncClientServer.Example.Server
 			}
 		}
 
+		//Close all threads when the app stops
 		private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
 		{
 			Environment.Exit(0);
