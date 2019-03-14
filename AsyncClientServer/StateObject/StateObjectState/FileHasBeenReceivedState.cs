@@ -29,11 +29,14 @@ namespace AsyncClientServer.StateObject.StateObjectState
 			{
 				if (Path.GetPathRoot(source) == Path.GetPathRoot(destPath))
 				{
+					if (File.Exists(destPath))
+						File.Delete(destPath);
+
 					File.Move(source, destPath);
 				}
 				else
 				{
-					File.Copy(source, destPath);
+					File.Copy(source, destPath, true);
 					File.Delete(source);
 				}
 			}
@@ -125,7 +128,7 @@ namespace AsyncClientServer.StateObject.StateObjectState
 				return extractedFolder.Name;
 			}
 
-			return null;
+			return info.Name;
 
 		}
 

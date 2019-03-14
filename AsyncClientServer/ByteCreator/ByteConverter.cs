@@ -66,7 +66,7 @@ namespace AsyncClientServer.ByteCreator
 			try
 			{
 				FileInfo fileToSend = GZipCompression.Compress(new FileInfo(fileLocation));
-				remoteSaveLocation += ".compressedGz";
+				remoteSaveLocation += ".CGz";
 
 				AES256.FileEncrypt(fileToSend.FullName);
 

@@ -136,7 +136,7 @@ namespace Compression
 				using (FileStream originalFileStream = fileToDecompress.OpenRead())
 				{
 					if ((File.GetAttributes(fileToDecompress.FullName) &
-						 FileAttributes.Hidden) != FileAttributes.Hidden & fileToDecompress.Extension == ".gz")
+						 FileAttributes.Hidden) != FileAttributes.Hidden)
 					{
 
 						string currentFileName = fileToDecompress.FullName;
