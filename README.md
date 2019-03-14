@@ -17,7 +17,7 @@ I've implemented basic compression and encryption for files. Messages are encryp
 - Add More compression
 - Better support for sending files.
 - Make filetransfer for big files faster.
-- Implement more threading and Tasks.
+- Implement async Message Sending and Receiving.
 - ?
 
 ## Usage
