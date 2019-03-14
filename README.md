@@ -49,7 +49,7 @@ void FileReceived(int id, string path);
 void Progress(int id, int bytes, int messageSize);
 void ServerHasStarted();
 void ClientConnected(int id);
-private void ClientDisconnected(int id);
+void ClientDisconnected(int id);
 ```
 
 ### Client
