@@ -38,6 +38,11 @@ namespace AsyncClientServer.StateObject
 		string Header { get; set; }
 
 		/// <summary>
+		/// True if the bytes are encrypted.
+		/// </summary>
+		bool Encrypted { get; set; }
+
+		/// <summary>
 		/// The id of the state
 		/// </summary>
 		int Id { get; }

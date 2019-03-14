@@ -66,25 +66,25 @@ namespace AsyncClientServer.Example.Client
 		private void ConnectedToServer(IAsyncClient a)
 		{
 			Dispatcher.Invoke(() => { TextBlockStatus.Text = "CONNECTED"; });
-			AppendRichtTextBox("\nClient has connected to the server.");
+			AppendRichtTextBox("Client has connected to the server.");
 		}
 
 		private void ServerMessageReceived(IAsyncClient a, string header, string msg)
 		{
-			AppendRichtTextBox("\n" +header + ":" + msg);
+			AppendRichtTextBox(header + " received from the server:" + msg);
 		}
 
 		private void FileReceived(IAsyncClient a, string file)
 		{
 			_client.SendMessage("File has been received.", false);
 			Dispatcher.Invoke(() => { ProgressBarProgress.Value = 0; });
-			AppendRichtTextBox("\nFile has been received and is stored at path: " + file);
+			AppendRichtTextBox("File has been received and is stored at path: " + file);
 		}
 
 		private void Disconnected(string ip, int port)
 		{
 			Dispatcher.Invoke(() => { TextBlockStatus.Text = "NOT CONNECTED"; });
-			AppendRichtTextBox("\nClient has disconnected from the server with ip" + ip + " on port " + port);
+			AppendRichtTextBox("Client has disconnected from the server with ip" + ip + " on port " + port);
 		}
 
 		private void Progress(IAsyncClient a, int bytes, int messageSize)
@@ -107,7 +107,7 @@ namespace AsyncClientServer.Example.Client
 		//Append to textbox from separate thread
 		private void AppendRichtTextBox(string append)
 		{
-			Dispatcher.Invoke(() => { RichTextBoxOutput.AppendText(append); });
+			Dispatcher.Invoke(() => { RichTextBoxOutput.AppendText(Environment.NewLine + append); });
 		}
 
 		//Buttons
@@ -157,14 +157,15 @@ namespace AsyncClientServer.Example.Client
 				if (_selectedFileFolder == string.Empty)
 					throw new Exception("The source cannot be empty.");
 
+				bool encrypt = CheckBoxFileFolder.IsChecked == true;
 
 				if (Directory.Exists(Path.GetFullPath(_selectedFileFolder)))
 				{
-					_client.SendFolder(Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text), false);
+					_client.SendFolder(Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text),encrypt, false);
 				}
 				else
 				{
-					_client.SendFile(Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text), false);
+					_client.SendFile(Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text),false,encrypt, false);
 				}
 
 			}
@@ -183,7 +184,9 @@ namespace AsyncClientServer.Example.Client
 				if (TextBoxCommand.Text == string.Empty)
 					throw new Exception("The command cannot be empty.");
 
-				_client.SendCommand(TextBoxCommand.Text, false);
+				bool encrypt = CheckBoxMessage.IsChecked == true;
+
+				_client.SendCommand(TextBoxCommand.Text,encrypt, false);
 			}
 			catch (Exception ex)
 			{
@@ -199,7 +202,9 @@ namespace AsyncClientServer.Example.Client
 				if (TextBoxMessage.Text == string.Empty)
 					throw new Exception("The message cannot be empty");
 
-				_client.SendMessage(TextBoxMessage.Text, false);
+				bool encrypt = CheckBoxMessage.IsChecked == true;
+
+				_client.SendMessage(TextBoxMessage.Text,encrypt, false);
 			}
 			catch (Exception ex)
 			{

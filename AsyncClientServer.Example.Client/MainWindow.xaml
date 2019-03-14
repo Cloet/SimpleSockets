@@ -53,20 +53,51 @@
 					<TextBlock Grid.Column="0" Text="Target" FontSize="18" Margin="0,0,10,0"/>
 					<TextBox Grid.Column="1" Grid.ColumnSpan="2" x:Name="TextBlockTarget" DockPanel.Dock="Right" Height="30" FontSize="18"/>
 				</Grid>
-				<Button Name="ButtonSendFileFolder" Content="Send" FontSize="18" Click="ButtonSendFileFolder_Click"/>
-
+				<Grid>
+					<Grid.ColumnDefinitions>
+						<ColumnDefinition Width="5*"/>
+						<ColumnDefinition Width="2*"/>
+					</Grid.ColumnDefinitions>
+					<Button Name="ButtonSendFileFolder" Content="Send" FontSize="18" Click="ButtonSendFileFolder_Click"/>
+					<StackPanel Grid.Column="1">
+						<TextBlock Text="Encrypted"></TextBlock>
+						<CheckBox x:Name="CheckBoxFileFolder" IsChecked="True"></CheckBox>
+					</StackPanel>
+				</Grid>
 			</StackPanel>
 
 			<StackPanel Grid.Row="2" Grid.Column="0" Margin="10,0,10,0" VerticalAlignment="Center">
 				<TextBlock Text="Command" FontSize="18"/>
 				<TextBox Name="TextBoxCommand" FontSize="18"/>
-				<Button Name="ButtonSendCommand" Content="Send" FontSize="18" Click="ButtonSendCommand_Click"></Button>
+				<Grid>
+					<Grid.ColumnDefinitions>
+						<ColumnDefinition Width="5*"/>
+						<ColumnDefinition Width="2*"/>
+					</Grid.ColumnDefinitions>
+					<Button Name="ButtonSendCommand" Content="Send" FontSize="18" Click="ButtonSendCommand_Click"></Button>
+					<StackPanel Grid.Column="1">
+						<TextBlock Text="Encrypted"></TextBlock>
+						<CheckBox x:Name="CheckBoxCommand" IsChecked="True"></CheckBox>
+					</StackPanel>
+				</Grid>
+
 			</StackPanel>
 
 			<StackPanel Grid.Row="2" Grid.Column="2" Margin="10,0,10,0" VerticalAlignment="Center">
 				<TextBlock Text="Message" FontSize="18"/>
 				<TextBox Name="TextBoxMessage" FontSize="18"/>
-				<Button Name="ButtonSendMessage" Content="Send" FontSize="18" Click="ButtonSendMessage_Click"></Button>
+				<Grid>
+					<Grid.ColumnDefinitions>
+						<ColumnDefinition Width="5*"/>
+						<ColumnDefinition Width="2*"/>
+					</Grid.ColumnDefinitions>
+					<Button Name="ButtonSendMessage" Content="Send" FontSize="18" Click="ButtonSendMessage_Click"></Button>
+					<StackPanel Grid.Column="1">
+						<TextBlock Text="Encrypted"></TextBlock>
+						<CheckBox x:Name="CheckBoxMessage" IsChecked="True"></CheckBox>
+					</StackPanel>
+				</Grid>
+
 			</StackPanel>
 		</Grid>
 
@@ -88,6 +119,11 @@
 			</StackPanel>
 
 			<RichTextBox Grid.Row="0" Margin="0,0,0,0" Name="RichTextBoxOutput" >
+				<RichTextBox.Resources>
+					<Style TargetType="{x:Type Paragraph}">
+						<Setter Property="Margin" Value="0"></Setter>
+					</Style>
+				</RichTextBox.Resources>
 				<FlowDocument>
 					<Paragraph>
 						<Run Text="Output"/>

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Security.Cryptography;
 using System.Text;
 using Compression;
 using Cryptography;
@@ -22,16 +23,36 @@ namespace AsyncClientServer.ByteCreator
 	{
 
 		//Writes a message to byte array
-		private static byte[] CreateByteArray(string message, string header)
+		private static byte[] CreateByteArray(string message, string header, bool encrypt)
 		{
 			try
 			{
-				var encryptedHeader = AES256.EncryptStringToBytes_Aes(header);
-				var encryptedMessage = AES256.EncryptStringToBytes_Aes(message);
+				byte[] messageArray = null;
+				byte[] headerArray = null;
+
+				if (encrypt)
+				{
+					//Header
+					byte[] encryptedPrefix = Encoding.UTF8.GetBytes("ENCRYPTED_");
+					byte[] encryptedHeader = AES256.EncryptStringToBytes_Aes(header);
+
+					headerArray = new byte[encryptedHeader.Length + encryptedPrefix.Length];
+
+					encryptedPrefix.CopyTo(headerArray, 0);
+					encryptedHeader.CopyTo(headerArray, 10);
+
+					messageArray = AES256.EncryptStringToBytes_Aes(message);
+				}
+				else
+				{
+					headerArray = Encoding.UTF8.GetBytes(header);
+					messageArray = Encoding.UTF8.GetBytes(message);
+				}
+
 
 				//Message
-				byte[] messageData = encryptedMessage;
-				byte[] headerBytes = encryptedHeader;
+				byte[] messageData = messageArray;
+				byte[] headerBytes = headerArray;
 				byte[] headerLen = BitConverter.GetBytes(headerBytes.Length);
 				byte[] messageLength = BitConverter.GetBytes(messageData.Length);
 
@@ -59,33 +80,57 @@ namespace AsyncClientServer.ByteCreator
 		/// </summary>
 		/// <param name="fileLocation"></param>
 		/// <param name="remoteSaveLocation"></param>
+		///	<param name="encryptFile"></param>
+		/// <param name="compressFile"></param>
 		/// <returns>Byte[]</returns>
-		protected byte[] CreateByteFile(string fileLocation, string remoteSaveLocation)
+		protected byte[] CreateByteFile(string fileLocation, string remoteSaveLocation, bool encryptFile, bool compressFile)
 		{
 
 			try
 			{
-				FileInfo fileToSend = GZipCompression.Compress(new FileInfo(fileLocation));
-				remoteSaveLocation += ".CGz";
 
-				AES256.FileEncrypt(fileToSend.FullName);
+				FileInfo fileToSend = new FileInfo(fileLocation);
+				byte[] header = null;
 
-				//Delete compressed file
-				File.Delete(fileToSend.FullName);
+				if (compressFile)
+				{
+					fileToSend = GZipCompression.Compress(new FileInfo(fileLocation));
+					remoteSaveLocation += ".CGz";
+				}
 
-				fileToSend = new FileInfo(fileToSend.FullName + ".aes");
-				remoteSaveLocation += ".aes";
+				//Check if the file and header have to be encrypted.
+				if (encryptFile)
+				{
+					AES256.FileEncrypt(fileToSend.FullName);
+					//Delete compressed file
+					if (compressFile)
+						File.Delete(fileToSend.FullName);
 
-				var encryptedHeader = AES256.EncryptStringToBytes_Aes(remoteSaveLocation);
+					fileToSend = new FileInfo(fileToSend.FullName + ".aes");
+					remoteSaveLocation += ".aes";
+
+					byte[] encryptedPrefix = Encoding.UTF8.GetBytes("ENCRYPTED_");
+					byte[] encryptedHeader = AES256.EncryptStringToBytes_Aes(remoteSaveLocation);
+
+					header = new byte[encryptedHeader.Length + encryptedPrefix.Length];
+
+					encryptedPrefix.CopyTo(header, 0);
+					encryptedHeader.CopyTo(header, 10);
+				}
+				else
+					header = Encoding.UTF8.GetBytes(remoteSaveLocation);
+
 
 				//Message
 				byte[] messageData = File.ReadAllBytes(fileToSend.FullName);
-				byte[] headerBytes = encryptedHeader;
+				byte[] headerBytes = header;
 				byte[] headerLen = BitConverter.GetBytes(headerBytes.Length);
 				byte[] messageLength = BitConverter.GetBytes(messageData.Length);
 
 				//Delete encrypted file after it has been read.
-				File.Delete(fileToSend.FullName);
+				if (encryptFile)
+					File.Delete(fileToSend.FullName);
+
 
 				var data = new byte[4 + 4 + headerBytes.Length + messageData.Length];
 
@@ -110,38 +155,62 @@ namespace AsyncClientServer.ByteCreator
 		/// </summary>
 		/// <param name="folderLocation"></param>
 		/// <param name="remoteFolderLocation"></param>
+		/// <param name="encryptFolder"></param>
 		/// <returns></returns>
-		protected byte[] CreateByteFolder(string folderLocation, string remoteFolderLocation)
+		protected byte[] CreateByteFolder(string folderLocation, string remoteFolderLocation, bool encryptFolder)
 		{
 
 			try
 			{
 
 				string tempPath = Path.GetTempFileName();
+				byte[] header = null;
+
+				//If this particular temp file exists delete it. Then start compression.
 				File.Delete(tempPath);
 				tempPath += ".CZip";
-
 				ZipCompression.Compress(folderLocation, tempPath);
 				remoteFolderLocation += ".CZip";
 
-				AES256.FileEncrypt(tempPath);
+				//The path to the folder with it current compression extension added.
+				string folderToSend = tempPath;
 
-				//Delete compressed file
-				File.Delete(tempPath);
+				//Check if the folder has to be encrypted
+				if (encryptFolder)
+				{
+					//Encrypt the file with AES256
+					AES256.FileEncrypt(tempPath);
 
-				string folderToSend = tempPath + ".aes";
-				remoteFolderLocation += ".aes";
+					//Delete compressed file
+					File.Delete(tempPath);
 
-				var encryptedHeader = AES256.EncryptStringToBytes_Aes(remoteFolderLocation);
+					//Change the path with encryption
+					folderToSend = tempPath + ".aes";
+					remoteFolderLocation += ".aes";
+
+					//The encrypted header
+					byte[] encryptedPrefix = Encoding.UTF8.GetBytes("ENCRYPTED_");
+					byte[] encryptedHeader = AES256.EncryptStringToBytes_Aes(remoteFolderLocation);
+
+					header = new byte[encryptedHeader.Length + encryptedPrefix.Length];
+
+					encryptedPrefix.CopyTo(header, 0);
+					encryptedHeader.CopyTo(header, 10);
+
+				}
+				else
+					header = Encoding.UTF8.GetBytes(remoteFolderLocation);
+
 
 				//Message
 				byte[] messageData = File.ReadAllBytes(folderToSend);
-				byte[] headerBytes = encryptedHeader;
+				byte[] headerBytes = header;
 				byte[] headerLen = BitConverter.GetBytes(headerBytes.Length);
 				byte[] messageLength = BitConverter.GetBytes(messageData.Length);
 
-				//Delete encrypted file after it has been read.
+				//Will delete the remaining file at temp path.
 				File.Delete(folderToSend);
+
 
 				var data = new byte[4 + 4 + headerBytes.Length + messageData.Length];
 
@@ -166,20 +235,22 @@ namespace AsyncClientServer.ByteCreator
 		/// This way it can be send using sockets</para>
 		/// </summary>
 		/// <param name="message"></param>
+		/// <param name="encryptMessage">True if the message has to be encrypted.</param>
 		/// <returns>Byte[]</returns>
-		protected byte[] CreateByteMessage(string message)
+		protected byte[] CreateByteMessage(string message, bool encryptMessage)
 		{
-			return CreateByteArray(message, "MESSAGE");
+			return CreateByteArray(message, "MESSAGE", encryptMessage);
 		}
 
 		/// <summary>
 		/// Creates an array of bytes to send a command
 		/// </summary>
 		/// <param name="command"></param>
+		/// <param name="encryptCommand"></param>
 		/// <returns>Byte[]</returns>
-		protected byte[] CreateByteCommand(string command)
+		protected byte[] CreateByteCommand(string command, bool encryptCommand)
 		{
-			return CreateByteArray(command, "COMMAND");
+			return CreateByteArray(command, "COMMAND", encryptCommand);
 		}
 
 		/// <summary>
@@ -188,12 +259,12 @@ namespace AsyncClientServer.ByteCreator
 		/// This xml string will be converted to bytes and send using sockets and deserialized when it arrives.</para>
 		/// </summary>
 		/// <param name="serObj"></param>
+		/// <param name="encryptObject"></param>
 		/// <returns>Byte[]</returns>
-		protected byte[] CreateByteObject(object serObj)
+		protected byte[] CreateByteObject(object serObj, bool encryptObject)
 		{
 			var message = XmlSerialization.XmlSerialization.SerializeToXml(serObj);
-			return CreateByteArray(message, "OBJECT");
-
+			return CreateByteArray(message, "OBJECT", encryptObject);
 		}
 
 	}

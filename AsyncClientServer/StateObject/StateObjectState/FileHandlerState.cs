@@ -15,8 +15,6 @@ namespace AsyncClientServer.StateObject.StateObjectState
 		public FileHandlerState(IStateObject state, IAsyncClient client) : base(state, client)
 		{
 		}
-
-
 		private string _tempFilePath = string.Empty;
 
 		//Checks if the file already exists and deletes when it has to.
@@ -50,8 +48,6 @@ namespace AsyncClientServer.StateObject.StateObjectState
 				FileInfo temp = new FileInfo(State.Header);
 				_tempFilePath = Path.GetTempPath() + temp.Name;
 			}
-
-
 
 			//Checks if it is the first write and if the file has to be deleted.
 			DeleteCreateFile(_tempFilePath);

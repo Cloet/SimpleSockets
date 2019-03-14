@@ -14,6 +14,7 @@ namespace AsyncClientServer.StateObject.StateObjectState
 		{
 		}
 
+
 		private void Write(int receive)
 		{
 

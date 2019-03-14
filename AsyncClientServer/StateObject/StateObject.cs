@@ -42,6 +42,7 @@ namespace AsyncClientServer.StateObject
 		public int Read { get; private set; }
 		public int Flag { get; set; }
 		public string Header { get; set; }
+		public bool Encrypted { get; set; }
 
 		/// <summary>
 		/// Get the id
@@ -144,6 +145,7 @@ namespace AsyncClientServer.StateObject
 			Header = "";
 			MessageSize = 0;
 			HeaderSize = 0;
+			Encrypted = false;
 			_receivedBytes = new List<byte>();
 			Read = 0;
 			Flag = 0;

@@ -54,26 +54,26 @@ namespace AsyncClientServer.Example.Server
 		//Append to textbox from separate thread.
 		private void AppendRichtTextBox(string append)
 		{
-			Dispatcher.Invoke(() => { RichTextBoxOutput.AppendText(append); });
+			Dispatcher.Invoke(() => { RichTextBoxOutput.AppendText(Environment.NewLine + append); });
 		}
 
 		//Events
 		private void MessageReceived(int id, string header, string msg)
 		{
-			AppendRichtTextBox("\nClient " + id + "has send a " + header + ": " + msg);
+			AppendRichtTextBox("Client " + id + " has send a " + header + ": " + msg);
 			AsyncSocketListener.Instance.SendMessage(id, "The message has been received.", false);
 		}
 
 		private void MessageSubmitted(int id, bool close)
 		{
-			AppendRichtTextBox("\nServer sent a message to client " + id);
+			AppendRichtTextBox("Server sent a message to client " + id);
 		}
 
 		private void FileReceived(int id, string path)
 		{
 			AsyncSocketListener.Instance.SendMessage(id, "File has been received.", false);
 			Dispatcher.Invoke(() => { ProgressBarProgress.Value = 0; });
-			AppendRichtTextBox("\nClient " + id + "has send a file/folder and has been saved at \n" + path);
+			AppendRichtTextBox("Client " + id + "has send a file/folder and has been saved at \n" + path);
 		}
 
 		private void Progress(int id, int bytes, int messageSize)
@@ -93,12 +93,12 @@ namespace AsyncClientServer.Example.Server
 
 		private void ClientConnected(int id)
 		{
-			AppendRichtTextBox("\nA new Client has connected with id " + id);
+			AppendRichtTextBox("A new Client has connected with id " + id);
 		}
 
 		private void ClientDisconnected(int id)
 		{
-			AppendRichtTextBox("\nClient with id " + id + " has disconnected from the server.");
+			AppendRichtTextBox("Client with id " + id + " has disconnected from the server.");
 		}
 
 		//End Events
@@ -170,13 +170,16 @@ namespace AsyncClientServer.Example.Server
 						throw new Exception("The source cannot be empty.");
 
 
+					bool encrypt = CheckBoxFileFolder.IsChecked == true;
+
 					if (Directory.Exists(Path.GetFullPath(_selectedFileFolder)))
 					{
-						AsyncSocketListener.Instance.SendFolder(clientId, Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text), false);
+						AsyncSocketListener.Instance.SendFolder(clientId, Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text),encrypt, false);
 					}
 					else
 					{
-						AsyncSocketListener.Instance.SendFile(clientId, Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text), false);
+						AsyncSocketListener.Instance.SendFile(clientId, Path.GetFullPath(_selectedFileFolder),
+							Path.GetFullPath(TextBlockTarget.Text), encrypt, encrypt, false);
 					}
 
 				}
@@ -215,7 +218,10 @@ namespace AsyncClientServer.Example.Server
 					throw new Exception("Enter a valid client id.");
 				}
 
-				AsyncSocketListener.Instance.SendCommand(clientId, content, false);
+				bool encrypt = CheckBoxCommand.IsChecked == true;
+
+
+				AsyncSocketListener.Instance.SendCommand(clientId, content,encrypt, false);
 			}
 			catch (Exception ex)
 			{
@@ -247,7 +253,9 @@ namespace AsyncClientServer.Example.Server
 					throw new Exception("Enter a valid client id.");
 				}
 
-				AsyncSocketListener.Instance.SendMessage(clientId, content, false);
+				bool encrypt = CheckBoxMessage.IsChecked == true;
+
+				AsyncSocketListener.Instance.SendMessage(clientId, content,encrypt, false);
 			}
 			catch (Exception ex)
 			{

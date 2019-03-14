@@ -9,7 +9,7 @@ namespace AsyncClientServer.StateObject.StateObjectState
 	public class InitialHandlerState: StateObjectState
 	{
 		//The types of messages that can be send.
-		private readonly string[] _messageTypes = { "COMMAND", "MESSAGE", "OBJECT" };
+		private readonly string[] _messageTypes = { "COMMAND", "MESSAGE", "OBJECT"};
 
 		public InitialHandlerState(IStateObject state) : base(state, null)
 		{
@@ -38,8 +38,24 @@ namespace AsyncClientServer.StateObject.StateObjectState
 				byte[] headerBytes =  new byte[State.HeaderSize];
 				Array.Copy(State.Buffer, 8, headerBytes, 0, State.HeaderSize);
 
-				State.Header = AES256.DecryptStringFromBytes_Aes(headerBytes);
-				//State.Header = Encoding.UTF8.GetString(State.Buffer, 8, State.HeaderSize);
+				//Check if the header is encrypted.
+				if (headerBytes.Length > 10)
+				{
+					//Check for encrypted string
+					byte[] encryptedBytes = new byte[10];
+					Array.Copy(headerBytes, 0, encryptedBytes, 0, 10);
+
+					if (Encoding.UTF8.GetString(encryptedBytes) == "ENCRYPTED_")
+					{
+						byte[] newHeader = new byte[headerBytes.Length - 10];
+						Array.Copy(headerBytes, 10, newHeader, 0, newHeader.Length);
+						State.Header = AES256.DecryptStringFromBytes_Aes(newHeader);
+						State.Encrypted = true;
+					}
+				}
+
+				if(State.Header == string.Empty)
+					State.Header = Encoding.UTF8.GetString(headerBytes);
 
 				//Get the bytes without the header and MessageSize and copy to new byte array.
 				byte[] bytes = new byte[receive - (8 + State.HeaderSize)];

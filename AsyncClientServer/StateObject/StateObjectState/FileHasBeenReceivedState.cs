@@ -78,13 +78,18 @@ namespace AsyncClientServer.StateObject.StateObjectState
 
 			//Gets the path without name
 			string tPath = targetPath.FullName.Remove(targetPath.FullName.Length - targetPath.Name.Length);
+			string newFileName = info.FullName;
 
-			//Remove the .aes extension of the new file
-			string newFileName = info.FullName.Remove(info.FullName.Length - info.Extension.Length);
+			//If the file is encrypted.
+			if (State.Encrypted)
+			{
+				//Remove the .aes extension of the new file
+				newFileName = info.FullName.Remove(info.FullName.Length - info.Extension.Length);
 
-			//Decrypts the file and save at new location. Deletes the encrypted file after decrypting.
-			AES256.FileDecrypt(_tempFilePath, newFileName);
-			File.Delete(_tempFilePath);
+				//Decrypts the file and save at new location. Deletes the encrypted file after decrypting.
+				AES256.FileDecrypt(_tempFilePath, newFileName);
+				File.Delete(_tempFilePath);
+			}
 
 			//Decompresses the file using gzip.
 			string targetName = Decompress(newFileName);
