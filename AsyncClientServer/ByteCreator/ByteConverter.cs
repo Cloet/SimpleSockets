@@ -73,6 +73,7 @@ namespace AsyncClientServer.ByteCreator
 			}
 		}
 
+
 		/// <summary>
 		/// Creates an array of bytes
 		/// <para>This method sets the location of where the file will be copied to.
@@ -119,7 +120,6 @@ namespace AsyncClientServer.ByteCreator
 				}
 				else
 					header = Encoding.UTF8.GetBytes(remoteSaveLocation);
-
 
 				//Message
 				byte[] messageData = File.ReadAllBytes(fileToSend.FullName);

@@ -35,27 +35,8 @@ namespace AsyncClientServer.StateObject.StateObjectState
 				State.MessageSize = BitConverter.ToInt32(State.Buffer, 0);
 				State.HeaderSize = BitConverter.ToInt32(State.Buffer, 4);
 
-				byte[] headerBytes =  new byte[State.HeaderSize];
-				Array.Copy(State.Buffer, 8, headerBytes, 0, State.HeaderSize);
-
-				//Check if the header is encrypted.
-				if (headerBytes.Length > 10)
-				{
-					//Check for encrypted string
-					byte[] encryptedBytes = new byte[10];
-					Array.Copy(headerBytes, 0, encryptedBytes, 0, 10);
-
-					if (Encoding.UTF8.GetString(encryptedBytes) == "ENCRYPTED_")
-					{
-						byte[] newHeader = new byte[headerBytes.Length - 10];
-						Array.Copy(headerBytes, 10, newHeader, 0, newHeader.Length);
-						State.Header = AES256.DecryptStringFromBytes_Aes(newHeader);
-						State.Encrypted = true;
-					}
-				}
-
-				if(State.Header == string.Empty)
-					State.Header = Encoding.UTF8.GetString(headerBytes);
+				//Check if kthe message/file is encrypted and sets the header
+				CheckIfEncryptedAndSetHeader();
 
 				//Get the bytes without the header and MessageSize and copy to new byte array.
 				byte[] bytes = new byte[receive - (8 + State.HeaderSize)];
@@ -79,6 +60,37 @@ namespace AsyncClientServer.StateObject.StateObjectState
 			State.CurrentState.Receive(receive - 8 - State.HeaderSize);
 
 		}
+
+		//Checks if the message/file is encrypted and sets the header.
+		private void CheckIfEncryptedAndSetHeader()
+		{
+			byte[] headerBytes = new byte[State.HeaderSize];
+			Array.Copy(State.Buffer, 8, headerBytes, 0, State.HeaderSize);
+
+			//Check if the header is encrypted.
+			if (headerBytes.Length > 10)
+			{
+				//Copy the first 10 bytes of the header to a new byte array.
+				byte[] encryptedBytes = new byte[10];
+				Array.Copy(headerBytes, 0, encryptedBytes, 0, 10);
+
+				//The first 10 bytes of the header are unecrypted in a encrypted message and read "ENCRYPTED_".
+				if (Encoding.UTF8.GetString(encryptedBytes) == "ENCRYPTED_")
+				{
+					//Get the header without the "ENCRYPTED_" String, then set the state to Encrypted.
+					byte[] newHeader = new byte[headerBytes.Length - 10];
+					Array.Copy(headerBytes, 10, newHeader, 0, newHeader.Length);
+					State.Header = AES256.DecryptStringFromBytes_Aes(newHeader);
+					State.Encrypted = true;
+				}
+			}
+
+			//If the message is not encrypted, convert the bytes to string
+			if (State.Header == string.Empty)
+				State.Header = Encoding.UTF8.GetString(headerBytes);
+
+		}
+
 
 	}
 }

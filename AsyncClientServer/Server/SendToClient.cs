@@ -1,4 +1,5 @@
 ﻿using System.Runtime.InteropServices.ComTypes;
+using System.Threading.Tasks;
 using AsyncClientServer.ByteCreator;
 
 namespace AsyncClientServer.Server
@@ -54,6 +55,33 @@ namespace AsyncClientServer.Server
 			SendMessage(id, message, true, close);
 		}
 
+		/// <inheritdoc />
+		/// <summary>
+		/// Send a message to corresponding client asynchronous.
+		/// <para>Id is not zero-based!</para>
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="message"></param>
+		/// <param name="encryptMessage"></param>
+		/// <param name="close"></param>
+		public async Task SendMessageAsync(int id, string message, bool encryptMessage, bool close)
+		{
+			await Task.Run(() => SendMessage(id, message,encryptMessage, close));
+		}
+
+		/// <inheritdoc />
+		/// <summary>
+		/// Sends a message to the corresponding client asynchronous.
+		/// <para>This method encrypts the message that will be send.</para>
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="message"></param>
+		/// <param name="close"></param>
+		public async Task SendMessageAsync(int id, string message, bool close)
+		{
+			await Task.Run(() => SendMessage(id, message, close));
+		}
+
 		/*=============================================
 		*
 		*	OBJECT
@@ -86,6 +114,33 @@ namespace AsyncClientServer.Server
 		public void SendObject(int id, object anyObj, bool close)
 		{
 			SendObject(id, anyObj, true, close);
+		}
+
+		/// <inheritdoc />
+		/// <summary>
+		/// Sends an object to corresponding client asynchronous.
+		/// <para>The id is not zero-based!</para>
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="anyObj"></param>
+		/// <param name="encryptObject"></param>
+		/// <param name="close"></param>
+		public async Task SendObjectAsync(int id, object anyObj, bool encryptObject, bool close)
+		{
+			await Task.Run(() => SendObject(id, anyObj, encryptObject, close));
+		}
+
+		/// <inheritdoc />
+		/// <summary>
+		/// Sends an object to corresponding client asynchronous.
+		/// <para>The id is not zero-based!</para>
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="anyObj"></param>
+		/// <param name="close"></param>
+		public async Task SendObjectAsync(int id, object anyObj, bool close)
+		{
+			await Task.Run(() => SendObject(id, anyObj, close));
 		}
 
 		/*================================
@@ -126,6 +181,37 @@ namespace AsyncClientServer.Server
 			SendFile(id, fileLocation, remoteSaveLocation, true, true, close);
 		}
 
+		/// <inheritdoc />
+		/// <summary>
+		/// Sends a file to corresponding client.
+		/// <para>The id is not zero-based!</para>
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="fileLocation"></param>
+		/// <param name="remoteFileLocation"></param>
+		/// <param name="encryptFile"></param>
+		/// <param name="compressFile"></param>
+		/// <param name="close"></param>
+		public async Task SendFileAsync(int id, string fileLocation, string remoteFileLocation, bool encryptFile, bool compressFile,bool close)
+		{
+			await Task.Run(() => SendFile(id, fileLocation, remoteFileLocation, encryptFile, compressFile, close));
+		}
+
+		/// <inheritdoc />
+		/// <summary>
+		/// Sends a file to corresponding client.
+		/// <para>Encrypts and compresses the file before sending.</para>
+		/// <para>The id is not zero-based!</para>
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="fileLocation"></param>
+		/// <param name="remoteFileLocation"></param>
+		/// <param name="close"></param>
+		public async Task SendFileAsync(int id, string fileLocation, string remoteFileLocation, bool close)
+		{
+			await Task.Run(() => SendFile(id, fileLocation, remoteFileLocation, close));
+		}
+
 		/*=================================
 		*
 		*	FOLDER
@@ -162,6 +248,36 @@ namespace AsyncClientServer.Server
 			SendFolder(id, folderLocation, remoteFolderLocation, true, close);
 		}
 
+		/// <inheritdoc />
+		/// <summary>
+		/// Sends a folder to the corresponding client asynchronous.
+		/// <para>Folder will be compressed to .zip file before being sent.</para>
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="folderLocation"></param>
+		/// <param name="remoteFolderLocation"></param>
+		/// <param name="encryptFolder"></param>
+		/// <param name="close"></param>
+		public async Task SendFolderAsync(int id, string folderLocation, string remoteFolderLocation, bool encryptFolder, bool close)
+		{
+			await Task.Run(() => SendFolder(id, folderLocation, remoteFolderLocation, encryptFolder, close));
+		}
+
+
+		/// <inheritdoc />
+		/// <summary>
+		/// Sends a folder to the corresponding client asynchronous.
+		/// <para>Folder will be compressed to a .zip file and encrypted.</para>
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="folderLocation"></param>
+		/// <param name="remoteFolderLocation"></param>
+		/// <param name="close"></param>
+		public async Task SendFolderAsync(int id, string folderLocation, string remoteFolderLocation, bool close)
+		{
+			await Task.Run(() => SendFolder(id, folderLocation, remoteFolderLocation, close));
+		}
+
 		/*=================================
 		*
 		*	COMMAND
@@ -195,6 +311,34 @@ namespace AsyncClientServer.Server
 		public void SendCommand(int id, string command, bool close)
 		{
 			SendCommand(id, command, true, close);
+		}
+
+		/// <inheritdoc />
+		/// <summary>
+		/// Sends a command to the corresponding client asynchronous.
+		/// <para>The id is not zero-based!</para>
+		/// </summary>
+		/// <param name="id">client id</param>
+		/// <param name="command"></param>
+		/// <param name="encryptCommand"></param>
+		/// <param name="close"></param>
+		public async Task SendCommandAsync(int id, string command, bool encryptCommand, bool close)
+		{
+			await Task.Run(() => SendCommand(id, command, encryptCommand, close));
+		}
+
+		/// <inheritdoc />
+		/// <summary>
+		/// Sends a command to the corresponding client asynchronous.
+		/// <para>Will encrypt the command before sending.</para>
+		/// <para>The id is not zero-based!</para>
+		/// </summary>
+		/// <param name="id">client id</param>
+		/// <param name="command"></param>
+		/// <param name="close"></param>
+		public async Task SendCommandAsync(int id, string command, bool close)
+		{
+			await Task.Run(() => SendCommand(id, command, close));
 		}
 
 		///////////////
@@ -238,6 +382,34 @@ namespace AsyncClientServer.Server
 			SendFileToAllClients(fileLocation, remoteSaveLocation, true, true, close);
 		}
 
+		/// <inheritdoc />
+		/// <summary>
+		/// Sends a file to all clients asynchronous
+		/// </summary>
+		/// <param name="fileLocation"></param>
+		/// <param name="remoteSaveLocation"></param>
+		/// <param name="encryptFile"></param>
+		/// <param name="compressFile"></param>
+		/// <param name="close"></param>
+		public  async Task SendFileToAllClientsAsync(string fileLocation, string remoteSaveLocation, bool encryptFile, bool compressFile,
+			bool close)
+		{
+			await Task.Run(() => SendFileToAllClients(fileLocation, remoteSaveLocation, encryptFile, compressFile, close));
+		}
+
+		/// <inheritdoc />
+		/// <summary>
+		/// Sends a file to all clients asynchronous.
+		/// <para>Will encrypt and compress the file before sending.</para>
+		/// </summary>
+		/// <param name="fileLocation"></param>
+		/// <param name="remoteSaveLocation"></param>
+		/// <param name="close"></param>
+		public async Task SendFileToAllClientsAsync(string fileLocation, string remoteSaveLocation, bool close)
+		{
+			await Task.Run(() => SendFileToAllClients(fileLocation, remoteSaveLocation, close));
+		}
+
 
 		/*=================================
 		*
@@ -275,6 +447,32 @@ namespace AsyncClientServer.Server
 			SendFolderToAllClients(folderLocation, remoteFolderLocation, true, close);
 		}
 
+		/// <inheritdoc />
+		/// <summary>
+		/// Sends a folder to all clients asynchronous.
+		/// </summary>
+		/// <param name="folderLocation"></param>
+		/// <param name="remoteFolderLocation"></param>
+		/// <param name="encryptFolder"></param>
+		/// <param name="close"></param>
+		public async Task SendFolderToAllClientsAsync(string folderLocation, string remoteFolderLocation, bool encryptFolder, bool close)
+		{
+			await Task.Run(() => SendFolderToAllClients(folderLocation, remoteFolderLocation, close));
+		}
+
+		/// <inheritdoc />
+		/// <summary>
+		/// Sends a folder to all clients asynchronous.
+		/// <para>Will encrypt and compress the folder before sending.</para>
+		/// </summary>
+		/// <param name="folderLocation"></param>
+		/// <param name="remoteFolderLocation"></param>
+		/// <param name="close"></param>
+		public async Task SendFolderToAllClientsAsync(string folderLocation, string remoteFolderLocation, bool close)
+		{
+			await Task.Run(() => SendFolderToAllClients(folderLocation, remoteFolderLocation, close));
+		}
+
 		/*=================================
 		*
 		*	MESSAGE
@@ -308,6 +506,30 @@ namespace AsyncClientServer.Server
 		public void SendMessageToAllClients(string message, bool close)
 		{
 			SendMessageToAllClients(message, true, close);
+		}
+
+		/// <inheritdoc />
+		/// <summary>
+		/// Sends a Message to all clients asynchronous.
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="encryptMessage"></param>
+		/// <param name="close"></param>
+		public async Task SendMessageToAllClientsAsync(string message, bool encryptMessage, bool close)
+		{
+			await Task.Run(() => SendMessageToAllClients(message, encryptMessage, close));
+		}
+
+		/// <inheritdoc />
+		/// <summary>
+		/// Sends a Message to all clients
+		/// <para>Will encrypt the message before it is sent.</para>
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="close"></param>
+		public async Task SendMessageToAllClientsAsync(string message, bool close)
+		{
+			await Task.Run(() => SendMessageToAllClients(message, close));
 		}
 
 		/*=================================
@@ -344,6 +566,31 @@ namespace AsyncClientServer.Server
 			SendObjectToAllClients(obj, true, close);
 		}
 
+		/// <inheritdoc />
+		/// <summary>
+		/// Sends an object to all clients asynchronous.
+		/// </summary>
+		/// <param name="obj"></param>
+		/// <param name="encryptObject"></param>
+		/// <param name="close"></param>
+		public async Task SendObjectToAllClientsAsync(object obj, bool encryptObject, bool close)
+		{
+			await Task.Run(() => SendObjectToAllClients(obj, encryptObject, close));
+		}
+
+		/// <inheritdoc />
+		/// <summary>
+		/// Sends an object to all clients asynchronous.
+		/// <para>Will encrypt the object before sending.</para>
+		/// </summary>
+		/// <param name="obj"></param>
+		/// <param name="close"></param>
+		public async Task SendObjectToAllClientsAsync(object obj, bool close)
+		{
+			await Task.Run(() => SendObjectToAllClients(obj, close));
+		}
+
+
 		/*=================================
 		*
 		*	COMMAND
@@ -375,6 +622,29 @@ namespace AsyncClientServer.Server
 		public void SendCommandToAllClients(string command, bool close)
 		{
 			SendCommandToAllClients(command, true, close);
+		}
+
+		/// <inheritdoc />
+		/// <summary>
+		/// Sends a command to all connected clients asynchronous.
+		/// </summary>
+		/// <param name="command"></param>
+		/// <param name="encryptCommand"></param>
+		/// <param name="close"></param>
+		public async Task SendCommandToAllClientsAsync(string command, bool encryptCommand, bool close)
+		{
+			await Task.Run(() => SendCommandToAllClients(command, encryptCommand, close));
+		}
+
+		/// <inheritdoc />
+		/// <summary>
+		/// Sends a command to all connected clients asynchronous.
+		/// </summary>
+		/// <param name="command"></param>
+		/// <param name="close"></param>
+		public async Task SendCommandToAllClientsAsync(string command, bool close)
+		{
+			await Task.Run(() => SendCommandToAllClients(command, close));
 		}
 
 	}

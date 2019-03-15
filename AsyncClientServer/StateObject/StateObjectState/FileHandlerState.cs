@@ -15,6 +15,7 @@ namespace AsyncClientServer.StateObject.StateObjectState
 		public FileHandlerState(IStateObject state, IAsyncClient client) : base(state, client)
 		{
 		}
+
 		private string _tempFilePath = string.Empty;
 
 		//Checks if the file already exists and deletes when it has to.

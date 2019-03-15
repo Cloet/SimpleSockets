@@ -160,11 +160,12 @@ namespace AsyncClientServer.Example.Client
 
 				if (Directory.Exists(Path.GetFullPath(_selectedFileFolder)))
 				{
-					_client.SendFolder(Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text),encrypt, false);
+					_client.SendFolderAsync(Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text),encrypt, false);
 				}
 				else
 				{
-					_client.SendFile(Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text),encrypt,true, false);
+					_client.SendFileAsync(Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text),false);
+					//_client.SendFile(Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text),encrypt,true, false);
 				}
 
 			}
@@ -185,7 +186,7 @@ namespace AsyncClientServer.Example.Client
 
 				bool encrypt = CheckBoxMessage.IsChecked == true;
 
-				_client.SendCommand(TextBoxCommand.Text,encrypt, false);
+				_client.SendCommandAsync(TextBoxCommand.Text,encrypt, false);
 			}
 			catch (Exception ex)
 			{
@@ -203,7 +204,7 @@ namespace AsyncClientServer.Example.Client
 
 				bool encrypt = CheckBoxMessage.IsChecked == true;
 
-				_client.SendMessage(TextBoxMessage.Text,encrypt, false);
+				_client.SendMessageAsync(TextBoxMessage.Text,encrypt, false);
 			}
 			catch (Exception ex)
 			{
