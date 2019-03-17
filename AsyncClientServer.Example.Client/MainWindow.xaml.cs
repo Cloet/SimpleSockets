@@ -146,7 +146,7 @@ namespace AsyncClientServer.Example.Client
 		}
 
 		//Send a file or folder
-		private void ButtonSendFileFolder_Click(object sender, RoutedEventArgs e)
+		private async void ButtonSendFileFolder_Click(object sender, RoutedEventArgs e)
 		{
 
 			try
@@ -160,11 +160,13 @@ namespace AsyncClientServer.Example.Client
 
 				if (Directory.Exists(Path.GetFullPath(_selectedFileFolder)))
 				{
-					_client.SendFolderAsync(Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text),encrypt, false);
+					await _client.SendFolderAsync(Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text),encrypt, false);
 				}
 				else
 				{
-					_client.SendFileAsync(Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text),false);
+					//await _client.SendAsync(Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text),
+					//	true,true);
+					await _client.SendFileAsync(Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text),false);
 					//_client.SendFile(Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text),encrypt,true, false);
 				}
 

@@ -1,4 +1,5 @@
-﻿using System.Net.Sockets;
+﻿using System.Collections.Generic;
+using System.Net.Sockets;
 
 namespace AsyncClientServer.StateObject
 {
@@ -41,6 +42,9 @@ namespace AsyncClientServer.StateObject
 		/// True if the bytes are encrypted.
 		/// </summary>
 		bool Encrypted { get; set; }
+
+		bool NewMessage { get; set; }
+		bool EndMessage { get; set; }
 
 		/// <summary>
 		/// The id of the state
@@ -106,6 +110,7 @@ namespace AsyncClientServer.StateObject
 		byte[] ReceivedBytes { get; }
 
 		void AppendBytes(byte[] bytes);
+
 
 	}
 }

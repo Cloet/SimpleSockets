@@ -6,10 +6,10 @@ using Cryptography;
 
 namespace AsyncClientServer.StateObject.StateObjectState
 {
-	public class InitialHandlerState: StateObjectState
+	public class InitialHandlerState : StateObjectState
 	{
 		//The types of messages that can be send.
-		private readonly string[] _messageTypes = { "COMMAND", "MESSAGE", "OBJECT"};
+		private readonly string[] _messageTypes = { "COMMAND", "MESSAGE", "OBJECT" };
 
 		public InitialHandlerState(IStateObject state) : base(state, null)
 		{
@@ -25,7 +25,6 @@ namespace AsyncClientServer.StateObject.StateObjectState
 		/// <param name="receive"></param>
 		public override void Receive(int receive)
 		{
-
 			//TODO Check if received message has enough bytes.
 
 			//First check
@@ -50,7 +49,7 @@ namespace AsyncClientServer.StateObject.StateObjectState
 			//If it is a message set state to new MessageHandlerState.
 			if (_messageTypes.Contains(State.Header))
 			{
-				State.CurrentState = new MessageHandlerState(State,Client);
+				State.CurrentState = new MessageHandlerState(State, Client);
 				State.CurrentState.Receive(receive - 8 - State.HeaderSize);
 				return;
 			}
@@ -61,13 +60,20 @@ namespace AsyncClientServer.StateObject.StateObjectState
 
 		}
 
+
+
+
 		//Checks if the message/file is encrypted and sets the header.
 		private void CheckIfEncryptedAndSetHeader()
 		{
 			byte[] headerBytes = new byte[State.HeaderSize];
 			Array.Copy(State.Buffer, 8, headerBytes, 0, State.HeaderSize);
 
-			//Check if the header is encrypted.
+
+			//Copy the first 10 bytes of the header to a new byte array.
+			//byte[] prefixBytes = new byte[4];
+			//Array.Copy(headerBytes, 0, prefixBytes, 0, 4);
+
 			if (headerBytes.Length > 10)
 			{
 				//Copy the first 10 bytes of the header to a new byte array.
@@ -85,12 +91,12 @@ namespace AsyncClientServer.StateObject.StateObjectState
 				}
 			}
 
+
 			//If the message is not encrypted, convert the bytes to string
 			if (State.Header == string.Empty)
 				State.Header = Encoding.UTF8.GetString(headerBytes);
 
 		}
-
 
 	}
 }

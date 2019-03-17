@@ -91,6 +91,7 @@ namespace AsyncClientServer.StateObject.StateObjectState
 				bytes = State.Buffer;
 			}
 
+
 			//Write the bytes to the corresponding file.
 			using (BinaryWriter writer = new BinaryWriter(File.Open(_tempFilePath, FileMode.Append)))
 			{
@@ -115,6 +116,7 @@ namespace AsyncClientServer.StateObject.StateObjectState
 			//Write
 			Write(receive);
 
+
 			//Tracks the progress
 			if (Client == null)
 				AsyncSocketListener.Instance.InvokeFileTransferProgress(State.Id, State.Read,
@@ -126,7 +128,7 @@ namespace AsyncClientServer.StateObject.StateObjectState
 			//If the message has been read and there is are no extra bytes
 			if (State.Flag == -2)
 			{
-				State.CurrentState = new FileHasBeenReceivedState(State, Client,_tempFilePath);
+				State.CurrentState = new FileHasBeenReceivedState(State, Client, _tempFilePath);
 				State.CurrentState.Receive(State.Buffer.Length);
 				State.Reset();
 			}
@@ -134,7 +136,7 @@ namespace AsyncClientServer.StateObject.StateObjectState
 			else if (State.Flag == -3)
 			{
 				//Set to FileHasBeenReceivedState and invoke FileReceived event
-				State.CurrentState = new FileHasBeenReceivedState(State, Client,_tempFilePath);
+				State.CurrentState = new FileHasBeenReceivedState(State, Client, _tempFilePath);
 				State.CurrentState.Receive(State.Buffer.Length);
 
 				//Change state to InitState to handle the extra bytes for new message
