@@ -45,16 +45,22 @@ namespace AsyncClientServer.StateObject.StateObjectState
 			{
 				if (Path.GetPathRoot(source) == Path.GetPathRoot(destPath))
 				{
+					if (!Directory.Exists(destPath))
+						Directory.CreateDirectory(destPath);
+
 					Directory.Move(source, destPath);
 				}
 				else
 				{
+					if (!Directory.Exists(destPath))
+						Directory.CreateDirectory(destPath);
+
 					//Now Create all of the directories
 					foreach (string dirPath in Directory.GetDirectories(source, "*",SearchOption.AllDirectories))
 						Directory.CreateDirectory(dirPath.Replace(source, destPath));
 
 					//Copy all the files & Replaces any files with the same name
-					foreach (string newPath in Directory.GetFiles(source, "*.*",SearchOption.AllDirectories))
+					foreach (string newPath in Directory.GetFiles(source, "*.*", SearchOption.AllDirectories))
 						File.Copy(newPath, newPath.Replace(source, destPath), true);
 
 					Directory.Delete(source, true);
