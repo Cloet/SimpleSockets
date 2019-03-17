@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices.ComTypes;
 using System.Threading.Tasks;
-using AsyncClientServer.ByteCreator;
+using AsyncClientServer.Messages;
 
 namespace AsyncClientServer.Server
 {

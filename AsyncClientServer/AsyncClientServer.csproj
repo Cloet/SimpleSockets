@@ -47,7 +47,7 @@
     <Compile Include="Server\ISendToClient.cs" />
     <Compile Include="Client\ISendToServer.cs" />
     <Compile Include="StateObject\IStateObject.cs" />
-    <Compile Include="ByteCreator\MessageCreator.cs" />
+    <Compile Include="Messages\MessageCreator.cs" />
     <Compile Include="Server\SendToClient.cs" />
     <Compile Include="Client\SendToServer.cs" />
     <Compile Include="Client\AsyncClient.cs" />

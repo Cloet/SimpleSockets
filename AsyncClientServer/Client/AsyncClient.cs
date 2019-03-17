@@ -18,7 +18,7 @@ namespace AsyncClientServer.Client
 	/// <summary>
 	/// Event that is triggered when the client has disconnected from the server.
 	/// </summary>
-	public delegate void DisconnectedFromServerHandler(string ipServer, int port);
+	public delegate void DisconnectedFromServerHandler(IAsyncClient a, string ipServer, int port);
 
 	/// <summary>
 	/// Event that triggers when client receives a message
@@ -128,7 +128,7 @@ namespace AsyncClientServer.Client
 		{
 			if (!IsConnected())
 			{
-				Disconnected?.Invoke(this.IpServer, this.Port);
+				Disconnected?.Invoke(this, this.IpServer, this.Port);
 				this.Close();
 				_connected.Reset();
 				StartClient(IpServer, Port, ReconnectInSeconds);
@@ -165,7 +165,7 @@ namespace AsyncClientServer.Client
 				else
 				{
 					_keepAliveTimer.Enabled = false;
-					Disconnected?.Invoke(this.IpServer, this.Port);
+					Disconnected?.Invoke(this, this.IpServer, this.Port);
 					this.Close();
 					_connected.Reset();
 					_listener.BeginConnect(_endpoint, this.OnConnectCallback, _listener);

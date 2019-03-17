@@ -60,8 +60,6 @@ namespace AsyncClientServer.Example.Client
 		}
 
 
-
-
 		//Events
 		private void ConnectedToServer(IAsyncClient a)
 		{
@@ -81,7 +79,7 @@ namespace AsyncClientServer.Example.Client
 			AppendRichtTextBox("File has been received and is stored at path: " + file);
 		}
 
-		private void Disconnected(string ip, int port)
+		private void Disconnected(IAsyncClient a, string ip, int port)
 		{
 			Dispatcher.Invoke(() => { TextBlockStatus.Text = "NOT CONNECTED"; });
 			AppendRichtTextBox("Client has disconnected from the server with ip" + ip + " on port " + port);
@@ -164,10 +162,7 @@ namespace AsyncClientServer.Example.Client
 				}
 				else
 				{
-					//await _client.SendAsync(Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text),
-					//	true,true);
 					await _client.SendFileAsync(Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text),false);
-					//_client.SendFile(Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text),encrypt,true, false);
 				}
 
 			}

@@ -4,7 +4,7 @@ using System.IO;
 using System.Runtime.Remoting.Messaging;
 using System.Text;
 using System.Threading.Tasks;
-using AsyncClientServer.ByteCreator;
+using AsyncClientServer.Messages;
 using Compression;
 using Cryptography;
 

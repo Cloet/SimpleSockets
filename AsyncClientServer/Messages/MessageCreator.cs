@@ -7,7 +7,7 @@ using AsyncClientServer.Client;
 using Compression;
 using Cryptography;
 
-namespace AsyncClientServer.ByteCreator
+namespace AsyncClientServer.Messages
 {
 
 	/// <summary>
@@ -27,7 +27,7 @@ namespace AsyncClientServer.ByteCreator
 		private delegate void SendBytesAsyncCaller(byte[] data, bool close, int id);
 
 		//Encrypts a file and returns the new file path.
-		private async Task<string> EncryptFile(string path)
+		private static async Task<string> EncryptFile(string path)
 		{
 			try
 			{
@@ -45,7 +45,7 @@ namespace AsyncClientServer.ByteCreator
 		}
 
 		//Compresses a file and returns the new path
-		private async Task<string> CompressFile(string path)
+		private static async Task<string> CompressFile(string path)
 		{
 			try
 			{
@@ -58,7 +58,7 @@ namespace AsyncClientServer.ByteCreator
 		}
 
 		//Compresses a folder and returns the new path
-		private async Task<string> CompressFolder(string path, string tempPath)
+		private static async Task<string> CompressFolder(string path, string tempPath)
 		{
 			try
 			{
@@ -118,6 +118,10 @@ namespace AsyncClientServer.ByteCreator
 
 			await StreamFileAndSendBytes(file, remoteSaveLocation, encryptFile, close, id);
 
+			//Deletes the compressed file if no encryption occured.
+			if (compressFile && !encryptFile)
+				File.Delete(file);
+
 		}
 
 		/// <summary>
@@ -151,13 +155,15 @@ namespace AsyncClientServer.ByteCreator
 				//Encrypt and adjust file names.
 				folderToSend = await EncryptFile(folderToSend);
 				remoteFolderLocation += ".aes";
-
-				//TODO DELETE DOES NOT WORK ATM
 				File.Delete(tempPath);
 			}
 
 			//Stream the file in bits and send each time the buffer is full.
 			await StreamFileAndSendBytes(folderToSend, remoteFolderLocation, encryptFolder, close, id);
+
+			//Deletes the compressed folder if not encryption occured.
+			if (File.Exists(folderToSend))
+				File.Delete(folderToSend);
 		}
 
 
@@ -243,14 +249,13 @@ namespace AsyncClientServer.ByteCreator
 
 						var result = caller.BeginInvoke(data, closeLastSend, id, null, null);
 						result.AsyncWaitHandle.WaitOne();
-
 					}
 
-					//Delete encrypted file after it has been read.
-					if (encrypt)
-						File.Delete(file);
-
 				}
+
+				//Delete encrypted file after it has been read.
+				if (encrypt)
+					File.Delete(file);
 			}
 			catch (Exception ex)
 			{
