@@ -52,10 +52,16 @@ namespace AsyncClientServer.Server
 		int Port { get; }
 
 		/// <summary>
+		/// The ip the server is running on
+		/// </summary>
+		string Ip { get; }
+
+		/// <summary>
 		/// Starts the server on a certain port
 		/// </summary>
+		/// <param name="ip"></param>
 		/// <param name="port"></param>
-		void StartListening(int port);
+		void StartListening(string ip, int port);
 
 		/// <summary>
 		/// Checks if a client is connected

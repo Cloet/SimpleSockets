@@ -39,6 +39,7 @@ namespace AsyncClientServer.Example.Server
 		private void StartServer()
 		{
 			int port = 13000;
+			string ip = "127.0.0.1";
 
 			AsyncSocketListener.Instance.ProgressFileReceived += new FileTransferProgressHandler(Progress);
 			AsyncSocketListener.Instance.MessageReceived += new MessageReceivedHandler(MessageReceived);
@@ -48,7 +49,7 @@ namespace AsyncClientServer.Example.Server
 			AsyncSocketListener.Instance.FileReceived += new FileFromClientReceivedHandler(FileReceived);
 			AsyncSocketListener.Instance.ServerHasStarted += new ServerHasStartedHandler(ServerHasStarted);
 
-			AsyncSocketListener.Instance.StartListening(port);
+			AsyncSocketListener.Instance.StartListening(ip,port);
 		}
 
 		//Append to textbox from separate thread.

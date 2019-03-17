@@ -94,6 +94,11 @@ namespace AsyncClientServer.Server
 		/// </summary>
 		public int Port { get; private set; }
 
+		/// <summary>
+		/// Get the ip on which the server is running
+		/// </summary>
+		public string Ip { get; private set; }
+
 		//Constructor (Singleton pattern)
 		private AsyncSocketListener()
 		{
@@ -150,14 +155,16 @@ namespace AsyncClientServer.Server
 		/// <summary>
 		/// Starts listening on the given port.
 		/// </summary>
+		///	<param name="ip"></param> 
 		/// <param name="port"></param>
-		public void StartListening(int port)
+		public void StartListening(string ip,int port)
 		{
 			Port = port;
+			Ip = ip;
 
-			var host = Dns.GetHostEntry("127.0.0.1");
-			var ip = host.AddressList[0];
-			var endpoint = new IPEndPoint(ip, port);
+			var host = Dns.GetHostEntry(ip);
+			var ipServer = host.AddressList[0];
+			var endpoint = new IPEndPoint(ipServer, port);
 
 			try
 			{
