@@ -342,7 +342,7 @@ namespace AsyncClientServer.Client
 		/// <param name="close"></param>
 		public async Task SendCommandAsync(string command, bool encryptCommand, bool close)
 		{
-			await Task.Run(() => SendCommandAsync(command, encryptCommand, close));
+			await Task.Run(() => SendCommand(command, encryptCommand, close));
 		}
 
 		/// <inheritdoc />

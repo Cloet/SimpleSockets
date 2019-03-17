@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Dynamic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -10,61 +11,7 @@ namespace Compression
 {
 	public static class GZipCompression
 	{
-
-
-		/// <summary>
-		/// Compresses all files in a directory
-		/// </summary>
-		/// <param name="directoryToCompress"></param>
-		/// <param name="directoryTargetPath"></param>
-		public static void Compress(DirectoryInfo directoryToCompress, string directoryTargetPath)
-		{
-			try
-			{
-				foreach (FileInfo fileToCompress in directoryToCompress.GetFiles())
-				{
-					Compress(fileToCompress, directoryTargetPath);
-				}
-			}
-			catch (Exception ex)
-			{
-				throw new Exception(ex.Message, ex);
-			}
-		}
-
-		/// <summary>
-		/// Compresses a single file
-		/// </summary>
-		/// <param name="fileToCompress"></param>
-		/// <param name="directoryTargetPath"></param>
-		public static void Compress(FileInfo fileToCompress, string directoryTargetPath)
-		{
-			try
-			{
-				using (FileStream originalFileStream = fileToCompress.OpenRead())
-				{
-					if ((File.GetAttributes(fileToCompress.FullName) &
-						 FileAttributes.Hidden) != FileAttributes.Hidden & fileToCompress.Extension != ".gz")
-					{
-						using (FileStream compressedFileStream = File.Create(fileToCompress.FullName + ".gz"))
-						{
-							using (GZipStream compressionStream =
-								new GZipStream(compressedFileStream, CompressionMode.Compress))
-							{
-								originalFileStream.CopyTo(compressionStream);
-							}
-						}
-
-						FileInfo info = new FileInfo(directoryTargetPath + Path.DirectorySeparatorChar +
-													 fileToCompress.Name + ".gz");
-					}
-				}
-			}
-			catch (Exception ex)
-			{
-				throw new Exception(ex.Message, ex);
-			}
-		}
+		public static string Extension => ".CGz";
 
 		/// <summary>
 		/// Compress a file and return the FileInfo of the new file.
@@ -75,16 +22,16 @@ namespace Compression
 		{
 			try
 			{
-				if (fileToCompress.Extension == ".gz")
+				if (fileToCompress.Extension == Extension)
 					throw new ArgumentException(fileToCompress.Name + " is already compressed.");
 
 				FileInfo compressedFile = new FileInfo(Path.GetTempPath() + Path.DirectorySeparatorChar +
-				                                       fileToCompress.Name + ".gz");
+				                                       fileToCompress.Name + Extension);
 
 				using (FileStream originalFileStream = fileToCompress.OpenRead())
 				{
 					if ((File.GetAttributes(fileToCompress.FullName) &
-					     FileAttributes.Hidden) != FileAttributes.Hidden & fileToCompress.Extension != ".gz")
+					     FileAttributes.Hidden) != FileAttributes.Hidden & fileToCompress.Extension != Extension)
 					{
 						using (FileStream compressedFileStream = File.Create(compressedFile.FullName))
 						{
@@ -106,25 +53,7 @@ namespace Compression
 			}
 		}
 
-		/// <summary>
-		/// Decompresses all ".gz" files in a folder.
-		/// </summary>
-		/// <param name="directoryToCompress"></param>
-		public static void Decompress(DirectoryInfo directoryToCompress)
-		{
-			try
-			{
-				foreach (FileInfo fileToDecompress in directoryToCompress.GetFiles())
-				{
-					Decompress(fileToDecompress);
-				}
-			}
-			catch (Exception ex)
-			{
-				throw new Exception(ex.Message, ex);
-			}
-		}
-
+		
 		/// <summary>
 		/// Decompresses a file
 		/// </summary>

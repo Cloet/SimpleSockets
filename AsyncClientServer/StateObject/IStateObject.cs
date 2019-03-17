@@ -43,9 +43,6 @@ namespace AsyncClientServer.StateObject
 		/// </summary>
 		bool Encrypted { get; set; }
 
-		bool NewMessage { get; set; }
-		bool EndMessage { get; set; }
-
 		/// <summary>
 		/// The id of the state
 		/// </summary>
@@ -106,9 +103,15 @@ namespace AsyncClientServer.StateObject
 		void Reset();
 
 
-
+		/// <summary>
+		/// Gets how much bytes have been received
+		/// </summary>
 		byte[] ReceivedBytes { get; }
 
+		/// <summary>
+		/// Append the bytes to the state.
+		/// </summary>
+		/// <param name="bytes"></param>
 		void AppendBytes(byte[] bytes);
 
 

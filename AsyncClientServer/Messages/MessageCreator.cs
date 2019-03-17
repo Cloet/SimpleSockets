@@ -34,7 +34,7 @@ namespace AsyncClientServer.Messages
 				return await Task.Run(() =>
 				{
 					AES256.FileEncrypt(Path.GetFullPath(path));
-					path += ".aes";
+					path += AES256.Extension;
 					return path;
 				});
 			}
@@ -95,7 +95,7 @@ namespace AsyncClientServer.Messages
 			if (compressFile)
 			{
 				file = await CompressFile(file);
-				remoteSaveLocation += ".CGz";
+				remoteSaveLocation += GZipCompression.Extension;
 			}
 
 			//Encrypts the file and deletes the compressed file
@@ -108,7 +108,7 @@ namespace AsyncClientServer.Messages
 					previousFile = file;
 
 				file = await EncryptFile(file);
-				remoteSaveLocation += ".aes";
+				remoteSaveLocation += AES256.Extension;
 
 				//Deletes the compressed file
 				if (previousFile != string.Empty)
@@ -145,16 +145,16 @@ namespace AsyncClientServer.Messages
 			File.Delete(tempPath);
 
 			//Add extension and compress.
-			tempPath += ".CZip";
+			tempPath += ZipCompression.Extension;
 			string folderToSend = await CompressFolder(folderLocation, tempPath);
-			remoteFolderLocation += ".CZip";
+			remoteFolderLocation += ZipCompression.Extension;
 
 			//Check if folder needs to be encrypted.
 			if (encryptFolder)
 			{
 				//Encrypt and adjust file names.
 				folderToSend = await EncryptFile(folderToSend);
-				remoteFolderLocation += ".aes";
+				remoteFolderLocation += AES256.Extension;
 				File.Delete(tempPath);
 			}
 
@@ -347,7 +347,7 @@ namespace AsyncClientServer.Messages
 				if (compressFile)
 				{
 					fileToSend = GZipCompression.Compress(new FileInfo(fileLocation));
-					remoteSaveLocation += ".CGz";
+					remoteSaveLocation += GZipCompression.Extension;
 				}
 
 				//Check if the file and header have to be encrypted.
@@ -358,8 +358,8 @@ namespace AsyncClientServer.Messages
 					if (compressFile)
 						File.Delete(fileToSend.FullName);
 
-					fileToSend = new FileInfo(fileToSend.FullName + ".aes");
-					remoteSaveLocation += ".aes";
+					fileToSend = new FileInfo(fileToSend.FullName + AES256.Extension);
+					remoteSaveLocation += AES256.Extension;
 
 					byte[] encryptedPrefix = Encoding.UTF8.GetBytes("ENCRYPTED_");
 					byte[] encryptedHeader = AES256.EncryptStringToBytes_Aes(remoteSaveLocation);
@@ -419,9 +419,9 @@ namespace AsyncClientServer.Messages
 
 				//If this particular temp file exists delete it. Then start compression.
 				File.Delete(tempPath);
-				tempPath += ".CZip";
+				tempPath += ZipCompression.Extension;
 				ZipCompression.Compress(folderLocation, tempPath);
-				remoteFolderLocation += ".CZip";
+				remoteFolderLocation += ZipCompression.Extension;
 
 				//The path to the folder with it current compression extension added.
 				string folderToSend = tempPath;
@@ -436,8 +436,8 @@ namespace AsyncClientServer.Messages
 					File.Delete(tempPath);
 
 					//Change the path with encryption
-					folderToSend = tempPath + ".aes";
-					remoteFolderLocation += ".aes";
+					folderToSend = tempPath + AES256.Extension;
+					remoteFolderLocation += AES256.Extension;
 
 					//The encrypted header
 					byte[] encryptedPrefix = Encoding.UTF8.GetBytes("ENCRYPTED_");

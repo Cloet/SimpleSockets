@@ -97,11 +97,12 @@ namespace AsyncClientServer.StateObject.StateObjectState
 				File.Delete(_tempFilePath);
 			}
 
-			//Decompresses the file using gzip.
+			//Decompresses the file using zip or gzip.
 			string targetName = Decompress(newFileName);
 			string decompressed = tPath + targetName;
 			newFileName = info.FullName.Remove(info.FullName.Length - info.Name.Length) + targetName;
 
+			//Moves or copies the files to the wanted destination.
 			Move(newFileName, decompressed);
 
 			//If client == null then the file is send to the server so invoke server event else do client event.
@@ -124,14 +125,14 @@ namespace AsyncClientServer.StateObject.StateObjectState
 		{
 			FileInfo info = new FileInfo(path);
 
-			if (info.Extension == ".CGz")
+			if (info.Extension == GZipCompression.Extension)
 			{
 				FileInfo decompressedFile = GZipCompression.Decompress(info);
 				File.Delete(info.FullName);
 				return decompressedFile.Name;
 			}
 			
-			if (info.Extension == ".CZip")
+			if (info.Extension == ZipCompression.Extension)
 			{
 				DirectoryInfo extractedFolder = new DirectoryInfo(info.FullName.Remove(info.FullName.Length - info.Extension.Length));
 				ZipCompression.Extract(info.FullName, extractedFolder.FullName);

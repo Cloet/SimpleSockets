@@ -39,12 +39,25 @@ namespace AsyncClientServer.StateObject
 			Reset();
 		}
 
+		/// <summary>
+		/// How many bytes have been read
+		/// </summary>
 		public int Read { get; private set; }
+
+		/// <summary>
+		/// The flag of the state
+		/// </summary>
 		public int Flag { get; set; }
+
+		/// <summary>
+		/// The header of the message
+		/// </summary>
 		public string Header { get; set; }
+
+		/// <summary>
+		/// True if the current message is encrypted.
+		/// </summary>
 		public bool Encrypted { get; set; }
-		public bool NewMessage { get; set; }
-		public bool EndMessage { get; set; }
 
 		/// <summary>
 		/// Get the id
@@ -87,8 +100,15 @@ namespace AsyncClientServer.StateObject
 		/// </summary>
 		public string Text => this._sb.ToString();
 
+		/// <summary>
+		/// Gets how much bytes have been received.
+		/// </summary>
 		public byte[] ReceivedBytes => _receivedBytes.ToArray();
 
+		/// <summary>
+		/// Appends a byte array
+		/// </summary>
+		/// <param name="bytes"></param>
 		public void AppendBytes(byte[] bytes)
 		{
 			foreach (var b in bytes)
@@ -98,7 +118,7 @@ namespace AsyncClientServer.StateObject
 		}
 
 		/// <summary>
-		/// Add text to stringbuilder
+		/// Add text to stringBuilder
 		/// </summary>
 		/// <param name="text"></param>
 		public void Append(string text)
@@ -148,7 +168,6 @@ namespace AsyncClientServer.StateObject
 			MessageSize = 0;
 			HeaderSize = 0;
 			Encrypted = false;
-			NewMessage = false;
 			_receivedBytes = new List<byte>();
 			Read = 0;
 			Flag = 0;

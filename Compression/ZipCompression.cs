@@ -12,6 +12,9 @@ namespace Compression
 	public static class ZipCompression
 	{
 
+		public static string Extension => ".CZip";
+
+
 		/// <summary>
 		/// Compresses a folder to .zip file.
 		/// </summary>
@@ -28,7 +31,7 @@ namespace Compression
 			}
 			catch (Exception ex)
 			{
-				throw new Exception(ex.Message,ex);
+				throw new Exception(ex.Message, ex);
 			}
 		}
 
@@ -57,7 +60,7 @@ namespace Compression
 							Directory.CreateDirectory(destFile.DirectoryName);
 
 						//Make sure the destination is a file and not a directory without files in it. Then extract the file.
-						if(destFile.Name != string.Empty)
+						if (destFile.Name != string.Empty)
 							entry.ExtractToFile(destFile.FullName, true);
 
 					}

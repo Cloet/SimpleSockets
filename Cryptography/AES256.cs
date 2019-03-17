@@ -13,6 +13,9 @@ namespace Cryptography
 	public static class AES256
 	{
 
+		public static string Extension => ".aes";
+
+
 		private static readonly byte[] _key = Encoding.UTF8.GetBytes("AEJ46SDLZOEER467");
 		private static readonly byte[] _IV = Encoding.UTF8.GetBytes("JFKZER82340qsdDF");
 
@@ -152,7 +155,7 @@ namespace Cryptography
 			byte[] salt = GenerateRandomSalt();
 
 			//create output file name
-			FileStream fsCrypt = new FileStream(inputFile + ".aes", FileMode.Create);
+			FileStream fsCrypt = new FileStream(inputFile + Extension, FileMode.Create);
 
 			//convert password string to byte array
 			byte[] passwordBytes = _key;
