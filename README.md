@@ -15,9 +15,6 @@ I've implemented basic compression and encryption for files. Messages are encryp
 ## TODO
 - Convert objects to json and send these.
 - Add More compression
-- Better support for sending files.
-- Make filetransfer for big files faster.
-- Implement async Message Sending and Receiving.
 - ?
 
 ## Usage
