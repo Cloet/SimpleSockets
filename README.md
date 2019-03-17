@@ -79,7 +79,7 @@ client.Disconnected += new DisconnectedFromServerHandler(Disconnected);
 void ConnectedToServer(IAsyncClient a);
 void ServerMessageReceived(IAsyncClient a, string header, string msg);
 void FileReceived(IAsyncClient a, string file);
-void Disconnected(string ip, int port);
+void Disconnected(IAsyncClient a, string ip, int port);
 void Progress(IAsyncClient a, int bytes, int messageSize);
 void ClientMessageSubmitted(IAsyncClient a, bool close);
 ```

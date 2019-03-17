@@ -1,6 +1,7 @@
-﻿using System.Runtime.InteropServices.ComTypes;
+﻿using System;
+using System.Runtime.InteropServices.ComTypes;
 using System.Threading.Tasks;
-using AsyncClientServer.ByteCreator;
+using AsyncClientServer.Messages;
 
 namespace AsyncClientServer.Server
 {
@@ -8,7 +9,7 @@ namespace AsyncClientServer.Server
 	/// This abstract class has classes to send messages, objects and files to the client.
 	/// <para>Extends <see cref="T:AsyncClientServer.ByteCreator.ByteConverter" />, Implements <see cref="T:AsyncClientServer.Server.ISendToClient" /></para>
 	/// </summary>
-	public abstract class SendToClient: ByteConverter, ISendToClient
+	public abstract class SendToClient : MessageCreator, ISendToClient
 	{
 
 
@@ -20,6 +21,18 @@ namespace AsyncClientServer.Server
 		/// <param name="data"></param>
 		/// <param name="close"></param>
 		protected abstract void SendBytes(int id, byte[] data, bool close);
+
+		/// <inheritdoc />
+		/// <summary>
+		/// Gets called async
+		/// </summary>
+		/// <param name="data"></param>
+		/// <param name="close"></param>
+		/// <param name="id"></param>
+		protected override void SendBytesAsync(byte[] data, bool close, int id)
+		{
+			SendBytes(id, data, close);
+		}
 
 		/*==========================================
 		*
@@ -36,7 +49,7 @@ namespace AsyncClientServer.Server
 		/// <param name="message"></param>
 		/// <param name="encryptMessage"></param>
 		/// <param name="close"></param>
-		public void SendMessage(int id, string message,bool encryptMessage,bool close)
+		public void SendMessage(int id, string message, bool encryptMessage, bool close)
 		{
 			byte[] data = CreateByteMessage(message, encryptMessage);
 			SendBytes(id, data, close);
@@ -66,7 +79,7 @@ namespace AsyncClientServer.Server
 		/// <param name="close"></param>
 		public async Task SendMessageAsync(int id, string message, bool encryptMessage, bool close)
 		{
-			await Task.Run(() => SendMessage(id, message,encryptMessage, close));
+			await Task.Run(() => SendMessage(id, message, encryptMessage, close));
 		}
 
 		/// <inheritdoc />
@@ -97,7 +110,7 @@ namespace AsyncClientServer.Server
 		/// <param name="anyObj"></param>
 		/// <param name="encryptObject"></param>
 		/// <param name="close"></param>
-		public void SendObject(int id, object anyObj,bool encryptObject, bool close)
+		public void SendObject(int id, object anyObj, bool encryptObject, bool close)
 		{
 			byte[] data = CreateByteObject(anyObj, encryptObject);
 			SendBytes(id, data, close);
@@ -160,7 +173,7 @@ namespace AsyncClientServer.Server
 		/// <param name="encryptFile"></param>
 		/// <param name="compressFile"></param>
 		/// <param name="close"></param>
-		public void SendFile(int id, string fileLocation, string remoteSaveLocation,bool encryptFile,bool compressFile, bool close)
+		public void SendFile(int id, string fileLocation, string remoteSaveLocation, bool encryptFile, bool compressFile, bool close)
 		{
 			byte[] data = CreateByteFile(fileLocation, remoteSaveLocation, encryptFile, compressFile);
 			SendBytes(id, data, close);
@@ -192,9 +205,9 @@ namespace AsyncClientServer.Server
 		/// <param name="encryptFile"></param>
 		/// <param name="compressFile"></param>
 		/// <param name="close"></param>
-		public async Task SendFileAsync(int id, string fileLocation, string remoteFileLocation, bool encryptFile, bool compressFile,bool close)
+		public async Task SendFileAsync(int id, string fileLocation, string remoteFileLocation, bool encryptFile, bool compressFile, bool close)
 		{
-			await Task.Run(() => SendFile(id, fileLocation, remoteFileLocation, encryptFile, compressFile, close));
+			await CreateAsyncFileMessage(fileLocation, remoteFileLocation, compressFile, encryptFile, close, id);
 		}
 
 		/// <inheritdoc />
@@ -209,7 +222,7 @@ namespace AsyncClientServer.Server
 		/// <param name="close"></param>
 		public async Task SendFileAsync(int id, string fileLocation, string remoteFileLocation, bool close)
 		{
-			await Task.Run(() => SendFile(id, fileLocation, remoteFileLocation, close));
+			await SendFileAsync(id, fileLocation, remoteFileLocation, true, true, close);
 		}
 
 		/*=================================
@@ -228,7 +241,7 @@ namespace AsyncClientServer.Server
 		/// <param name="remoteFolderLocation"></param>
 		/// <param name="encryptFolder"></param>
 		/// <param name="close"></param>
-		public void SendFolder(int id, string folderLocation, string remoteFolderLocation,bool encryptFolder, bool close)
+		public void SendFolder(int id, string folderLocation, string remoteFolderLocation, bool encryptFolder, bool close)
 		{
 			byte[] data = CreateByteFolder(folderLocation, remoteFolderLocation, encryptFolder);
 			SendBytes(id, data, close);
@@ -260,7 +273,14 @@ namespace AsyncClientServer.Server
 		/// <param name="close"></param>
 		public async Task SendFolderAsync(int id, string folderLocation, string remoteFolderLocation, bool encryptFolder, bool close)
 		{
-			await Task.Run(() => SendFolder(id, folderLocation, remoteFolderLocation, encryptFolder, close));
+			try
+			{
+				await CreateAsyncFolderMessage(folderLocation, remoteFolderLocation, encryptFolder, close, id);
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message, ex);
+			}
 		}
 
 
@@ -275,7 +295,7 @@ namespace AsyncClientServer.Server
 		/// <param name="close"></param>
 		public async Task SendFolderAsync(int id, string folderLocation, string remoteFolderLocation, bool close)
 		{
-			await Task.Run(() => SendFolder(id, folderLocation, remoteFolderLocation, close));
+			await SendFolderAsync(id, folderLocation, remoteFolderLocation, true, close);
 		}
 
 		/*=================================
@@ -293,7 +313,7 @@ namespace AsyncClientServer.Server
 		/// <param name="command"></param>
 		/// <param name="encryptCommand"></param>
 		/// <param name="close"></param>
-		public void SendCommand(int id, string command,bool encryptCommand, bool close)
+		public void SendCommand(int id, string command, bool encryptCommand, bool close)
 		{
 			byte[] data = CreateByteCommand(command, encryptCommand);
 			SendBytes(id, data, close);
@@ -360,7 +380,7 @@ namespace AsyncClientServer.Server
 		/// <param name="encryptFile"></param>
 		/// <param name="compressFile"></param>
 		/// <param name="close"></param>
-		public void SendFileToAllClients(string fileLocation, string remoteSaveLocation,bool encryptFile,bool compressFile, bool close)
+		public void SendFileToAllClients(string fileLocation, string remoteSaveLocation, bool encryptFile, bool compressFile, bool close)
 		{
 			var dataBytes = CreateByteFile(fileLocation, remoteSaveLocation, encryptFile, compressFile);
 			foreach (var c in AsyncSocketListener.Instance.GetClients())
@@ -391,10 +411,20 @@ namespace AsyncClientServer.Server
 		/// <param name="encryptFile"></param>
 		/// <param name="compressFile"></param>
 		/// <param name="close"></param>
-		public  async Task SendFileToAllClientsAsync(string fileLocation, string remoteSaveLocation, bool encryptFile, bool compressFile,
+		public async Task SendFileToAllClientsAsync(string fileLocation, string remoteSaveLocation, bool encryptFile, bool compressFile,
 			bool close)
 		{
-			await Task.Run(() => SendFileToAllClients(fileLocation, remoteSaveLocation, encryptFile, compressFile, close));
+			try
+			{
+				foreach (var c in AsyncSocketListener.Instance.GetClients())
+				{
+					await CreateAsyncFileMessage(fileLocation, remoteSaveLocation, encryptFile, compressFile, close, c.Key);
+				}
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message, ex);
+			}
 		}
 
 		/// <inheritdoc />
@@ -407,7 +437,7 @@ namespace AsyncClientServer.Server
 		/// <param name="close"></param>
 		public async Task SendFileToAllClientsAsync(string fileLocation, string remoteSaveLocation, bool close)
 		{
-			await Task.Run(() => SendFileToAllClients(fileLocation, remoteSaveLocation, close));
+			await SendFileToAllClientsAsync(fileLocation, remoteSaveLocation, true, true, close);
 		}
 
 
@@ -425,7 +455,7 @@ namespace AsyncClientServer.Server
 		/// <param name="remoteFolderLocation"></param>
 		/// <param name="encryptFolder"></param>
 		/// <param name="close"></param>
-		public void SendFolderToAllClients(string folderLocation, string remoteFolderLocation,bool encryptFolder, bool close)
+		public void SendFolderToAllClients(string folderLocation, string remoteFolderLocation, bool encryptFolder, bool close)
 		{
 			var dataBytes = CreateByteFolder(folderLocation, remoteFolderLocation, true);
 			foreach (var c in AsyncSocketListener.Instance.GetClients())
@@ -457,7 +487,17 @@ namespace AsyncClientServer.Server
 		/// <param name="close"></param>
 		public async Task SendFolderToAllClientsAsync(string folderLocation, string remoteFolderLocation, bool encryptFolder, bool close)
 		{
-			await Task.Run(() => SendFolderToAllClients(folderLocation, remoteFolderLocation, close));
+			try
+			{
+				foreach (var c in AsyncSocketListener.Instance.GetClients())
+				{
+					await CreateAsyncFolderMessage(folderLocation, remoteFolderLocation, encryptFolder, close, c.Key);
+				}
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message, ex);
+			}
 		}
 
 		/// <inheritdoc />
@@ -470,7 +510,7 @@ namespace AsyncClientServer.Server
 		/// <param name="close"></param>
 		public async Task SendFolderToAllClientsAsync(string folderLocation, string remoteFolderLocation, bool close)
 		{
-			await Task.Run(() => SendFolderToAllClients(folderLocation, remoteFolderLocation, close));
+			await SendFolderToAllClientsAsync(folderLocation, remoteFolderLocation, true, close);
 		}
 
 		/*=================================
@@ -486,7 +526,7 @@ namespace AsyncClientServer.Server
 		/// <param name="message"></param>
 		/// <param name="encryptMessage"></param>
 		/// <param name="close"></param>
-		public void SendMessageToAllClients(string message,bool encryptMessage, bool close)
+		public void SendMessageToAllClients(string message, bool encryptMessage, bool close)
 		{
 			var dataBytes = CreateByteMessage(message, encryptMessage);
 			foreach (var c in AsyncSocketListener.Instance.GetClients())
@@ -545,7 +585,7 @@ namespace AsyncClientServer.Server
 		/// <param name="obj"></param>
 		/// <param name="encryptObject"></param>
 		/// <param name="close"></param>
-		public void SendObjectToAllClients(object obj,bool encryptObject, bool close)
+		public void SendObjectToAllClients(object obj, bool encryptObject, bool close)
 		{
 			var dataBytes = CreateByteObject(obj, encryptObject);
 			foreach (var c in AsyncSocketListener.Instance.GetClients())
@@ -604,7 +644,7 @@ namespace AsyncClientServer.Server
 		/// <param name="command"></param>
 		/// <param name="encryptCommand"></param>
 		/// <param name="close"></param>
-		public void SendCommandToAllClients(string command,bool encryptCommand, bool close)
+		public void SendCommandToAllClients(string command, bool encryptCommand, bool close)
 		{
 			var dataBytes = CreateByteCommand(command, encryptCommand);
 			foreach (var c in AsyncSocketListener.Instance.GetClients())

@@ -60,8 +60,6 @@ namespace AsyncClientServer.Example.Client
 		}
 
 
-
-
 		//Events
 		private void ConnectedToServer(IAsyncClient a)
 		{
@@ -81,7 +79,7 @@ namespace AsyncClientServer.Example.Client
 			AppendRichtTextBox("File has been received and is stored at path: " + file);
 		}
 
-		private void Disconnected(string ip, int port)
+		private void Disconnected(IAsyncClient a, string ip, int port)
 		{
 			Dispatcher.Invoke(() => { TextBlockStatus.Text = "NOT CONNECTED"; });
 			AppendRichtTextBox("Client has disconnected from the server with ip" + ip + " on port " + port);
@@ -146,7 +144,7 @@ namespace AsyncClientServer.Example.Client
 		}
 
 		//Send a file or folder
-		private void ButtonSendFileFolder_Click(object sender, RoutedEventArgs e)
+		private async void ButtonSendFileFolder_Click(object sender, RoutedEventArgs e)
 		{
 
 			try
@@ -160,12 +158,11 @@ namespace AsyncClientServer.Example.Client
 
 				if (Directory.Exists(Path.GetFullPath(_selectedFileFolder)))
 				{
-					_client.SendFolderAsync(Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text),encrypt, false);
+					await _client.SendFolderAsync(Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text),encrypt, false);
 				}
 				else
 				{
-					_client.SendFileAsync(Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text),false);
-					//_client.SendFile(Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text),encrypt,true, false);
+					await _client.SendFileAsync(Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text),false);
 				}
 
 			}

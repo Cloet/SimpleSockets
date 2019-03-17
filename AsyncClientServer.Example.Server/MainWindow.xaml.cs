@@ -142,7 +142,7 @@ namespace AsyncClientServer.Example.Server
 		//Buttons
 
 		//Send File or folder.
-		private void ButtonSendFileFolder_Click(object sender, RoutedEventArgs e)
+		private async void ButtonSendFileFolder_Click(object sender, RoutedEventArgs e)
 		{
 
 			if (TextBlockFileFolderClientId.Text == string.Empty)
@@ -174,11 +174,11 @@ namespace AsyncClientServer.Example.Server
 
 					if (Directory.Exists(Path.GetFullPath(_selectedFileFolder)))
 					{
-						AsyncSocketListener.Instance.SendFolderAsync(clientId, Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text),encrypt, false);
+						await AsyncSocketListener.Instance.SendFolderAsync(clientId, Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text),encrypt, false);
 					}
 					else
 					{
-						AsyncSocketListener.Instance.SendFileAsync(clientId, Path.GetFullPath(_selectedFileFolder),
+						await AsyncSocketListener.Instance.SendFileAsync(clientId, Path.GetFullPath(_selectedFileFolder),
 							Path.GetFullPath(TextBlockTarget.Text), encrypt, true, false);
 					}
 

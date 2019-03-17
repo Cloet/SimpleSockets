@@ -42,11 +42,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Client\IAsyncClient.cs" />
+    <Compile Include="ReceivingItem.cs" />
     <Compile Include="Server\IAsyncSocketListener.cs" />
     <Compile Include="Server\ISendToClient.cs" />
     <Compile Include="Client\ISendToServer.cs" />
     <Compile Include="StateObject\IStateObject.cs" />
-    <Compile Include="ByteCreator\ByteConverter.cs" />
+    <Compile Include="Messages\MessageCreator.cs" />
     <Compile Include="Server\SendToClient.cs" />
     <Compile Include="Client\SendToServer.cs" />
     <Compile Include="Client\AsyncClient.cs" />

@@ -180,5 +180,9 @@ namespace AsyncClientServer.Client
 		/// <param name="close">True if the client should be closed after this message.</param>
 		Task SendCommandAsync(string command, bool close);
 
+
+
+
+
 	}
 }

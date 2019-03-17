@@ -77,6 +77,8 @@ namespace Cryptography
 				if (cipherText == null || cipherText.Length <= 0)
 					throw new ArgumentNullException("cipherText");
 
+				byte[] decryptedBytes = new byte[cipherText.Length];
+
 				// Declare the string used to hold
 				// the decrypted text.
 				string plaintext = null;
