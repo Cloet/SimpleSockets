@@ -13,6 +13,7 @@ I've implemented basic compression and encryption for files. Messages are encryp
 - Can send large files.
 
 ## TODO
+- Add ssl functionality
 - Convert objects to json and send these.
 - Add More compression
 - Need to check reliablity when sending from multiple clients to the server.
