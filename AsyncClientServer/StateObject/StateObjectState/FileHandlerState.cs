@@ -12,7 +12,7 @@ namespace AsyncClientServer.StateObject.StateObjectState
 		{
 		}
 
-		public FileHandlerState(IStateObject state, IAsyncClient client) : base(state, client)
+		public FileHandlerState(IStateObject state, ITcpClient client) : base(state, client)
 		{
 		}
 

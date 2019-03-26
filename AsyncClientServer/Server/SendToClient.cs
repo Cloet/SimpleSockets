@@ -22,7 +22,6 @@ namespace AsyncClientServer.Server
 		/// <param name="close"></param>
 		protected abstract void SendBytes(int id, byte[] data, bool close);
 
-		/// <inheritdoc />
 		/// <summary>
 		/// Gets called async
 		/// </summary>
@@ -43,6 +42,7 @@ namespace AsyncClientServer.Server
 		/// <inheritdoc />
 		/// <summary>
 		/// Send a message to corresponding client.
+		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
 		/// <para>Id is not zero-based!</para>
 		/// </summary>
 		/// <param name="id"></param>
@@ -58,6 +58,7 @@ namespace AsyncClientServer.Server
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends a message to the corresponding client.
+		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
 		/// <para>This method encrypts the message that will be send.</para>
 		/// </summary>
 		/// <param name="id"></param>
@@ -71,6 +72,7 @@ namespace AsyncClientServer.Server
 		/// <inheritdoc />
 		/// <summary>
 		/// Send a message to corresponding client asynchronous.
+		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
 		/// <para>Id is not zero-based!</para>
 		/// </summary>
 		/// <param name="id"></param>
@@ -85,6 +87,7 @@ namespace AsyncClientServer.Server
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends a message to the corresponding client asynchronous.
+		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
 		/// <para>This method encrypts the message that will be send.</para>
 		/// </summary>
 		/// <param name="id"></param>
@@ -104,6 +107,7 @@ namespace AsyncClientServer.Server
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends an object to corresponding client.
+		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
 		/// <para>The id is not zero-based!</para>
 		/// </summary>
 		/// <param name="id"></param>
@@ -119,6 +123,7 @@ namespace AsyncClientServer.Server
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends an object to corresponding client.
+		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
 		/// <para>The id is not zero-based!</para>
 		/// </summary>
 		/// <param name="id"></param>
@@ -132,6 +137,7 @@ namespace AsyncClientServer.Server
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends an object to corresponding client asynchronous.
+		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
 		/// <para>The id is not zero-based!</para>
 		/// </summary>
 		/// <param name="id"></param>
@@ -146,6 +152,7 @@ namespace AsyncClientServer.Server
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends an object to corresponding client asynchronous.
+		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
 		/// <para>The id is not zero-based!</para>
 		/// </summary>
 		/// <param name="id"></param>
@@ -165,6 +172,7 @@ namespace AsyncClientServer.Server
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends a file to corresponding client.
+		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
 		/// <para>The id is not zero-based!</para>
 		/// </summary>
 		/// <param name="id"></param>
@@ -182,6 +190,7 @@ namespace AsyncClientServer.Server
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends a file to corresponding client.
+		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
 		/// <para>Encrypts and compresses the file before sending.</para>
 		/// <para>The id is not zero-based!</para>
 		/// </summary>
@@ -197,6 +206,7 @@ namespace AsyncClientServer.Server
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends a file to corresponding client.
+		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
 		/// <para>The id is not zero-based!</para>
 		/// </summary>
 		/// <param name="id"></param>
@@ -213,6 +223,7 @@ namespace AsyncClientServer.Server
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends a file to corresponding client.
+		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
 		/// <para>Encrypts and compresses the file before sending.</para>
 		/// <para>The id is not zero-based!</para>
 		/// </summary>
@@ -234,6 +245,7 @@ namespace AsyncClientServer.Server
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends a folder to the corresponding client.
+		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
 		/// <para>Folder will be compressed to .zip file before being sent.</para>
 		/// </summary>
 		/// <param name="id"></param>
@@ -250,6 +262,7 @@ namespace AsyncClientServer.Server
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends a folder to the corresponding client.
+		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
 		/// <para>Folder will be compressed to a .zip file and encrypted.</para>
 		/// </summary>
 		/// <param name="id"></param>
@@ -264,6 +277,7 @@ namespace AsyncClientServer.Server
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends a folder to the corresponding client asynchronous.
+		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
 		/// <para>Folder will be compressed to .zip file before being sent.</para>
 		/// </summary>
 		/// <param name="id"></param>
@@ -287,6 +301,7 @@ namespace AsyncClientServer.Server
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends a folder to the corresponding client asynchronous.
+		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
 		/// <para>Folder will be compressed to a .zip file and encrypted.</para>
 		/// </summary>
 		/// <param name="id"></param>
@@ -307,6 +322,7 @@ namespace AsyncClientServer.Server
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends a command to the corresponding client and waits for an answer.
+		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
 		/// <para>The id is not zero-based!</para>
 		/// </summary>
 		/// <param name="id">client id</param>
@@ -322,6 +338,7 @@ namespace AsyncClientServer.Server
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends a command to the corresponding client and waits for an answer.
+		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
 		/// <para>Will encrypt the command before sending.</para>
 		/// <para>The id is not zero-based!</para>
 		/// </summary>
@@ -336,6 +353,7 @@ namespace AsyncClientServer.Server
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends a command to the corresponding client asynchronous.
+		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
 		/// <para>The id is not zero-based!</para>
 		/// </summary>
 		/// <param name="id">client id</param>
@@ -350,6 +368,7 @@ namespace AsyncClientServer.Server
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends a command to the corresponding client asynchronous.
+		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
 		/// <para>Will encrypt the command before sending.</para>
 		/// <para>The id is not zero-based!</para>
 		/// </summary>
@@ -374,6 +393,7 @@ namespace AsyncClientServer.Server
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends a file to all clients
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
 		/// </summary>
 		/// <param name="fileLocation"></param>
 		/// <param name="remoteSaveLocation"></param>
@@ -392,6 +412,7 @@ namespace AsyncClientServer.Server
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends a file to all clients
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
 		/// <para>Will encrypt and compress the file before sending.</para>
 		/// </summary>
 		/// <param name="fileLocation"></param>
@@ -405,6 +426,7 @@ namespace AsyncClientServer.Server
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends a file to all clients asynchronous
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
 		/// </summary>
 		/// <param name="fileLocation"></param>
 		/// <param name="remoteSaveLocation"></param>
@@ -430,6 +452,7 @@ namespace AsyncClientServer.Server
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends a file to all clients asynchronous.
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
 		/// <para>Will encrypt and compress the file before sending.</para>
 		/// </summary>
 		/// <param name="fileLocation"></param>
@@ -450,6 +473,7 @@ namespace AsyncClientServer.Server
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends a folder to all clients.
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
 		/// </summary>
 		/// <param name="folderLocation"></param>
 		/// <param name="remoteFolderLocation"></param>
@@ -467,6 +491,7 @@ namespace AsyncClientServer.Server
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends a folder to all clients.
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
 		/// <para>Will encrypt and compress the folder before sending.</para>
 		/// </summary>
 		/// <param name="folderLocation"></param>
@@ -480,6 +505,7 @@ namespace AsyncClientServer.Server
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends a folder to all clients asynchronous.
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
 		/// </summary>
 		/// <param name="folderLocation"></param>
 		/// <param name="remoteFolderLocation"></param>
@@ -503,6 +529,7 @@ namespace AsyncClientServer.Server
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends a folder to all clients asynchronous.
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
 		/// <para>Will encrypt and compress the folder before sending.</para>
 		/// </summary>
 		/// <param name="folderLocation"></param>
@@ -522,6 +549,7 @@ namespace AsyncClientServer.Server
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends a Message to all clients
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
 		/// </summary>
 		/// <param name="message"></param>
 		/// <param name="encryptMessage"></param>
@@ -539,6 +567,7 @@ namespace AsyncClientServer.Server
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends a Message to all clients
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
 		/// <para>Will encrypt the message before it is sent.</para>
 		/// </summary>
 		/// <param name="message"></param>
@@ -551,6 +580,7 @@ namespace AsyncClientServer.Server
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends a Message to all clients asynchronous.
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
 		/// </summary>
 		/// <param name="message"></param>
 		/// <param name="encryptMessage"></param>
@@ -563,6 +593,7 @@ namespace AsyncClientServer.Server
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends a Message to all clients
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
 		/// <para>Will encrypt the message before it is sent.</para>
 		/// </summary>
 		/// <param name="message"></param>
@@ -581,6 +612,7 @@ namespace AsyncClientServer.Server
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends an object to all clients
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
 		/// </summary>
 		/// <param name="obj"></param>
 		/// <param name="encryptObject"></param>
@@ -597,6 +629,7 @@ namespace AsyncClientServer.Server
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends an object to all clients
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
 		/// <para>Will encrypt the object before sending.</para>
 		/// </summary>
 		/// <param name="obj"></param>
@@ -609,6 +642,7 @@ namespace AsyncClientServer.Server
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends an object to all clients asynchronous.
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
 		/// </summary>
 		/// <param name="obj"></param>
 		/// <param name="encryptObject"></param>
@@ -621,6 +655,7 @@ namespace AsyncClientServer.Server
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends an object to all clients asynchronous.
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
 		/// <para>Will encrypt the object before sending.</para>
 		/// </summary>
 		/// <param name="obj"></param>
@@ -640,6 +675,7 @@ namespace AsyncClientServer.Server
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends a command to all connected clients
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
 		/// </summary>
 		/// <param name="command"></param>
 		/// <param name="encryptCommand"></param>
@@ -656,6 +692,7 @@ namespace AsyncClientServer.Server
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends a command to all connected clients
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
 		/// </summary>
 		/// <param name="command"></param>
 		/// <param name="close"></param>
@@ -667,6 +704,7 @@ namespace AsyncClientServer.Server
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends a command to all connected clients asynchronous.
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
 		/// </summary>
 		/// <param name="command"></param>
 		/// <param name="encryptCommand"></param>
@@ -679,6 +717,7 @@ namespace AsyncClientServer.Server
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends a command to all connected clients asynchronous.
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
 		/// </summary>
 		/// <param name="command"></param>
 		/// <param name="close"></param>

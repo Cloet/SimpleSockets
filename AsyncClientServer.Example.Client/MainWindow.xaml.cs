@@ -28,7 +28,7 @@ namespace AsyncClientServer.Example.Client
 	{
 
 		private string _selectedFileFolder = null;
-		private IAsyncClient _client;
+		private ITcpClient _client;
 
 		public MainWindow()
 		{
@@ -61,31 +61,31 @@ namespace AsyncClientServer.Example.Client
 
 
 		//Events
-		private void ConnectedToServer(IAsyncClient a)
+		private void ConnectedToServer(ITcpClient a)
 		{
 			Dispatcher.Invoke(() => { TextBlockStatus.Text = "CONNECTED"; });
 			AppendRichtTextBox("Client has connected to the server.");
 		}
 
-		private void ServerMessageReceived(IAsyncClient a, string header, string msg)
+		private void ServerMessageReceived(ITcpClient a, string header, string msg)
 		{
 			AppendRichtTextBox(header + " received from the server:" + msg);
 		}
 
-		private void FileReceived(IAsyncClient a, string file)
+		private void FileReceived(ITcpClient a, string file)
 		{
 			_client.SendMessage("File has been received.", false);
 			Dispatcher.Invoke(() => { ProgressBarProgress.Value = 0; });
 			AppendRichtTextBox("File has been received and is stored at path: " + file);
 		}
 
-		private void Disconnected(IAsyncClient a, string ip, int port)
+		private void Disconnected(ITcpClient a, string ip, int port)
 		{
 			Dispatcher.Invoke(() => { TextBlockStatus.Text = "NOT CONNECTED"; });
 			AppendRichtTextBox("Client has disconnected from the server with ip" + ip + " on port " + port);
 		}
 
-		private void Progress(IAsyncClient a, int bytes, int messageSize)
+		private void Progress(ITcpClient a, int bytes, int messageSize)
 		{
 			double b = double.Parse(bytes.ToString());
 			double m = double.Parse(messageSize.ToString());
@@ -95,7 +95,7 @@ namespace AsyncClientServer.Example.Client
 			Dispatcher.Invoke(() => ProgressBarProgress.Value = percentageDone);
 		}
 
-		private void ClientMessageSubmitted(IAsyncClient a, bool close)
+		private void ClientMessageSubmitted(ITcpClient a, bool close)
 		{
 			//Nothing
 		}

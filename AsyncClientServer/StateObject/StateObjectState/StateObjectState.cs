@@ -7,14 +7,14 @@ namespace AsyncClientServer.StateObject.StateObjectState
 
 		protected IStateObject State;
 		//Client is used to invoke message/file received event (not necessary when using on the server side.)
-		protected IAsyncClient Client = null;
+		protected ITcpClient Client = null;
 
 		protected StateObjectState(IStateObject state)
 		{
 			State = state;
 		}
 
-		protected StateObjectState(IStateObject state, IAsyncClient client)
+		protected StateObjectState(IStateObject state, ITcpClient client)
 		{
 			State = state;
 			Client = client;

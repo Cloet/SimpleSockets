@@ -14,7 +14,7 @@ namespace AsyncClientServer.StateObject.StateObjectState
 		{
 		}
 
-		public MessageHasBeenReceivedState(IStateObject state, IAsyncClient client) : base(state, client)
+		public MessageHasBeenReceivedState(IStateObject state, ITcpClient client) : base(state, client)
 		{
 		}
 

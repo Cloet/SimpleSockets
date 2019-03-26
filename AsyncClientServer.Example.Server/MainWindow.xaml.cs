@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -29,9 +30,14 @@ namespace AsyncClientServer.Example.Server
 			InitializeComponent();
 		}
 
+		private ServerListener _listener;
+
 		//Starts the server thread
 		private void Window_Loaded_1(object sender, RoutedEventArgs e)
 		{
+
+			_listener = AsyncSocketListener.Instance;
+
 			Thread t = new Thread(StartServer);
 			t.Start();
 		}
@@ -41,15 +47,16 @@ namespace AsyncClientServer.Example.Server
 			int port = 13000;
 			string ip = "127.0.0.1";
 
-			AsyncSocketListener.Instance.ProgressFileReceived += new FileTransferProgressHandler(Progress);
-			AsyncSocketListener.Instance.MessageReceived += new MessageReceivedHandler(MessageReceived);
-			AsyncSocketListener.Instance.MessageSubmitted += new MessageSubmittedHandler(MessageSubmitted);
-			AsyncSocketListener.Instance.ClientDisconnected += new ClientDisconnectedHandler(ClientDisconnected);
-			AsyncSocketListener.Instance.ClientConnected += new ClientConnectedHandler(ClientConnected);
-			AsyncSocketListener.Instance.FileReceived += new FileFromClientReceivedHandler(FileReceived);
-			AsyncSocketListener.Instance.ServerHasStarted += new ServerHasStartedHandler(ServerHasStarted);
 
-			AsyncSocketListener.Instance.StartListening(ip,port);
+			_listener.ProgressFileReceived += new FileTransferProgressHandler(Progress);
+			_listener.MessageReceived += new MessageReceivedHandler(MessageReceived);
+			_listener.MessageSubmitted += new MessageSubmittedHandler(MessageSubmitted);
+			_listener.ClientDisconnected += new ClientDisconnectedHandler(ClientDisconnected);
+			_listener.ClientConnected += new ClientConnectedHandler(ClientConnected);
+			_listener.FileReceived += new FileFromClientReceivedHandler(FileReceived);
+			_listener.ServerHasStarted += new ServerHasStartedHandler(ServerHasStarted);
+
+			_listener.StartListening(ip, port);
 		}
 
 		//Append to textbox from separate thread.
@@ -62,7 +69,7 @@ namespace AsyncClientServer.Example.Server
 		private void MessageReceived(int id, string header, string msg)
 		{
 			AppendRichtTextBox("Client " + id + " has send a " + header + ": " + msg);
-			AsyncSocketListener.Instance.SendMessage(id, "The message has been received.", false);
+			_listener.SendMessage(id, "The message has been received.", false);
 		}
 
 		private void MessageSubmitted(int id, bool close)
@@ -72,7 +79,7 @@ namespace AsyncClientServer.Example.Server
 
 		private void FileReceived(int id, string path)
 		{
-			AsyncSocketListener.Instance.SendMessage(id, "File has been received.", false);
+			_listener.SendMessage(id, "File has been received.", false);
 			Dispatcher.Invoke(() => { ProgressBarProgress.Value = 0; });
 			AppendRichtTextBox("Client " + id + "has send a file/folder and has been saved at \n" + path);
 		}
@@ -175,11 +182,11 @@ namespace AsyncClientServer.Example.Server
 
 					if (Directory.Exists(Path.GetFullPath(_selectedFileFolder)))
 					{
-						await AsyncSocketListener.Instance.SendFolderAsync(clientId, Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text),encrypt, false);
+						await _listener.SendFolderAsync(clientId, Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text), encrypt, false);
 					}
 					else
 					{
-						await AsyncSocketListener.Instance.SendFileAsync(clientId, Path.GetFullPath(_selectedFileFolder),
+						await _listener.SendFileAsync(clientId, Path.GetFullPath(_selectedFileFolder),
 							Path.GetFullPath(TextBlockTarget.Text), encrypt, true, false);
 					}
 
@@ -196,7 +203,7 @@ namespace AsyncClientServer.Example.Server
 		}
 
 		//Send command
-		private void ButtonSendCommand_Click(object sender, RoutedEventArgs e)
+		private async void ButtonSendCommand_Click(object sender, RoutedEventArgs e)
 		{
 			try
 			{
@@ -222,7 +229,7 @@ namespace AsyncClientServer.Example.Server
 				bool encrypt = CheckBoxCommand.IsChecked == true;
 
 
-				AsyncSocketListener.Instance.SendCommandAsync(clientId, content,encrypt, false);
+				await _listener.SendCommandAsync(clientId, content, encrypt, false);
 			}
 			catch (Exception ex)
 			{
@@ -231,7 +238,7 @@ namespace AsyncClientServer.Example.Server
 		}
 
 		//Send Message
-		private void ButtonSendMessage_Click(object sender, RoutedEventArgs e)
+		private async void ButtonSendMessage_Click(object sender, RoutedEventArgs e)
 		{
 			try
 			{
@@ -256,7 +263,7 @@ namespace AsyncClientServer.Example.Server
 
 				bool encrypt = CheckBoxMessage.IsChecked == true;
 
-				AsyncSocketListener.Instance.SendMessageAsync(clientId, content,encrypt, false);
+				await _listener.SendMessageAsync(clientId, content, encrypt, false);
 			}
 			catch (Exception ex)
 			{

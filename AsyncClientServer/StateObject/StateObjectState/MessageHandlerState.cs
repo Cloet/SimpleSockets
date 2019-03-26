@@ -11,7 +11,7 @@ namespace AsyncClientServer.StateObject.StateObjectState
 		{
 		}
 
-		public MessageHandlerState(IStateObject state, IAsyncClient client) : base(state, client)
+		public MessageHandlerState(IStateObject state, ITcpClient client) : base(state, client)
 		{
 		}
 

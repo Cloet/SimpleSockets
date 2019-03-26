@@ -9,7 +9,7 @@ namespace AsyncClientServer.Server
 	/// Interface for AsyncSocketListener
 	/// <para>Implements <seealso cref="T:System.IDisposable" /></para>
 	/// </summary>
-	public interface IAsyncSocketListener : IDisposable, ISendToClient
+	public interface IServerListener : IDisposable, ISendToClient
 	{
 		/// <summary>
 		/// An event that is triggered when a message is received.
@@ -61,7 +61,8 @@ namespace AsyncClientServer.Server
 		/// </summary>
 		/// <param name="ip"></param>
 		/// <param name="port"></param>
-		void StartListening(string ip, int port);
+		/// <param name="limit"></param>
+		void StartListening(string ip, int port, int limit);
 
 		/// <summary>
 		/// Checks if a client is connected

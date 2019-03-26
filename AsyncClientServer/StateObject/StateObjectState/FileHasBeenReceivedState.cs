@@ -14,7 +14,7 @@ namespace AsyncClientServer.StateObject.StateObjectState
 			_tempFilePath = tempFilePath;
 		}
 
-		public FileHasBeenReceivedState(IStateObject state, IAsyncClient client,string tempFilePath) : base(state, client)
+		public FileHasBeenReceivedState(IStateObject state, ITcpClient client,string tempFilePath) : base(state, client)
 		{
 			_tempFilePath = tempFilePath;
 		}

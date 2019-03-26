@@ -7,7 +7,7 @@ namespace AsyncClientServer.Client
 	/// <para>Implements
 	/// <seealso cref="T:System.IDisposable" /></para>
 	/// </summary>
-	public interface IAsyncClient : IDisposable, ISendToServer
+	public interface ITcpClient : IDisposable, ISendToServer
 	{
 
 		/// <summary>

@@ -15,7 +15,7 @@ namespace AsyncClientServer.StateObject.StateObjectState
 		{
 		}
 
-		public InitialHandlerState(IStateObject state, IAsyncClient client) : base(state, client)
+		public InitialHandlerState(IStateObject state, ITcpClient client) : base(state, client)
 		{
 		}
 

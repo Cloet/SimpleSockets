@@ -170,25 +170,28 @@ namespace AsyncClientServer.Messages
 		//Streams the file and constantly sends bytes to server or client.
 		//This method is called in createAsyncFileMessage.
 		//Id is an optional parameter with default value of -1.
-		private async Task StreamFileAndSendBytes(string location, string remoteSaveLocation, bool encrypt, bool close, int id = -1)
+		protected async Task StreamFileAndSendBytes(string location, string remoteSaveLocation, bool encrypt, bool close, int id = -1)
 		{
 			try
 			{
 				var file = location;
 				var buffer = new byte[10485760];
 				bool firstRead = true;
+				long remaininglength;
 
 				//Stream that reads the file and sends bits to the server.
 				using (var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, buffer.Length, true))
 				{
 					//How much bytes that have been read
 					int read = 0;
-
+					remaininglength = stream.Length;
 
 					while ((read = await stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
 					{
 						//data bytes
 						byte[] data = null;
+						byte[] endMessage = null;
+						remaininglength -= read;
 
 						//The message
 						byte[] message = new byte[read];
@@ -221,6 +224,7 @@ namespace AsyncClientServer.Messages
 							byte[] messageLength = BitConverter.GetBytes(stream.Length); //Total bytes in the file
 
 							data = new byte[4 + 4 + headerBytes.Length + messageData.Length];
+							
 
 							messageLength.CopyTo(data, 0);
 							headerLen.CopyTo(data, 4);
@@ -235,20 +239,29 @@ namespace AsyncClientServer.Messages
 							data = message;
 						}
 
-						//Check if the connection should be closed after the last send.
-						var closeLastSend = false;
-						if (buffer.Length == read || read < buffer.Length)
-						{
-							if (close)
-								closeLastSend = true;
-						}
-
 
 						//Calls "SendBytesAsync" Method.
 						var caller = new SendBytesAsyncCaller(SendBytesAsync);
 
-						var result = caller.BeginInvoke(data, closeLastSend, id, null, null);
-						result.AsyncWaitHandle.WaitOne();
+						//Check if the connection should be closed after the last send.
+						var closeLastSend = false;
+						if (remaininglength == 0)
+						{
+							if (close)
+								closeLastSend = true;
+							var result = caller.BeginInvoke(data, closeLastSend, id, null, null);
+							result.AsyncWaitHandle.WaitOne();
+						}
+						else
+						{
+							var result = caller.BeginInvoke(data, false, id, null, null);
+							result.AsyncWaitHandle.WaitOne();
+						}
+
+
+
+
+
 					}
 
 				}
@@ -263,6 +276,11 @@ namespace AsyncClientServer.Messages
 			}
 		}
 
+		protected void BeginSendFileCustom(string location, string remoteSaveLocation, AsyncCallback callback,
+			bool encrypt, bool close, int id = -1)
+		{
+
+		}
 
 		/// <summary>
 		/// Gets called from StreamFileAndSendBytes.
@@ -270,6 +288,7 @@ namespace AsyncClientServer.Messages
 		/// </summary>
 		/// <param name="bytes"></param>
 		/// <param name="close"></param>
+		/// <param name="invokeMessage"></param>
 		/// <param name="id"></param>
 		protected abstract void SendBytesAsync(byte[] bytes, bool close, int id);
 
