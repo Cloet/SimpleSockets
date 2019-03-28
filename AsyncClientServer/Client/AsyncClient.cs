@@ -2,6 +2,7 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Timers;
 using AsyncClientServer.StateObject;
 using AsyncClientServer.StateObject.StateObjectState;
@@ -72,5 +73,6 @@ namespace AsyncClientServer.Client
 				throw new Exception(ex.ToString());
 			}
 		}
+
 	}
 }

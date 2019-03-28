@@ -24,19 +24,6 @@ namespace AsyncClientServer.Client
 		/// <param name="close">if you want to close the client after sending the message.</param>
 		protected abstract void SendBytes(byte[] msg, bool close);
 
-
-		/// <inheritdoc />
-		/// <summary>
-		/// Gets called async
-		/// </summary>
-		/// <param name="bytes"></param>
-		/// <param name="close"></param>
-		/// <param name="id"></param>
-		protected override void SendBytesAsync(byte[] bytes, bool close, int id)
-		{
-			SendBytes(bytes, close);
-		}
-
 		/*=================================
 		*
 		*	MESSAGE

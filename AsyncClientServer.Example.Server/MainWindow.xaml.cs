@@ -152,22 +152,22 @@ namespace AsyncClientServer.Example.Server
 		//Send File or folder.
 		private async void ButtonSendFileFolder_Click(object sender, RoutedEventArgs e)
 		{
-
-			if (TextBlockFileFolderClientId.Text == string.Empty)
-				throw new Exception("Please enter a client id.");
-
-			string id = TextBlockFileFolderClientId.Text;
-			int clientId = 0;
-
-			if (int.TryParse(id, out int result))
-			{
-				clientId = result;
-			}
-			else
-				throw new Exception("Please enter a number.");
-
 			try
 			{
+				if (TextBlockFileFolderClientId.Text == string.Empty)
+					throw new Exception("Please enter a client id.");
+
+				string id = TextBlockFileFolderClientId.Text;
+				int clientId = 0;
+
+				if (int.TryParse(id, out int result))
+				{
+					clientId = result;
+				}
+				else
+					throw new Exception("Please enter a number.");
+
+
 
 				try
 				{

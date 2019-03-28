@@ -1,9 +1,13 @@
 ﻿using System;
+using System.Data;
 using System.IO;
+using System.Net.Sockets;
+using System.Runtime.Remoting.Messaging;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using AsyncClientServer.Client;
+using AsyncClientServer.StateObject;
 using Compression;
 using Cryptography;
 
@@ -24,7 +28,11 @@ namespace AsyncClientServer.Messages
 	public abstract class MessageCreator
 	{
 		//Calls the SendBytesAsync Method.
-		private delegate void SendBytesAsyncCaller(byte[] data, bool close, int id);
+		protected delegate void SendBytesAsyncCaller(byte[] data, IStateObject state);
+
+		//Calls the SendBytesAsync Method.
+		protected delegate void AsyncCallerFile(bool close, int id);
+
 
 		//Encrypts a file and returns the new file path.
 		private static async Task<string> EncryptFile(string path)
@@ -74,6 +82,9 @@ namespace AsyncClientServer.Messages
 			}
 		}
 
+
+		protected abstract Task SendFile(string location, string remoteSaveLocation, bool encrypt,bool close, int id = -1);
+
 		/// <summary>
 		/// This method Sends a file asynchronous.
 		/// <para>It checks if the file has to be compressed and/or encrypted before being sent.
@@ -116,7 +127,8 @@ namespace AsyncClientServer.Messages
 
 			}
 
-			await StreamFileAndSendBytes(file, remoteSaveLocation, encryptFile, close, id);
+			await SendFile(file, remoteSaveLocation, encryptFile, close, id);
+			//await StreamFileAndSendBytes(file, remoteSaveLocation, encryptFile, close, id);
 
 			//Deletes the compressed file if no encryption occured.
 			if (compressFile && !encryptFile)
@@ -158,8 +170,10 @@ namespace AsyncClientServer.Messages
 				File.Delete(tempPath);
 			}
 
+			await SendFile(folderToSend, remoteFolderLocation, encryptFolder, close, id);
+
 			//Stream the file in bits and send each time the buffer is full.
-			await StreamFileAndSendBytes(folderToSend, remoteFolderLocation, encryptFolder, close, id);
+			//await StreamFileAndSendBytes(folderToSend, remoteFolderLocation, encryptFolder, close, id);
 
 			//Deletes the compressed folder if not encryption occured.
 			if (File.Exists(folderToSend))
@@ -170,28 +184,25 @@ namespace AsyncClientServer.Messages
 		//Streams the file and constantly sends bytes to server or client.
 		//This method is called in createAsyncFileMessage.
 		//Id is an optional parameter with default value of -1.
-		protected async Task StreamFileAndSendBytes(string location, string remoteSaveLocation, bool encrypt, bool close, int id = -1)
+		protected async Task StreamFileAndSendBytes(string location, string remoteSaveLocation, bool encrypt, int id = -1)
 		{
 			try
 			{
 				var file = location;
 				var buffer = new byte[10485760];
 				bool firstRead = true;
-				long remaininglength;
 
 				//Stream that reads the file and sends bits to the server.
 				using (var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, buffer.Length, true))
 				{
 					//How much bytes that have been read
 					int read = 0;
-					remaininglength = stream.Length;
+
 
 					while ((read = await stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
 					{
 						//data bytes
 						byte[] data = null;
-						byte[] endMessage = null;
-						remaininglength -= read;
 
 						//The message
 						byte[] message = new byte[read];
@@ -224,7 +235,6 @@ namespace AsyncClientServer.Messages
 							byte[] messageLength = BitConverter.GetBytes(stream.Length); //Total bytes in the file
 
 							data = new byte[4 + 4 + headerBytes.Length + messageData.Length];
-							
 
 							messageLength.CopyTo(data, 0);
 							headerLen.CopyTo(data, 4);
@@ -239,29 +249,9 @@ namespace AsyncClientServer.Messages
 							data = message;
 						}
 
+						SendBytesOfFile(data, id);
 
-						//Calls "SendBytesAsync" Method.
-						var caller = new SendBytesAsyncCaller(SendBytesAsync);
-
-						//Check if the connection should be closed after the last send.
-						var closeLastSend = false;
-						if (remaininglength == 0)
-						{
-							if (close)
-								closeLastSend = true;
-							var result = caller.BeginInvoke(data, closeLastSend, id, null, null);
-							result.AsyncWaitHandle.WaitOne();
-						}
-						else
-						{
-							var result = caller.BeginInvoke(data, false, id, null, null);
-							result.AsyncWaitHandle.WaitOne();
-						}
-
-
-
-
-
+						
 					}
 
 				}
@@ -269,6 +259,8 @@ namespace AsyncClientServer.Messages
 				//Delete encrypted file after it has been read.
 				if (encrypt)
 					File.Delete(file);
+
+				
 			}
 			catch (Exception ex)
 			{
@@ -276,21 +268,17 @@ namespace AsyncClientServer.Messages
 			}
 		}
 
-		protected void BeginSendFileCustom(string location, string remoteSaveLocation, AsyncCallback callback,
-			bool encrypt, bool close, int id = -1)
+		protected abstract void SendBytesOfFile(byte[] bytes, int id);
+
+		protected async Task BeginSendFile(string location, string remoteSaveLocation, bool encrypt,
+			bool close, AsyncCallerFile callback, int id = -1)
 		{
+		
+			await StreamFileAndSendBytes(location, remoteSaveLocation, encrypt, id);
+
+			callback.Invoke(close, id);
 
 		}
-
-		/// <summary>
-		/// Gets called from StreamFileAndSendBytes.
-		/// <para>This method sends bytes to server or client.</para>
-		/// </summary>
-		/// <param name="bytes"></param>
-		/// <param name="close"></param>
-		/// <param name="invokeMessage"></param>
-		/// <param name="id"></param>
-		protected abstract void SendBytesAsync(byte[] bytes, bool close, int id);
 
 
 		//Writes a message to byte array

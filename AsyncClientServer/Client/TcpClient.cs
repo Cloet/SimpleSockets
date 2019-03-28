@@ -324,6 +324,97 @@ namespace AsyncClientServer.Client
 			_sent.Set();
 		}
 
+		protected override async Task SendFile(string location, string remoteSaveLocation, bool encrypt, bool close, int id = -1)
+		{
+
+			try
+			{
+				await BeginSendFile(location, remoteSaveLocation, encrypt, close, FileSendCallback);
+				//await BeginSendFile(location, remoteSaveLocation, encrypt, close, FileSendCallback, id);
+			}
+			catch (SocketException se)
+			{
+				throw new SocketException(se.ErrorCode);
+			}
+			catch (ArgumentException ae)
+			{
+				throw new ArgumentException(ae.Message, ae);
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message, ex);
+			}
+		}
+
+		protected override void SendBytesOfFile(byte[] bytes, int id)
+		{
+			try
+			{
+
+				if (!this.IsConnected())
+				{
+					throw new Exception("Destination socket is not connected.");
+				}
+				else
+				{
+					var send = bytes;
+
+					_listener.BeginSend(send, 0, send.Length, SocketFlags.None, SendCallbackFile, _listener);
+				}
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message, ex);
+			}
+		}
+
+		protected void SendCallbackFile(IAsyncResult result)
+		{
+			try
+			{
+				var receiver = (Socket)result.AsyncState;
+				receiver.EndSend(result);
+			}
+			catch (SocketException se)
+			{
+				throw new Exception(se.ToString());
+			}
+			catch (ObjectDisposedException se)
+			{
+				throw new Exception(se.ToString());
+			}
+
+			MessageSubmitted?.Invoke(this, _close);
+
+			_sent.Set();
+		}
+
+		private void FileSendCallback(bool close, int id)
+		{
+
+			try
+			{
+				if(close)
+					Close();
+			}
+			catch (SocketException se)
+			{
+				throw new SocketException(se.ErrorCode);
+			}
+			catch (ObjectDisposedException ode)
+			{
+				throw new ObjectDisposedException(ode.ObjectName, ode.Message);
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message, ex);
+			}
+			finally
+			{
+				MessageSubmitted?.Invoke(this, close);
+			}
+		}
+
 		//Close client
 		protected void Close()
 		{

@@ -376,6 +376,101 @@ namespace AsyncClientServer.Server
 			}
 		}
 
+		protected override async Task SendFile(string location, string remoteSaveLocation, bool encrypt,bool close, int id = -1)
+		{
+			var state = GetClient(id);
+
+			if (state == null)
+			{
+				throw new Exception("Client does not exist.");
+			}
+
+			if (!IsConnected(state.Id))
+			{
+				//Sets client with id to disconnected
+				ClientDisconnected?.Invoke(state.Id);
+				throw new Exception("Destination socket is not connected.");
+			}
+
+			try
+			{
+				await BeginSendFile(location, remoteSaveLocation, encrypt, close, FileSendCallback, id);
+			}
+			catch (SocketException se)
+			{
+				throw new SocketException(se.ErrorCode);
+			}
+			catch (ArgumentException ae)
+			{
+				throw new ArgumentException(ae.Message, ae);
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message, ex);
+			}
+		}
+
+		private void FileSendCallback(bool close,int id)
+		{
+			try
+			{
+				if (close)
+					Close(id);
+			}
+			catch (SocketException se)
+			{
+				throw new SocketException(se.ErrorCode);
+			}
+			catch (ObjectDisposedException ode)
+			{
+				throw new ObjectDisposedException(ode.ObjectName, ode.Message);
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message, ex);
+			}
+			finally
+			{
+				MessageSubmitted?.Invoke(id, close);
+			}
+		}
+
+		protected override void SendBytesOfFile(byte[] bytes, int id)
+		{
+			var state = GetClient(id);
+
+			if (state == null)
+			{
+				throw new Exception("Client does not exist.");
+			}
+
+			if (!IsConnected(state.Id))
+			{
+				//Sets client with id to disconnected
+				ClientDisconnected?.Invoke(state.Id);
+				throw new Exception("Destination socket is not connected.");
+			}
+
+			try
+			{
+				var send = bytes;
+
+				state.Listener.BeginSend(send, 0, send.Length, SocketFlags.None, SendCallbackFile, state);
+			}
+			catch (SocketException se)
+			{
+				throw new SocketException(se.ErrorCode);
+			}
+			catch (ArgumentException ae)
+			{
+				throw new ArgumentException(ae.Message, ae);
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message, ex);
+			}
+		}
+
 		//End the send and invoke MessageSubmitted event.
 		private void SendCallback(IAsyncResult result)
 		{
@@ -384,6 +479,8 @@ namespace AsyncClientServer.Server
 			try
 			{
 				state.Listener.EndSend(result);
+				if (state.Close)
+					Close(state.Id);
 			}
 			catch (SocketException se)
 			{
@@ -403,20 +500,28 @@ namespace AsyncClientServer.Server
 			}
 		}
 
-		private void BeginSendFileCustom(int id,string filename,AsyncCallback callback, bool close)
+		//End the send and invoke MessageSubmitted event.
+		protected void SendCallbackFile(IAsyncResult result)
 		{
+			var state = (IStateObject)result.AsyncState;
+
 			try
 			{
-				var state = GetClient(id);
-
-				if (state == null)
-					throw new Exception("Client does not exist.");
-
-				state.Close = close;
-				
+				state.Listener.EndSend(result);
+			}
+			catch (SocketException se)
+			{
+				throw new SocketException(se.ErrorCode);
+			}
+			catch (ObjectDisposedException ode)
+			{
+				throw new ObjectDisposedException(ode.ObjectName, ode.Message);
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message, ex);
 			}
 		}
-
 
 		/// <inheritdoc />
 		/// <summary>

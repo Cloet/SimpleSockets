@@ -22,16 +22,6 @@ namespace AsyncClientServer.Server
 		/// <param name="close"></param>
 		protected abstract void SendBytes(int id, byte[] data, bool close);
 
-		/// <summary>
-		/// Gets called async
-		/// </summary>
-		/// <param name="data"></param>
-		/// <param name="close"></param>
-		/// <param name="id"></param>
-		protected override void SendBytesAsync(byte[] data, bool close, int id)
-		{
-			SendBytes(id, data, close);
-		}
 
 		/*==========================================
 		*
