@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Text;
 using AsyncClientServer.Client;
+using AsyncClientServer.Server;
 using Cryptography;
 
 namespace AsyncClientServer.StateObject.StateObjectState
@@ -11,13 +12,11 @@ namespace AsyncClientServer.StateObject.StateObjectState
 		//The types of messages that can be send.
 		private readonly string[] _messageTypes = { "COMMAND", "MESSAGE", "OBJECT" };
 
-		public InitialHandlerState(IStateObject state) : base(state, null)
+		public InitialHandlerState(IStateObject state, ITcpClient client, IServerListener listener) : base(state, client,listener)
 		{
 		}
 
-		public InitialHandlerState(IStateObject state, ITcpClient client) : base(state, client)
-		{
-		}
+		private static int prevRead = 0;
 
 		/// <summary>
 		/// The first check when a message is received.
@@ -25,7 +24,27 @@ namespace AsyncClientServer.StateObject.StateObjectState
 		/// <param name="receive"></param>
 		public override void Receive(int receive)
 		{
-			//TODO Check if received message has enough bytes.
+			if(receive < 10)
+			{
+
+				prevRead = receive;
+				if (Server != null)
+				{
+					Server.StartReceiving(State,receive);
+					return;
+				}
+
+				if (Client != null)
+				{
+					Client.StartReceiving(State, receive);
+					return;
+				}
+
+			}
+
+			receive += prevRead;
+			prevRead = 0;
+
 
 			//First check
 			if (State.Flag == 0)
@@ -49,13 +68,13 @@ namespace AsyncClientServer.StateObject.StateObjectState
 			//If it is a message set state to new MessageHandlerState.
 			if (_messageTypes.Contains(State.Header))
 			{
-				State.CurrentState = new MessageHandlerState(State, Client);
+				State.CurrentState = new MessageHandlerState(State, Client,Server);
 				State.CurrentState.Receive(receive - 8 - State.HeaderSize);
 				return;
 			}
 
 			//If it's a file then set state to new FileHandlerState.
-			State.CurrentState = new FileHandlerState(State, Client);
+			State.CurrentState = new FileHandlerState(State, Client,Server);
 			State.CurrentState.Receive(receive - 8 - State.HeaderSize);
 
 		}

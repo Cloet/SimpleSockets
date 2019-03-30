@@ -1,17 +1,15 @@
 ﻿using System;
 using System.Text;
 using AsyncClientServer.Client;
+using AsyncClientServer.Server;
 using Cryptography;
 
 namespace AsyncClientServer.StateObject.StateObjectState
 {
 	public class MessageHandlerState: StateObjectState
 	{
-		public MessageHandlerState(IStateObject state) : base(state,null)
-		{
-		}
 
-		public MessageHandlerState(IStateObject state, ITcpClient client) : base(state, client)
+		public MessageHandlerState(IStateObject state, ITcpClient client, IServerListener listener) : base(state, client,listener)
 		{
 		}
 
@@ -80,7 +78,7 @@ namespace AsyncClientServer.StateObject.StateObjectState
 			if (State.Flag == -2)
 			{
 				//Change state to new MessageHasBeenReceivedState invoke the corresponding event, then reset the state object.
-				State.CurrentState = new MessageHasBeenReceivedState(State, Client);
+				State.CurrentState = new MessageHasBeenReceivedState(State, Client,Server);
 				State.CurrentState.Receive(State.Buffer.Length);
 				State.Reset();
 			}
@@ -88,11 +86,13 @@ namespace AsyncClientServer.StateObject.StateObjectState
 			else if (State.Flag == -3)
 			{
 				//Change state to MessageHasBeenReceivedState and invoke the corresponding event.
-				State.CurrentState = new MessageHasBeenReceivedState(State, Client);
+				State.CurrentState = new MessageHasBeenReceivedState(State, Client,Server);
 				State.CurrentState.Receive(State.Buffer.Length);
 
+				
+
 				//Change state to InitialHandlerState, reset the state and then handle the extra bytes that have been send.
-				State.CurrentState = new InitialHandlerState(State, Client);
+				State.CurrentState = new InitialHandlerState(State, Client,Server);
 				State.Reset();
 				State.CurrentState.Receive(State.Buffer.Length);
 			}

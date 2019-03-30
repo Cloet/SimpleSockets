@@ -9,12 +9,8 @@ namespace AsyncClientServer.StateObject.StateObjectState
 {
 	public class FileHasBeenReceivedState: StateObjectState
 	{
-		public FileHasBeenReceivedState(IStateObject state,string tempFilePath) : base(state)
-		{
-			_tempFilePath = tempFilePath;
-		}
 
-		public FileHasBeenReceivedState(IStateObject state, ITcpClient client,string tempFilePath) : base(state, client)
+		public FileHasBeenReceivedState(IStateObject state, ITcpClient client,IServerListener listener, string tempFilePath) : base(state, client,listener)
 		{
 			_tempFilePath = tempFilePath;
 		}
@@ -108,7 +104,7 @@ namespace AsyncClientServer.StateObject.StateObjectState
 			//If client == null then the file is send to the server so invoke server event else do client event.
 			if (Client == null)
 			{
-				AsyncSocketListener.Instance.InvokeFileReceived(State.Id, decompressed);
+				Server.InvokeFileReceived(State.Id, decompressed);
 				return;
 			}
 

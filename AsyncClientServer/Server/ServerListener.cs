@@ -156,7 +156,7 @@ namespace AsyncClientServer.Server
 		public abstract void StartListening(string ip, int port, int limit = 500);
 
 		/* Gets a socket from the clients dictionary by his Id. */
-		private IStateObject GetClient(int id)
+		protected IStateObject GetClient(int id)
 		{
 			IStateObject state;
 
@@ -195,7 +195,7 @@ namespace AsyncClientServer.Server
 		protected abstract void OnClientConnect(IAsyncResult result);
 
 		//Handles messages the server receives
-		private void ReceiveCallback(IAsyncResult result)
+		protected void ReceiveCallback(IAsyncResult result)
 		{
 			try
 			{
@@ -210,19 +210,14 @@ namespace AsyncClientServer.Server
 		}
 
 		//Start receiving
-		protected void StartReceiving(IStateObject state)
-		{
-
-			if (state.Buffer.Length < state.BufferSize)
-			{
-				state.ChangeBuffer(new byte[state.BufferSize]);
-			}
-
-			state.Listener.BeginReceive(state.Buffer, 0, state.BufferSize, SocketFlags.None,
-				this.ReceiveCallback, state);
-		}
+		public abstract void StartReceiving(IStateObject state, int offset = 0);
 
 		#region Invokes
+
+		protected void ClientDisconnectedInvoke(int id)
+		{
+			ClientDisconnected?.Invoke(id);
+		}
 
 		protected void ClientConnectedInvoke(int id)
 		{
@@ -256,6 +251,11 @@ namespace AsyncClientServer.Server
 			ProgressFileReceived?.Invoke(id, bytesReceived, messageSize);
 		}
 
+		protected void InvokeMessageSubmitted(int id, bool close)
+		{
+			MessageSubmitted?.Invoke(id,close);
+		}
+
 		/// <inheritdoc />
 		/// <summary>
 		/// Invokes MessageReceived event of the server.
@@ -271,110 +271,7 @@ namespace AsyncClientServer.Server
 		#endregion
 
 		//Handles messages
-		private void HandleMessage(IAsyncResult result)
-		{
-
-			try
-			{
-
-				var state = (StateObject.StateObject)result.AsyncState;
-
-				//Check if client is still connected.
-				//If client is disconnected, send disconnected message
-				//and remove from clients list
-				if (!IsConnected(state.Id))
-				{
-					ClientDisconnected?.Invoke(state.Id);
-					_clients.Remove(state.Id);
-				}
-				//Else start receiving and handle the message.
-				else
-				{
-					var receive = state.Listener.EndReceive(result);
-
-					if (state.Flag == 0)
-					{
-						state.CurrentState = new InitialHandlerState(state);
-					}
-
-					if (receive > 0)
-					{
-						state.CurrentState.Receive(receive);
-					}
-
-					/*When the full message has been received. */
-					if (state.Read == state.MessageSize)
-					{
-						StartReceiving(state);
-						return;
-					}
-
-					/*Check if there still are messages to be received.*/
-					if (receive == state.BufferSize)
-					{
-						StartReceiving(state);
-						return;
-					}
-
-					//When something goes wrong
-					state.Reset();
-					StartReceiving(state);
-				}
-
-
-
-
-			}
-			catch (Exception ex)
-			{
-				throw new Exception(ex.Message, ex);
-			}
-		}
-
-		/// <inheritdoc />
-		/// <summary>
-		/// Send data to client
-		/// <para>Method used to send bytes to client. Easier to use methods in <see cref="SendToClient"/></para>
-		/// </summary>
-		/// <param name="id"></param>
-		/// <param name="bytes"></param>
-		/// <param name="close"></param>
-		protected override void SendBytes(int id, byte[] bytes, bool close)
-		{
-			var state = GetClient(id);
-
-			if (state == null)
-			{
-				throw new Exception("Client does not exist.");
-			}
-
-			if (!IsConnected(state.Id))
-			{
-				//Sets client with id to disconnected
-				ClientDisconnected?.Invoke(state.Id);
-				throw new Exception("Destination socket is not connected.");
-			}
-
-			try
-			{
-				var send = bytes;
-
-				state.Close = close;
-				state.Listener.BeginSend(send, 0, send.Length, SocketFlags.None, SendCallback, state);
-			}
-			catch (SocketException se)
-			{
-				throw new SocketException(se.ErrorCode);
-			}
-			catch (ArgumentException ae)
-			{
-				throw new ArgumentException(ae.Message, ae);
-			}
-			catch (Exception ex)
-			{
-				throw new Exception(ex.Message, ex);
-			}
-		}
+		protected abstract void HandleMessage(IAsyncResult result);
 
 		protected override async Task SendFile(string location, string remoteSaveLocation, bool encrypt,bool close, int id = -1)
 		{
@@ -472,33 +369,7 @@ namespace AsyncClientServer.Server
 		}
 
 		//End the send and invoke MessageSubmitted event.
-		private void SendCallback(IAsyncResult result)
-		{
-			var state = (IStateObject)result.AsyncState;
-
-			try
-			{
-				state.Listener.EndSend(result);
-				if (state.Close)
-					Close(state.Id);
-			}
-			catch (SocketException se)
-			{
-				throw new SocketException(se.ErrorCode);
-			}
-			catch (ObjectDisposedException ode)
-			{
-				throw new ObjectDisposedException(ode.ObjectName, ode.Message);
-			}
-			catch (Exception ex)
-			{
-				throw new Exception(ex.Message, ex);
-			}
-			finally
-			{
-				MessageSubmitted?.Invoke(state.Id, state.Close);
-			}
-		}
+		protected abstract void SendCallback(IAsyncResult result);
 
 		//End the send and invoke MessageSubmitted event.
 		protected void SendCallbackFile(IAsyncResult result)

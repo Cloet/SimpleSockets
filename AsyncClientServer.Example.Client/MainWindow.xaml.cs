@@ -28,7 +28,7 @@ namespace AsyncClientServer.Example.Client
 	{
 
 		private string _selectedFileFolder = null;
-		private ITcpClient _client;
+		private AsyncSSLClient _client;
 
 		public MainWindow()
 		{
@@ -44,7 +44,8 @@ namespace AsyncClientServer.Example.Client
 
 		private void StartClient()
 		{
-			_client = new AsyncClient();
+			//_client = new AsyncClient();
+			_client = new AsyncSSLClient();
 
 			//Bind events
 			_client.ProgressFileReceived += new ProgressFileTransferHandler(Progress);
@@ -55,8 +56,9 @@ namespace AsyncClientServer.Example.Client
 			_client.Disconnected += new DisconnectedFromServerHandler(Disconnected);
 
 
-			_client.StartClient("127.0.0.1", 13000);
-
+			//_client.StartClient("127.0.0.1", 13000);
+			_client.StartClient("127.0.0.1",13000,5, @"C:\Users\CloetOMEN\Downloads\Cert\bin\signtool\PFXClientServerTest.pfx",
+				"TestCertificate");
 		}
 
 

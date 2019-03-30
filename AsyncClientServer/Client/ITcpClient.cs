@@ -1,4 +1,5 @@
 ﻿using System;
+using AsyncClientServer.StateObject;
 
 namespace AsyncClientServer.Client
 {
@@ -56,6 +57,9 @@ namespace AsyncClientServer.Client
 		/// <param name="port">The port the server is using</param>
 		/// <param name="reconnectInSeconds">Default is 5</param>
 		void StartClient(string ipServer, int port, int reconnectInSeconds);
+
+
+		void StartReceiving(IStateObject state, int offset = 0);
 
 		/// <summary>
 		/// The port on which the server is running

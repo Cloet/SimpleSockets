@@ -71,6 +71,8 @@ namespace AsyncClientServer.Server
 		/// <returns></returns>
 		bool IsConnected(int id);
 
+		void StartReceiving(IStateObject state, int offset = 0);
+
 		/// <summary>
 		/// Gets all connected clients
 		/// </summary>

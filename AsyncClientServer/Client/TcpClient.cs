@@ -52,7 +52,7 @@ namespace AsyncClientServer.Client
 	/// <param name="messageSize"></param>
 	public delegate void ProgressFileTransferHandler(ITcpClient a, int bytesReceived, int messageSize);
 
-	public abstract class TcpClient: SendToServer, ITcpClient
+	public abstract class TcpClient : SendToServer, ITcpClient
 	{
 
 		protected Socket _listener;
@@ -167,29 +167,12 @@ namespace AsyncClientServer.Client
 		}
 
 		//When client connects.
-		protected void OnConnectCallback(IAsyncResult result)
-		{
-			var server = (Socket)result.AsyncState;
-
-			try
-			{
-				//Client is connected to server and set connected variable
-				server.EndConnect(result);
-				_connected.Set();
-				_keepAliveTimer.Enabled = true;
-				Receive();
-			}
-			catch (SocketException)
-			{
-				Thread.Sleep(ReconnectInSeconds * 1000);
-				_listener.BeginConnect(_endpoint, this.OnConnectCallback, _listener);
-			}
-		}
+		protected abstract void OnConnectCallback(IAsyncResult result);
 
 		/// <summary>
 		/// Start receiving data from server.
 		/// </summary>
-		private void Receive()
+		protected  void Receive()
 		{
 			//Start receiving data
 			var state = new StateObject.StateObject(_listener);
@@ -198,7 +181,7 @@ namespace AsyncClientServer.Client
 
 
 		//When client receives message
-		private void ReceiveCallback(IAsyncResult result)
+		protected void ReceiveCallback(IAsyncResult result)
 		{
 			try
 			{
@@ -214,63 +197,10 @@ namespace AsyncClientServer.Client
 		}
 
 		//Start receiving
-		private void StartReceiving(IStateObject state)
-		{
-			if (state.Buffer.Length < state.BufferSize)
-			{
-				state.ChangeBuffer(new byte[state.BufferSize]);
-			}
-
-			state.Listener.BeginReceive(state.Buffer, 0, state.BufferSize, SocketFlags.None,
-				this.ReceiveCallback, state);
-		}
+		public abstract void StartReceiving(IStateObject state, int offset = 0);
 
 		//Handle a message
-		private void HandleMessage(IAsyncResult result)
-		{
-
-			try
-			{
-
-				var state = (StateObject.StateObject)result.AsyncState;
-				var receive = state.Listener.EndReceive(result);
-
-				if (state.Flag == 0)
-				{
-					state.CurrentState = new InitialHandlerState(state, this);
-				}
-
-
-				if (receive > 0)
-				{
-					state.CurrentState.Receive(receive);
-				}
-
-				/*When the full message has been received. */
-				if (state.Read == state.MessageSize)
-				{
-					StartReceiving(state);
-					return;
-				}
-
-				/*Check if there still are messages to be received.*/
-				if (receive == state.BufferSize)
-				{
-					StartReceiving(state);
-					return;
-				}
-
-				//When something goes wrong
-				state.Reset();
-				StartReceiving(state);
-
-
-			}
-			catch (Exception ex)
-			{
-				throw new Exception(ex.ToString());
-			}
-		}
+		protected abstract void HandleMessage(IAsyncResult result);
 
 		/// <summary>
 		/// Sends data to server
@@ -278,51 +208,10 @@ namespace AsyncClientServer.Client
 		/// </summary>
 		/// <param name="bytes"></param>
 		/// <param name="close"></param>
-		protected override void SendBytes(byte[] bytes, bool close)
-		{
-
-			try
-			{
-
-				if (!this.IsConnected())
-				{
-					throw new Exception("Destination socket is not connected.");
-				}
-				else
-				{
-					var send = bytes;
-
-					_close = close;
-					_listener.BeginSend(send, 0, send.Length, SocketFlags.None, SendCallback, _listener);
-				}
-			}
-			catch (Exception ex)
-			{
-				throw new Exception(ex.Message, ex);
-			}
-		}
+		//protected abstract void SendBytes(byte[] bytes, bool close);
 
 		//Send message and invokes MessageSubmitted.
-		private void SendCallback(IAsyncResult result)
-		{
-			try
-			{
-				var receiver = (Socket)result.AsyncState;
-				receiver.EndSend(result);
-			}
-			catch (SocketException se)
-			{
-				throw new Exception(se.ToString());
-			}
-			catch (ObjectDisposedException se)
-			{
-				throw new Exception(se.ToString());
-			}
-
-			MessageSubmitted?.Invoke(this, _close);
-
-			_sent.Set();
-		}
+		protected abstract void SendCallback(IAsyncResult result);
 
 		protected override async Task SendFile(string location, string remoteSaveLocation, bool encrypt, bool close, int id = -1)
 		{
@@ -394,7 +283,7 @@ namespace AsyncClientServer.Client
 
 			try
 			{
-				if(close)
+				if (close)
 					Close();
 			}
 			catch (SocketException se)
@@ -459,6 +348,11 @@ namespace AsyncClientServer.Client
 			MessageReceived?.Invoke(this, header, text);
 		}
 
+		protected void InvokeMessageSubmitted(bool close)
+		{
+			MessageSubmitted?.Invoke(this, close);
+		}
+
 		/// <inheritdoc />
 		/// <summary>
 		/// Invokes FileReceived event of the client
@@ -493,7 +387,7 @@ namespace AsyncClientServer.Client
 		/// <param name="a"></param>
 		protected void InvokeDisconnected(ITcpClient a)
 		{
-			Disconnected?.Invoke(a,a.IpServer,a.Port);
+			Disconnected?.Invoke(a, a.IpServer, a.Port);
 		}
 
 		#endregion

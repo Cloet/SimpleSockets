@@ -30,13 +30,13 @@ namespace AsyncClientServer.Example.Server
 			InitializeComponent();
 		}
 
-		private ServerListener _listener;
+		private AsyncSocketSSLListener _listener;
 
 		//Starts the server thread
 		private void Window_Loaded_1(object sender, RoutedEventArgs e)
 		{
-
-			_listener = AsyncSocketListener.Instance;
+			_listener = AsyncSocketSSLListener.Instance;
+			//_listener = AsyncSocketListener.Instance;
 
 			Thread t = new Thread(StartServer);
 			t.Start();
@@ -44,19 +44,32 @@ namespace AsyncClientServer.Example.Server
 
 		private void StartServer()
 		{
-			int port = 13000;
-			string ip = "127.0.0.1";
+			try
+			{
+				int port = 13000;
+				string ip = "127.0.0.1";
 
 
-			_listener.ProgressFileReceived += new FileTransferProgressHandler(Progress);
-			_listener.MessageReceived += new MessageReceivedHandler(MessageReceived);
-			_listener.MessageSubmitted += new MessageSubmittedHandler(MessageSubmitted);
-			_listener.ClientDisconnected += new ClientDisconnectedHandler(ClientDisconnected);
-			_listener.ClientConnected += new ClientConnectedHandler(ClientConnected);
-			_listener.FileReceived += new FileFromClientReceivedHandler(FileReceived);
-			_listener.ServerHasStarted += new ServerHasStartedHandler(ServerHasStarted);
+				_listener.ProgressFileReceived += new FileTransferProgressHandler(Progress);
+				_listener.MessageReceived += new MessageReceivedHandler(MessageReceived);
+				_listener.MessageSubmitted += new MessageSubmittedHandler(MessageSubmitted);
+				_listener.ClientDisconnected += new ClientDisconnectedHandler(ClientDisconnected);
+				_listener.ClientConnected += new ClientConnectedHandler(ClientConnected);
+				_listener.FileReceived += new FileFromClientReceivedHandler(FileReceived);
+				_listener.ServerHasStarted += new ServerHasStartedHandler(ServerHasStarted);
 
-			_listener.StartListening(ip, port);
+
+				_listener.StartListening(ip, port,
+					@"C:\Users\CloetOMEN\Downloads\Cert\bin\signtool\PFXClientServerTest.pfx",
+					"TestCertificate");
+				_listener.StartListening(ip, port);
+			}
+			catch (Exception ex)
+			{
+				AppendRichtTextBox(ex.Message);
+			}
+
+
 		}
 
 		//Append to textbox from separate thread.

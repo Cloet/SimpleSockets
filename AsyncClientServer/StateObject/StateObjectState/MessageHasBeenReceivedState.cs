@@ -10,11 +10,7 @@ namespace AsyncClientServer.StateObject.StateObjectState
 	public class MessageHasBeenReceivedState: StateObjectState
 	{
 
-		public MessageHasBeenReceivedState(IStateObject state) : base(state,null)
-		{
-		}
-
-		public MessageHasBeenReceivedState(IStateObject state, ITcpClient client) : base(state, client)
+		public MessageHasBeenReceivedState(IStateObject state, ITcpClient client, IServerListener listener) : base(state, client, listener)
 		{
 		}
 
@@ -37,7 +33,7 @@ namespace AsyncClientServer.StateObject.StateObjectState
 
 			if (Client == null)
 			{
-				AsyncSocketListener.Instance.InvokeMessageReceived(State.Id,State.Header,text);
+				Server.InvokeMessageReceived(State.Id, State.Header, text);
 				return;
 			}
 
