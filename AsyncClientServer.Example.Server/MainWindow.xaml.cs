@@ -36,8 +36,8 @@ namespace AsyncClientServer.Example.Server
 		private void Window_Loaded_1(object sender, RoutedEventArgs e)
 		{
 			//_listener = new AsyncSocketSslListener(
-			//	@"C:\Users\CloetOMEN\Downloads\Cert\bin\signtool\PFXClientServerTest.pfx",
-			//	"TestCertificate");
+			//	@"",
+			//	"");
 			_listener = new AsyncSocketListener();
 
 			Thread t = new Thread(StartServer);
