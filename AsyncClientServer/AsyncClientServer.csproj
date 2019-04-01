@@ -45,7 +45,6 @@
     <Compile Include="Client\AsyncSslClient.cs" />
     <Compile Include="Client\ITcpClient.cs" />
     <Compile Include="Client\TcpClient.cs" />
-    <Compile Include="ReceivingItem.cs" />
     <Compile Include="Server\AsyncSocketSslListener.cs" />
     <Compile Include="Server\IServerListener.cs" />
     <Compile Include="Server\ISendToClient.cs" />

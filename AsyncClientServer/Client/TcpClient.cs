@@ -195,7 +195,7 @@ namespace AsyncClientServer.Client
 		/// </summary>
 		/// <param name="state"></param>
 		/// <param name="offset"></param>
-		public abstract void StartReceiving(IStateObject state, int offset = 0);
+		internal abstract void StartReceiving(IStateObject state, int offset = 0);
 
 		//Handle a message
 		protected abstract void HandleMessage(IAsyncResult result);
@@ -307,7 +307,7 @@ namespace AsyncClientServer.Client
 		/// </summary>
 		/// <param name="header"></param>
 		/// <param name="text"></param>
-		public void InvokeMessage(string header, string text)
+		internal void InvokeMessage(string header, string text)
 		{
 			MessageReceived?.Invoke(this, header, text);
 		}
@@ -317,12 +317,11 @@ namespace AsyncClientServer.Client
 			MessageSubmitted?.Invoke(this, close);
 		}
 
-		/// <inheritdoc />
 		/// <summary>
 		/// Invokes FileReceived event of the client
 		/// </summary>
 		/// <param name="filePath"></param>
-		public void InvokeFileReceived(string filePath)
+		internal void InvokeFileReceived(string filePath)
 		{
 			FileReceived?.Invoke(this, filePath);
 		}
@@ -332,7 +331,7 @@ namespace AsyncClientServer.Client
 		/// </summary>
 		/// <param name="bytesReceived"></param>
 		/// <param name="messageSize"></param>
-		public void InvokeFileTransferProgress(int bytesReceived, int messageSize)
+		internal void InvokeFileTransferProgress(int bytesReceived, int messageSize)
 		{
 			ProgressFileReceived?.Invoke(this, bytesReceived, messageSize);
 		}

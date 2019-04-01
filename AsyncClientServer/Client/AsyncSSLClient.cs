@@ -260,7 +260,7 @@ namespace AsyncClientServer.Client
 
 
 		//Start receiving
-		public override void StartReceiving(IStateObject state, int offset = 0)
+		internal override void StartReceiving(IStateObject state, int offset = 0)
 		{
 
 			state.sslStream = _sslStream;

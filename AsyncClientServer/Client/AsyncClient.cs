@@ -204,7 +204,7 @@ namespace AsyncClientServer.Client
 		#region Receiving
 
 		//Start receiving
-		public override void StartReceiving(IStateObject state, int offset = 0)
+		internal override void StartReceiving(IStateObject state, int offset = 0)
 		{
 			if (state.Buffer.Length < state.BufferSize && offset == 0)
 			{

@@ -9,7 +9,7 @@ namespace AsyncClientServer.StateObject.StateObjectState
 	public class MessageHandlerState: StateObjectState
 	{
 
-		public MessageHandlerState(IStateObject state, ITcpClient client, IServerListener listener) : base(state, client,listener)
+		public MessageHandlerState(IStateObject state, TcpClient client, ServerListener listener) : base(state, client,listener)
 		{
 		}
 

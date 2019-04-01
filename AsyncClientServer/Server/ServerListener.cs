@@ -212,7 +212,7 @@ namespace AsyncClientServer.Server
 		}
 
 		//Start receiving
-		public abstract void StartReceiving(IStateObject state, int offset = 0);
+		internal abstract void StartReceiving(IStateObject state, int offset = 0);
 
 		#region Invokes
 
@@ -231,13 +231,12 @@ namespace AsyncClientServer.Server
 			ServerHasStarted?.Invoke();
 		}
 
-		/// <inheritdoc />
 		/// <summary>
 		/// Invokes FileReceived event
 		/// </summary>
 		/// <param name="id"></param>
 		/// <param name="filePath"></param>
-		public void InvokeFileReceived(int id, string filePath)
+		internal void InvokeFileReceived(int id, string filePath)
 		{
 			FileReceived?.Invoke(id, filePath);
 		}
@@ -248,7 +247,7 @@ namespace AsyncClientServer.Server
 		/// <param name="id"></param>
 		/// <param name="bytesReceived"></param>
 		/// <param name="messageSize"></param>
-		public void InvokeFileTransferProgress(int id, int bytesReceived, int messageSize)
+		internal void InvokeFileTransferProgress(int id, int bytesReceived, int messageSize)
 		{
 			ProgressFileReceived?.Invoke(id, bytesReceived, messageSize);
 		}
@@ -258,14 +257,13 @@ namespace AsyncClientServer.Server
 			MessageSubmitted?.Invoke(id,close);
 		}
 
-		/// <inheritdoc />
 		/// <summary>
 		/// Invokes MessageReceived event of the server.
 		/// </summary>
 		/// <param name="id"></param>
 		/// <param name="header"></param>
 		/// <param name="text"></param>
-		public void InvokeMessageReceived(int id, string header, string text)
+		internal void InvokeMessageReceived(int id, string header, string text)
 		{
 			MessageReceived?.Invoke(id, header, text);
 		}

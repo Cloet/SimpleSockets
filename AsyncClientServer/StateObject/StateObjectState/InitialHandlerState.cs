@@ -12,7 +12,7 @@ namespace AsyncClientServer.StateObject.StateObjectState
 		//The types of messages that can be send.
 		private readonly string[] _messageTypes = { "COMMAND", "MESSAGE", "OBJECT" };
 
-		public InitialHandlerState(IStateObject state, ITcpClient client, IServerListener listener) : base(state, client,listener)
+		public InitialHandlerState(IStateObject state, TcpClient client, ServerListener listener) : base(state, client,listener)
 		{
 		}
 
@@ -30,7 +30,7 @@ namespace AsyncClientServer.StateObject.StateObjectState
 				prevRead = receive;
 				if (Server != null)
 				{
-					Server.StartReceiving(State,receive);
+					Server.StartReceiving(State, receive);
 					return;
 				}
 

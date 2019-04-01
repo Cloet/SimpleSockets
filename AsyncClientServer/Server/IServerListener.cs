@@ -71,7 +71,7 @@ namespace AsyncClientServer.Server
 		/// <returns></returns>
 		bool IsConnected(int id);
 
-		void StartReceiving(IStateObject state, int offset = 0);
+		//void StartReceiving(IStateObject state, int offset = 0);
 
 		/// <summary>
 		/// Gets all connected clients
@@ -96,28 +96,6 @@ namespace AsyncClientServer.Server
 		/// <param name="id"></param>
 		void Close(int id);
 
-		/// <summary>
-		/// Invokes FileReceived event of the server
-		/// </summary>
-		/// <param name="id">Client id</param>
-		/// <param name="filePath">the path of the file that has been received</param>
-		void InvokeFileReceived(int id, string filePath);
-
-		/// <summary>
-		/// Invokes MessageReceived event of the server
-		/// </summary>
-		/// <param name="id">Client id</param>
-		/// <param name="header">Message type</param>
-		/// <param name="text">the message</param>
-		void InvokeMessageReceived(int id, string header, string text);
-
-		/// <summary>
-		/// Invokes ProgressReceived event
-		/// </summary>
-		/// <param name="id"></param>
-		/// <param name="bytesReceived"></param>
-		/// <param name="messageSize"></param>
-		void InvokeFileTransferProgress(int id, int bytesReceived, int messageSize);
 
 	}
 }

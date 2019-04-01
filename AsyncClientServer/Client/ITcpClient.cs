@@ -50,13 +50,6 @@ namespace AsyncClientServer.Client
 		void StartClient(string ipServer, int port, int reconnectInSeconds = 5);
 
 		/// <summary>
-		/// Starts receiving bytes from server
-		/// </summary>
-		/// <param name="state"></param>
-		/// <param name="offset"></param>
-		void StartReceiving(IStateObject state, int offset = 0);
-
-		/// <summary>
 		/// The port on which the server is running
 		/// </summary>
 		int Port { get; }
@@ -77,25 +70,6 @@ namespace AsyncClientServer.Client
 		/// <returns></returns>
 		bool IsConnected();
 
-		/// <summary>
-		/// Invokes a MessageReceived Event.
-		/// </summary>
-		/// <param name="header">Type of message that has been received</param>
-		/// <param name="text">The message itself</param>
-		void InvokeMessage(string header, string text);
-
-		/// <summary>
-		/// Invokes a FileReceived Event
-		/// </summary>
-		/// <param name="filePath">Location where the file is stored.</param>
-		void InvokeFileReceived(string filePath);
-
-		/// <summary>
-		/// Invokes ProgressReceived event
-		/// </summary>
-		/// <param name="bytesReceived"></param>
-		/// <param name="messageSize"></param>
-		void InvokeFileTransferProgress(int bytesReceived, int messageSize);
 
 	}
 }
