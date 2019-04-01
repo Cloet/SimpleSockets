@@ -62,7 +62,7 @@ namespace AsyncClientServer.Server
 		/// <param name="ip"></param>
 		/// <param name="port"></param>
 		/// <param name="limit"></param>
-		void StartListening(string ip, int port, int limit);
+		void StartListening(string ip, int port, int limit = 500);
 
 		/// <summary>
 		/// Checks if a client is connected

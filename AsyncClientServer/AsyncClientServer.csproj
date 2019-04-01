@@ -42,11 +42,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Client\AsyncSSLClient.cs" />
+    <Compile Include="Client\AsyncSslClient.cs" />
     <Compile Include="Client\ITcpClient.cs" />
     <Compile Include="Client\TcpClient.cs" />
     <Compile Include="ReceivingItem.cs" />
-    <Compile Include="Server\AsyncSocketSSLListener.cs" />
+    <Compile Include="Server\AsyncSocketSslListener.cs" />
     <Compile Include="Server\IServerListener.cs" />
     <Compile Include="Server\ISendToClient.cs" />
     <Compile Include="Client\ISendToServer.cs" />

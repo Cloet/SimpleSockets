@@ -28,7 +28,7 @@ namespace AsyncClientServer.Example.Client
 	{
 
 		private string _selectedFileFolder = null;
-		private AsyncSSLClient _client;
+		private ITcpClient _client;
 
 		public MainWindow()
 		{
@@ -44,8 +44,9 @@ namespace AsyncClientServer.Example.Client
 
 		private void StartClient()
 		{
-			//_client = new AsyncClient();
-			_client = new AsyncSSLClient();
+			_client = new AsyncClient();
+			//_client = new AsyncSslClient(@"C:\Users\CloetOMEN\Downloads\Cert\bin\signtool\PFXClientServerTest.pfx",
+			//	"TestCertificate");
 
 			//Bind events
 			_client.ProgressFileReceived += new ProgressFileTransferHandler(Progress);
@@ -57,8 +58,7 @@ namespace AsyncClientServer.Example.Client
 
 
 			//_client.StartClient("127.0.0.1", 13000);
-			_client.StartClient("127.0.0.1",13000,5, @"C:\Users\CloetOMEN\Downloads\Cert\bin\signtool\PFXClientServerTest.pfx",
-				"TestCertificate");
+			_client.StartClient("127.0.0.1",13000);
 		}
 
 
@@ -176,7 +176,7 @@ namespace AsyncClientServer.Example.Client
 		}
 
 		//Send a command
-		private void ButtonSendCommand_Click(object sender, RoutedEventArgs e)
+		private async void ButtonSendCommand_Click(object sender, RoutedEventArgs e)
 		{
 			try
 			{
@@ -185,7 +185,7 @@ namespace AsyncClientServer.Example.Client
 
 				bool encrypt = CheckBoxMessage.IsChecked == true;
 
-				_client.SendCommandAsync(TextBoxCommand.Text,encrypt, false);
+				await _client.SendCommandAsync(TextBoxCommand.Text,encrypt, false);
 			}
 			catch (Exception ex)
 			{
@@ -194,7 +194,7 @@ namespace AsyncClientServer.Example.Client
 		}
 
 		//Send a message
-		private void ButtonSendMessage_Click(object sender, RoutedEventArgs e)
+		private async void ButtonSendMessage_Click(object sender, RoutedEventArgs e)
 		{
 			try
 			{
@@ -203,7 +203,7 @@ namespace AsyncClientServer.Example.Client
 
 				bool encrypt = CheckBoxMessage.IsChecked == true;
 
-				_client.SendMessageAsync(TextBoxMessage.Text,encrypt, false);
+				await _client.SendMessageAsync(TextBoxMessage.Text,encrypt, false);
 			}
 			catch (Exception ex)
 			{

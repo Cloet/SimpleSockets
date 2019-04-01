@@ -22,11 +22,16 @@ namespace AsyncClientServer.Client
 	/// </summary>
 	public class AsyncClient : TcpClient
 	{
+
+		public AsyncClient(): base()
+		{
+		}
+
 		/// <summary>
 		/// Starts the client.
 		/// <para>requires server ip, port number and how many seconds the client should wait to try to connect again. Default is 5 seconds</para>
 		/// </summary>
-		public override void StartClient(string ipServer, int port, int reconnectInSeconds)
+		public override void StartClient(string ipServer, int port, int reconnectInSeconds = 5)
 		{
 
 			if (string.IsNullOrEmpty(ipServer))
@@ -74,8 +79,6 @@ namespace AsyncClientServer.Client
 			}
 		}
 
-
-
 		protected override void OnConnectCallback(IAsyncResult result)
 		{
 			var server = (Socket)result.AsyncState;
@@ -91,13 +94,14 @@ namespace AsyncClientServer.Client
 			catch (SocketException)
 			{
 				Thread.Sleep(ReconnectInSeconds * 1000);
-				_listener.BeginConnect(_endpoint, this.OnConnectCallback, _listener);
+				_listener.BeginConnect(_endpoint, OnConnectCallback, _listener);
 			}
 		}
 
+		#region MESSAGE SENDING
+
 		/// <summary>
 		/// Sends data to server
-		/// <para>This method should not be used,instead use methods in <see cref="SendToServer"/></para>
 		/// </summary>
 		/// <param name="bytes"></param>
 		/// <param name="close"></param>
@@ -147,8 +151,60 @@ namespace AsyncClientServer.Client
 			_sent.Set();
 		}
 
+		#endregion
+
+		#region FILE SENDING
+
+		//Sends bytes of file
+		protected override void SendBytesOfFile(byte[] bytes, int id)
+		{
+			try
+			{
+
+				if (!this.IsConnected())
+				{
+					throw new Exception("Destination socket is not connected.");
+				}
+				else
+				{
+					var send = bytes;
+
+					_listener.BeginSend(send, 0, send.Length, SocketFlags.None, FileTransferPartialCallBack, _listener);
+				}
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message, ex);
+			}
+		}
+
+		//Gets called when file is done sending
+		protected override void FileTransferPartialCallBack(IAsyncResult result)
+		{
+			try
+			{
+				var receiver = (Socket)result.AsyncState;
+				receiver.EndSend(result);
+			}
+			catch (SocketException se)
+			{
+				throw new Exception(se.ToString());
+			}
+			catch (ObjectDisposedException se)
+			{
+				throw new Exception(se.ToString());
+			}
+		}
+
+		#endregion
+
+
+
+
+		#region Receiving
+
 		//Start receiving
-		public  override void StartReceiving(IStateObject state, int offset = 0)
+		public override void StartReceiving(IStateObject state, int offset = 0)
 		{
 			if (state.Buffer.Length < state.BufferSize && offset == 0)
 			{
@@ -162,11 +218,10 @@ namespace AsyncClientServer.Client
 		//Handle a message
 		protected override void HandleMessage(IAsyncResult result)
 		{
-
+			var state = (StateObject.StateObject)result.AsyncState;
 			try
 			{
 
-				var state = (StateObject.StateObject)result.AsyncState;
 				var receive = state.Listener.EndReceive(result);
 
 				if (state.Flag == 0)
@@ -194,17 +249,21 @@ namespace AsyncClientServer.Client
 					return;
 				}
 
-				//When something goes wrong
-				state.Reset();
 				StartReceiving(state);
 
 
 			}
 			catch (Exception ex)
 			{
+				state.Reset();
 				throw new Exception(ex.ToString());
 			}
 		}
+
+		#endregion
+
+
+
 
 	}
 }

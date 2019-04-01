@@ -15,37 +15,29 @@ using AsyncClientServer.StateObject.StateObjectState;
 
 namespace AsyncClientServer.Server
 {
-	public class AsyncSocketSSLListener : ServerListener
+	public class AsyncSocketSslListener : ServerListener
 	{
-		private X509Certificate _serverCertificate = null;
+		private readonly X509Certificate _serverCertificate = null;
 		private bool _acceptInvalidCertificates = true;
 		private bool _mutualAuth = false;
+		private readonly ManualResetEvent _mreRead = new ManualResetEvent(true);
+		private readonly ManualResetEvent _mreWriting = new ManualResetEvent(true);
 
+		public bool AcceptInvalidCertificates { get; set; }
 
 		/// <summary>
-		/// Get the instance of the server
+		/// Constructor
 		/// </summary>
-		public static AsyncSocketSSLListener Instance { get; } = new AsyncSocketSSLListener();
-
-		public override void StartListening(string ip, int port, int limit = 500)
-		{
-			throw new Exception("Invalid");
-		}
-
-		public void StartListening(string ip, int port, string certificate,string password, int limit = 500)
+		/// <param name="certificate"></param>
+		/// <param name="password"></param>
+		/// <param name="acceptInvalidCertificates"></param>
+		public AsyncSocketSslListener(string certificate, string password, bool acceptInvalidCertificates = true): base()
 		{
 
-			if (string.IsNullOrEmpty(ip))
-				throw new ArgumentNullException(nameof(ip));
-			if (port < 1)
-				throw new ArgumentOutOfRangeException(nameof(port));
 			if (string.IsNullOrEmpty(certificate))
 				throw new ArgumentNullException(nameof(certificate));
-			if (limit < 0)
-				throw new ArgumentException("Limit cannot be under 0.");
-			if (limit == 0)
-				throw new ArgumentException("Limit cannot be 0.");
 
+			AcceptInvalidCertificates = acceptInvalidCertificates;
 			if (string.IsNullOrEmpty(password))
 			{
 				_serverCertificate = new X509Certificate2(File.ReadAllBytes(Path.GetFullPath(certificate)));
@@ -54,6 +46,20 @@ namespace AsyncClientServer.Server
 			{
 				_serverCertificate = new X509Certificate2(File.ReadAllBytes(Path.GetFullPath(certificate)), password);
 			}
+		}
+
+		public override void StartListening(string ip, int port, int limit = 500)
+		{
+
+			if (string.IsNullOrEmpty(ip))
+				throw new ArgumentNullException(nameof(ip));
+			if (port < 1)
+				throw new ArgumentOutOfRangeException(nameof(port));
+			if (limit < 0)
+				throw new ArgumentException("Limit cannot be under 0.");
+			if (limit == 0)
+				throw new ArgumentException("Limit cannot be 0.");
+
 
 			Port = port;
 			Ip = ip;
@@ -61,7 +67,6 @@ namespace AsyncClientServer.Server
 			var host = Dns.GetHostEntry(ip);
 			var ipServer = host.AddressList[0];
 			var endpoint = new IPEndPoint(ipServer, port);
-
 
 			try
 			{
@@ -89,7 +94,10 @@ namespace AsyncClientServer.Server
 
 		private bool AcceptCertificate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicy)
 		{
-			return _acceptInvalidCertificates;
+			if (sslPolicy == SslPolicyErrors.None)
+				return true;
+
+			return AcceptInvalidCertificates;
 		}
 
 		protected override void OnClientConnect(IAsyncResult result)
@@ -118,9 +126,9 @@ namespace AsyncClientServer.Server
 					state.sslStream = new SslStream(stream, false);
 				}
 
-				Task startConnection = Task.Run(() =>
+				Task.Run(() =>
 				{
-					Task<bool> success = StartTls(state);
+					Task<bool> success = Authenticate(state);
 					if (success.Result)
 					{
 						_clients.Add(id, state);
@@ -136,11 +144,11 @@ namespace AsyncClientServer.Server
 			}
 		}
 
-		private async Task<bool> StartTls(IStateObject state)
+		private async Task<bool> Authenticate(IStateObject state)
 		{
 			try
 			{
-				await state.sslStream.AuthenticateAsServerAsync(_serverCertificate, true, SslProtocols.Tls, false);
+				await state.sslStream.AuthenticateAsServerAsync(_serverCertificate, true, SslProtocols.Tls11, false);
 
 				if (!state.sslStream.IsEncrypted)
 				{
@@ -165,9 +173,9 @@ namespace AsyncClientServer.Server
 				{
 					case "Authentication failed because the remote party has closed the transport stream.":
 					case "Unable to read data from the transport connection: An existing connection was forcibly closed by the remote host.":
-						throw new Exception("IOException " + state.Id + " closed the connection.");
+						throw new IOException("IOException " + state.Id + " closed the connection.");
 					case "The handshake failed due to an unexpected packet format.":
-						throw new Exception("IOException " + state.Id + " disconnected, invalid handshake.");
+						throw new IOException("IOException " + state.Id + " disconnected, invalid handshake.");
 					default:
 						throw new IOException(ex.Message, ex);
 				}
@@ -178,8 +186,6 @@ namespace AsyncClientServer.Server
 				throw new Exception(ex.Message, ex);
 			}
 		}
-
-		private ManualResetEvent _mreRead = new ManualResetEvent(true);
 
 		//Start receiving
 		public override void StartReceiving(IStateObject state, int offset = 0)
@@ -200,10 +206,10 @@ namespace AsyncClientServer.Server
 		protected override void HandleMessage(IAsyncResult result)
 		{
 
+			var state = (StateObject.StateObject)result.AsyncState;
 			try
 			{
 
-				var state = (StateObject.StateObject)result.AsyncState;
 
 				//Check if client is still connected.
 				//If client is disconnected, send disconnected message
@@ -244,17 +250,14 @@ namespace AsyncClientServer.Server
 						return;
 					}
 
-					//When something goes wrong
-					state.Reset();
+
+					//sslstream has inconsistent buffers
 					StartReceiving(state);
 				}
-
-
-
-
 			}
 			catch (Exception ex)
 			{
+				state.Reset();
 				throw new Exception(ex.Message, ex);
 			}
 		}
@@ -288,6 +291,10 @@ namespace AsyncClientServer.Server
 				var send = bytes;
 
 				state.Close = close;
+
+				_mreWriting.WaitOne();
+
+				_mreWriting.Reset();
 				state.sslStream.BeginWrite(send, 0, send.Length, SendCallback, state);
 			}
 			catch (SocketException se)
@@ -313,6 +320,7 @@ namespace AsyncClientServer.Server
 			{
 				state.sslStream.EndWrite(result);
 				state.sslStream.Flush();
+				_mreWriting.Set();
 				if (state.Close)
 					Close(state.Id);
 			}
@@ -331,6 +339,70 @@ namespace AsyncClientServer.Server
 			finally
 			{
 				InvokeMessageSubmitted(state.Id, state.Close);
+			}
+		}
+
+
+		protected override void SendBytesOfFile(byte[] bytes, int id)
+		{
+			var state = GetClient(id);
+
+			if (state == null)
+			{
+				throw new Exception("Client does not exist.");
+			}
+
+			if (!IsConnected(state.Id))
+			{
+				//Sets client with id to disconnected
+				ClientDisconnectedInvoke(state.Id);
+				throw new Exception("Destination socket is not connected.");
+			}
+
+			try
+			{
+				var send = bytes;
+				_mreWriting.WaitOne();
+
+				_mreWriting.Reset();
+				state.sslStream.BeginWrite(send, 0, send.Length, FileTransferPartialCallback, state);
+			}
+			catch (SocketException se)
+			{
+				throw new SocketException(se.ErrorCode);
+			}
+			catch (ArgumentException ae)
+			{
+				throw new ArgumentException(ae.Message, ae);
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message, ex);
+			}
+		}
+
+		//End the send and invoke MessageSubmitted event.
+		protected override void FileTransferPartialCallback(IAsyncResult result)
+		{
+			var state = (IStateObject)result.AsyncState;
+
+			try
+			{
+				state.sslStream.EndWrite(result);
+				state.sslStream.Flush();
+				_mreWriting.Set();
+			}
+			catch (SocketException se)
+			{
+				throw new SocketException(se.ErrorCode);
+			}
+			catch (ObjectDisposedException ode)
+			{
+				throw new ObjectDisposedException(ode.ObjectName, ode.Message);
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message, ex);
 			}
 		}
 

@@ -22,14 +22,10 @@ namespace AsyncClientServer.Server
 	{
 
 		/// <summary>
-		/// Get the instance of the server
+		/// Constructor
 		/// </summary>
-		public static AsyncSocketListener Instance { get; } = new AsyncSocketListener();
-
-
-		private AsyncSocketListener()
+		public AsyncSocketListener() : base()
 		{
-			Init();
 		}
 
 		/// <summary>
@@ -119,11 +115,9 @@ namespace AsyncClientServer.Server
 		//Handles messages
 		protected override void HandleMessage(IAsyncResult result)
 		{
-
+			var state = (StateObject.StateObject)result.AsyncState;
 			try
 			{
-
-				var state = (StateObject.StateObject)result.AsyncState;
 
 				//Check if client is still connected.
 				//If client is disconnected, send disconnected message
@@ -163,17 +157,13 @@ namespace AsyncClientServer.Server
 						return;
 					}
 
-					//When something goes wrong
-					state.Reset();
+
 					StartReceiving(state);
 				}
-
-
-
-
 			}
 			catch (Exception ex)
 			{
+				state.Reset();
 				throw new Exception(ex.Message, ex);
 			}
 		}
@@ -252,5 +242,65 @@ namespace AsyncClientServer.Server
 			}
 		}
 
+
+
+		protected override void SendBytesOfFile(byte[] bytes, int id)
+		{
+			var state = GetClient(id);
+
+			if (state == null)
+			{
+				throw new Exception("Client does not exist.");
+			}
+
+			if (!IsConnected(state.Id))
+			{
+				//Sets client with id to disconnected
+				ClientDisconnectedInvoke(state.Id);
+				throw new Exception("Destination socket is not connected.");
+			}
+
+			try
+			{
+				var send = bytes;
+
+				state.Listener.BeginSend(send, 0, send.Length, SocketFlags.None, FileTransferPartialCallback, state);
+			}
+			catch (SocketException se)
+			{
+				throw new SocketException(se.ErrorCode);
+			}
+			catch (ArgumentException ae)
+			{
+				throw new ArgumentException(ae.Message, ae);
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message, ex);
+			}
+		}
+
+		//End the send and invoke MessageSubmitted event.
+		protected override void FileTransferPartialCallback(IAsyncResult result)
+		{
+			var state = (IStateObject)result.AsyncState;
+
+			try
+			{
+				state.Listener.EndSend(result);
+			}
+			catch (SocketException se)
+			{
+				throw new SocketException(se.ErrorCode);
+			}
+			catch (ObjectDisposedException ode)
+			{
+				throw new ObjectDisposedException(ode.ObjectName, ode.Message);
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message, ex);
+			}
+		}
 	}
 }

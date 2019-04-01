@@ -116,8 +116,7 @@ namespace AsyncClientServer.StateObject.StateObjectState
 
 			//Tracks the progress
 			if (Client == null)
-				AsyncSocketListener.Instance.InvokeFileTransferProgress(State.Id, State.Read,
-					State.MessageSize);
+				Server.InvokeFileTransferProgress(State.Id, State.Read,State.MessageSize);
 			else
 				Client.InvokeFileTransferProgress(State.Read, State.MessageSize);
 

@@ -30,13 +30,15 @@ namespace AsyncClientServer.Example.Server
 			InitializeComponent();
 		}
 
-		private AsyncSocketSSLListener _listener;
+		private IServerListener _listener;
 
 		//Starts the server thread
 		private void Window_Loaded_1(object sender, RoutedEventArgs e)
 		{
-			_listener = AsyncSocketSSLListener.Instance;
-			//_listener = AsyncSocketListener.Instance;
+			//_listener = new AsyncSocketSslListener(
+			//	@"C:\Users\CloetOMEN\Downloads\Cert\bin\signtool\PFXClientServerTest.pfx",
+			//	"TestCertificate");
+			_listener = new AsyncSocketListener();
 
 			Thread t = new Thread(StartServer);
 			t.Start();
@@ -58,10 +60,6 @@ namespace AsyncClientServer.Example.Server
 				_listener.FileReceived += new FileFromClientReceivedHandler(FileReceived);
 				_listener.ServerHasStarted += new ServerHasStartedHandler(ServerHasStarted);
 
-
-				_listener.StartListening(ip, port,
-					@"C:\Users\CloetOMEN\Downloads\Cert\bin\signtool\PFXClientServerTest.pfx",
-					"TestCertificate");
 				_listener.StartListening(ip, port);
 			}
 			catch (Exception ex)

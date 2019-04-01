@@ -41,24 +41,19 @@ namespace AsyncClientServer.Client
 		/// </summary>
 		event DisconnectedFromServerHandler Disconnected;
 
-
-		/// <summary>
-		/// Tries to connect to the server
-		/// <para>Will try to reconnect every 5 seconds (default value)</para>
-		/// </summary>
-		/// <param name="ipServer">Ip of the server</param>
-		/// <param name="port">Port of the server</param>
-		void StartClient(string ipServer, int port);
-
 		/// <summary>
 		/// Tries to connect to the server
 		/// </summary>
 		/// <param name="ipServer">The server ip</param>
 		/// <param name="port">The port the server is using</param>
 		/// <param name="reconnectInSeconds">Default is 5</param>
-		void StartClient(string ipServer, int port, int reconnectInSeconds);
+		void StartClient(string ipServer, int port, int reconnectInSeconds = 5);
 
-
+		/// <summary>
+		/// Starts receiving bytes from server
+		/// </summary>
+		/// <param name="state"></param>
+		/// <param name="offset"></param>
 		void StartReceiving(IStateObject state, int offset = 0);
 
 		/// <summary>

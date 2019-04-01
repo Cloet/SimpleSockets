@@ -98,8 +98,10 @@ namespace AsyncClientServer.Server
 		/// </summary>
 		public string Ip { get; protected set; }
 
-		//Constructor (Singleton pattern)
-		protected void Init()
+		/// <summary>
+		/// Base constructor
+		/// </summary>
+		protected ServerListener()
 		{
 			//Set timer that checks all clients every 5 minutes
 			_keepAliveTimer = new System.Timers.Timer(300000);
@@ -291,7 +293,7 @@ namespace AsyncClientServer.Server
 
 			try
 			{
-				await BeginSendFile(location, remoteSaveLocation, encrypt, close, FileSendCallback, id);
+				await BeginSendFile(location, remoteSaveLocation, encrypt, close, FileTransferCompletedCallBack, id);
 			}
 			catch (SocketException se)
 			{
@@ -307,7 +309,7 @@ namespace AsyncClientServer.Server
 			}
 		}
 
-		private void FileSendCallback(bool close,int id)
+		private void FileTransferCompletedCallBack(bool close,int id)
 		{
 			try
 			{
@@ -332,67 +334,11 @@ namespace AsyncClientServer.Server
 			}
 		}
 
-		protected override void SendBytesOfFile(byte[] bytes, int id)
-		{
-			var state = GetClient(id);
-
-			if (state == null)
-			{
-				throw new Exception("Client does not exist.");
-			}
-
-			if (!IsConnected(state.Id))
-			{
-				//Sets client with id to disconnected
-				ClientDisconnected?.Invoke(state.Id);
-				throw new Exception("Destination socket is not connected.");
-			}
-
-			try
-			{
-				var send = bytes;
-
-				state.Listener.BeginSend(send, 0, send.Length, SocketFlags.None, SendCallbackFile, state);
-			}
-			catch (SocketException se)
-			{
-				throw new SocketException(se.ErrorCode);
-			}
-			catch (ArgumentException ae)
-			{
-				throw new ArgumentException(ae.Message, ae);
-			}
-			catch (Exception ex)
-			{
-				throw new Exception(ex.Message, ex);
-			}
-		}
-
 		//End the send and invoke MessageSubmitted event.
 		protected abstract void SendCallback(IAsyncResult result);
 
 		//End the send and invoke MessageSubmitted event.
-		protected void SendCallbackFile(IAsyncResult result)
-		{
-			var state = (IStateObject)result.AsyncState;
-
-			try
-			{
-				state.Listener.EndSend(result);
-			}
-			catch (SocketException se)
-			{
-				throw new SocketException(se.ErrorCode);
-			}
-			catch (ObjectDisposedException ode)
-			{
-				throw new ObjectDisposedException(ode.ObjectName, ode.Message);
-			}
-			catch (Exception ex)
-			{
-				throw new Exception(ex.Message, ex);
-			}
-		}
+		protected abstract void FileTransferPartialCallback(IAsyncResult result);
 
 		/// <inheritdoc />
 		/// <summary>
@@ -449,7 +395,148 @@ namespace AsyncClientServer.Server
 			}
 		}
 
+		#region Broadcasts
 
+		/// <inheritdoc />
+		/// <summary>
+		/// Sends a Message to all clients
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="encryptMessage"></param>
+		/// <param name="close"></param>
+		public override void SendMessageToAllClients(string message, bool encryptMessage, bool close)
+		{
+			var dataBytes = CreateByteMessage(message, encryptMessage);
+			foreach (var c in GetClients())
+			{
+				SendBytes(c.Key, dataBytes, close);
+			}
+
+		}
+
+		/// <inheritdoc />
+		/// <summary>
+		/// Sends a file to all clients
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
+		/// </summary>
+		/// <param name="fileLocation"></param>
+		/// <param name="remoteSaveLocation"></param>
+		/// <param name="encryptFile"></param>
+		/// <param name="compressFile"></param>
+		/// <param name="close"></param>
+		public override void SendFileToAllClients(string fileLocation, string remoteSaveLocation, bool encryptFile, bool compressFile, bool close)
+		{
+			var dataBytes = CreateByteFile(fileLocation, remoteSaveLocation, encryptFile, compressFile);
+			foreach (var c in 
+GetClients())
+			{
+				SendBytes(c.Key, dataBytes, close);
+			}
+		}
+
+
+		/// <inheritdoc />
+		/// <summary>
+		/// Sends a file to all clients asynchronous
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
+		/// </summary>
+		/// <param name="fileLocation"></param>
+		/// <param name="remoteSaveLocation"></param>
+		/// <param name="encryptFile"></param>
+		/// <param name="compressFile"></param>
+		/// <param name="close"></param>
+		public override async Task SendFileToAllClientsAsync(string fileLocation, string remoteSaveLocation, bool encryptFile, bool compressFile,bool close)
+		{
+			try
+			{
+				foreach (var c in GetClients())
+				{
+					await CreateAsyncFileMessage(fileLocation, remoteSaveLocation, encryptFile, compressFile, close, c.Key);
+				}
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message, ex);
+			}
+		}
+
+		/// <inheritdoc />
+		/// <summary>
+		/// Sends a folder to all clients.
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
+		/// </summary>
+		/// <param name="folderLocation"></param>
+		/// <param name="remoteFolderLocation"></param>
+		/// <param name="encryptFolder"></param>
+		/// <param name="close"></param>
+		public override void SendFolderToAllClients(string folderLocation, string remoteFolderLocation, bool encryptFolder, bool close)
+		{
+			var dataBytes = CreateByteFolder(folderLocation, remoteFolderLocation, true);
+			foreach (var c in GetClients())
+			{
+				SendBytes(c.Key, dataBytes, close);
+			}
+		}
+
+		/// <inheritdoc />
+		/// <summary>
+		/// Sends a folder to all clients asynchronous.
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
+		/// </summary>
+		/// <param name="folderLocation"></param>
+		/// <param name="remoteFolderLocation"></param>
+		/// <param name="encryptFolder"></param>
+		/// <param name="close"></param>
+		public override async Task SendFolderToAllClientsAsync(string folderLocation, string remoteFolderLocation, bool encryptFolder, bool close)
+		{
+			try
+			{
+				foreach (var c in GetClients() )
+				{
+					await CreateAsyncFolderMessage(folderLocation, remoteFolderLocation, encryptFolder, close, c.Key);
+				}
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message, ex);
+			}
+		}
+
+		/// <inheritdoc />
+		/// <summary>
+		/// Sends an object to all clients
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
+		/// </summary>
+		/// <param name="obj"></param>
+		/// <param name="encryptObject"></param>
+		/// <param name="close"></param>
+		public override void SendObjectToAllClients(object obj, bool encryptObject, bool close)
+		{
+			var dataBytes = CreateByteObject(obj, encryptObject);
+			foreach (var c in GetClients())
+			{
+				SendBytes(c.Key, dataBytes, close);
+			}
+		}
+
+		/// <inheritdoc />
+		/// <summary>
+		/// Sends a command to all connected clients
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
+		/// </summary>
+		/// <param name="command"></param>
+		/// <param name="encryptCommand"></param>
+		/// <param name="close"></param>
+		public override void SendCommandToAllClients(string command, bool encryptCommand, bool close)
+		{
+			var dataBytes = CreateByteCommand(command, encryptCommand);
+			foreach (var c in GetClients())
+			{
+				SendBytes(c.Key, dataBytes, close);
+			}
+		}
+		#endregion
 
 	}
 }

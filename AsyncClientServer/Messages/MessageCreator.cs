@@ -82,8 +82,23 @@ namespace AsyncClientServer.Messages
 			}
 		}
 
-
+		////Begins sending file to client
 		protected abstract Task SendFile(string location, string remoteSaveLocation, bool encrypt,bool close, int id = -1);
+
+		//Gets called to send parts of the file
+		protected abstract void SendBytesOfFile(byte[] bytes, int id);
+
+		//Begins sending a file async, when completed the callback will be invoked
+		protected async Task BeginSendFile(string location, string remoteSaveLocation, bool encrypt,
+			bool close, AsyncCallerFile callback, int id = -1)
+		{
+
+			await StreamFileAndSendBytes(location, remoteSaveLocation, encrypt, id);
+
+			callback.Invoke(close, id);
+
+		}
+
 
 		/// <summary>
 		/// This method Sends a file asynchronous.
@@ -267,19 +282,6 @@ namespace AsyncClientServer.Messages
 				throw new Exception(ex.Message, ex);
 			}
 		}
-
-		protected abstract void SendBytesOfFile(byte[] bytes, int id);
-
-		protected async Task BeginSendFile(string location, string remoteSaveLocation, bool encrypt,
-			bool close, AsyncCallerFile callback, int id = -1)
-		{
-		
-			await StreamFileAndSendBytes(location, remoteSaveLocation, encrypt, id);
-
-			callback.Invoke(close, id);
-
-		}
-
 
 		//Writes a message to byte array
 		private static byte[] CreateByteArray(string message, string header, bool encrypt)

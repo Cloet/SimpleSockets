@@ -127,29 +127,20 @@ namespace AsyncClientServer.Client
 			if (!IsConnected())
 			{
 				Disconnected?.Invoke(this, this.IpServer, this.Port);
-				this.Close();
+				Close();
 				_connected.Reset();
 				StartClient(IpServer, Port, ReconnectInSeconds);
 			}
 		}
 
+		/// <inheritdoc />
 		/// <summary>
 		/// Starts the client.
 		/// <para>requires server ip, port number and how many seconds the client should wait to try to connect again. Default is 5 seconds</para>
 		/// </summary>
-		public abstract void StartClient(string ipServer, int port, int reconnectInSeconds);
+		public abstract void StartClient(string ipServer, int port, int reconnectInSeconds = 5);
 
-		/// <summary>
-		/// Method starts the client requires ip of server and port number.
-		/// <para>Loops connect every 5 seconds.</para>
-		/// </summary>
-		/// <param name="ipServer"></param>
-		/// <param name="port"></param>
-		public void StartClient(string ipServer, int port)
-		{
-			StartClient(ipServer, port, 5);
-		}
-
+		/// <inheritdoc />
 		/// <summary>
 		/// Check if client is connected to server
 		/// </summary>
@@ -168,6 +159,8 @@ namespace AsyncClientServer.Client
 
 		//When client connects.
 		protected abstract void OnConnectCallback(IAsyncResult result);
+
+		//*******Receiving Data**************////
 
 		/// <summary>
 		/// Start receiving data from server.
@@ -196,30 +189,36 @@ namespace AsyncClientServer.Client
 			}
 		}
 
-		//Start receiving
+
+		/// <summary>
+		/// Start receiving bytes from server
+		/// </summary>
+		/// <param name="state"></param>
+		/// <param name="offset"></param>
 		public abstract void StartReceiving(IStateObject state, int offset = 0);
 
 		//Handle a message
 		protected abstract void HandleMessage(IAsyncResult result);
 
-		/// <summary>
-		/// Sends data to server
-		/// <para>This method should not be used,instead use methods in <see cref="SendToServer"/></para>
-		/// </summary>
-		/// <param name="bytes"></param>
-		/// <param name="close"></param>
-		//protected abstract void SendBytes(byte[] bytes, bool close);
+		//******************************************///
+
+		//*****Message Sending****///
 
 		//Send message and invokes MessageSubmitted.
 		protected abstract void SendCallback(IAsyncResult result);
 
+		//************************///
+
+
+		//***File Transfer***///
+
+		//Sends a file to server
 		protected override async Task SendFile(string location, string remoteSaveLocation, bool encrypt, bool close, int id = -1)
 		{
 
 			try
 			{
-				await BeginSendFile(location, remoteSaveLocation, encrypt, close, FileSendCallback);
-				//await BeginSendFile(location, remoteSaveLocation, encrypt, close, FileSendCallback, id);
+				await BeginSendFile(location, remoteSaveLocation, encrypt, close, FileTransferCompletedCallBack);
 			}
 			catch (SocketException se)
 			{
@@ -235,50 +234,12 @@ namespace AsyncClientServer.Client
 			}
 		}
 
-		protected override void SendBytesOfFile(byte[] bytes, int id)
-		{
-			try
-			{
+		//Gets called when file is done sending
+		protected abstract void FileTransferPartialCallBack(IAsyncResult result);
 
-				if (!this.IsConnected())
-				{
-					throw new Exception("Destination socket is not connected.");
-				}
-				else
-				{
-					var send = bytes;
 
-					_listener.BeginSend(send, 0, send.Length, SocketFlags.None, SendCallbackFile, _listener);
-				}
-			}
-			catch (Exception ex)
-			{
-				throw new Exception(ex.Message, ex);
-			}
-		}
-
-		protected void SendCallbackFile(IAsyncResult result)
-		{
-			try
-			{
-				var receiver = (Socket)result.AsyncState;
-				receiver.EndSend(result);
-			}
-			catch (SocketException se)
-			{
-				throw new Exception(se.ToString());
-			}
-			catch (ObjectDisposedException se)
-			{
-				throw new Exception(se.ToString());
-			}
-
-			MessageSubmitted?.Invoke(this, _close);
-
-			_sent.Set();
-		}
-
-		private void FileSendCallback(bool close, int id)
+		//Gets called when file is done sending
+		protected  void FileTransferCompletedCallBack(bool close, int id)
 		{
 
 			try
@@ -301,10 +262,13 @@ namespace AsyncClientServer.Client
 			finally
 			{
 				MessageSubmitted?.Invoke(this, close);
+				_sent.Set();
 			}
 		}
 
-		//Close client
+		//*****************///
+
+		//Closes client
 		protected void Close()
 		{
 			try
