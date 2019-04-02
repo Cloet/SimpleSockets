@@ -35,10 +35,9 @@ namespace AsyncClientServer.Example.Server
 		//Starts the server thread
 		private void Window_Loaded_1(object sender, RoutedEventArgs e)
 		{
-			_listener = new AsyncSocketSslListener(
-				@"C:\Users\CloetOMEN\Desktop\cert.pfx",
-				"Password", TlsProtocol.Tls11);
-			//_listener = new AsyncSocketListener();
+			//_listener = new AsyncSocketSslListener(
+			//	"","", TlsProtocol.Tls11);
+			_listener = new AsyncSocketListener();
 
 			Thread t = new Thread(StartServer);
 			t.Start();
