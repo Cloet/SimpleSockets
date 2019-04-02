@@ -50,6 +50,7 @@
     <Compile Include="Server\ISendToClient.cs" />
     <Compile Include="Client\ISendToServer.cs" />
     <Compile Include="Server\ServerListener.cs" />
+    <Compile Include="SslProtocol.cs" />
     <Compile Include="StateObject\IStateObject.cs" />
     <Compile Include="Messages\MessageCreator.cs" />
     <Compile Include="Server\SendToClient.cs" />

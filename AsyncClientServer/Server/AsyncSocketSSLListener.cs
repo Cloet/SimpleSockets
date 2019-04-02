@@ -22,6 +22,7 @@ namespace AsyncClientServer.Server
 		private bool _mutualAuth = false;
 		private readonly ManualResetEvent _mreRead = new ManualResetEvent(true);
 		private readonly ManualResetEvent _mreWriting = new ManualResetEvent(true);
+		private TlsProtocol _tlsProtocol;
 
 		public bool AcceptInvalidCertificates { get; set; }
 
@@ -31,13 +32,15 @@ namespace AsyncClientServer.Server
 		/// <param name="certificate"></param>
 		/// <param name="password"></param>
 		/// <param name="acceptInvalidCertificates"></param>
-		public AsyncSocketSslListener(string certificate, string password, bool acceptInvalidCertificates = true): base()
+		public AsyncSocketSslListener(string certificate, string password,TlsProtocol tlsProtocol = TlsProtocol.Tls12, bool acceptInvalidCertificates = true): base()
 		{
 
 			if (string.IsNullOrEmpty(certificate))
 				throw new ArgumentNullException(nameof(certificate));
 
 			AcceptInvalidCertificates = acceptInvalidCertificates;
+			_tlsProtocol = tlsProtocol;
+
 			if (string.IsNullOrEmpty(password))
 			{
 				_serverCertificate = new X509Certificate2(File.ReadAllBytes(Path.GetFullPath(certificate)));
@@ -128,14 +131,21 @@ namespace AsyncClientServer.Server
 
 				Task.Run(() =>
 				{
-					Task<bool> success = Authenticate(state);
-					if (success.Result)
+					var success = Authenticate(state).Result;
+
+					if (success)
 					{
 						_clients.Add(id, state);
 						ClientConnectedInvoke(id);
 						StartReceiving(state);
 					}
-				});
+					else
+					{
+						throw new AuthenticationException("Unable to authenticate server.");
+					}
+
+				}, new CancellationTokenSource(10000).Token);
+
 
 			}
 			catch (SocketException se)
@@ -148,7 +158,22 @@ namespace AsyncClientServer.Server
 		{
 			try
 			{
-				await state.sslStream.AuthenticateAsServerAsync(_serverCertificate, true, SslProtocols.Tls11, false);
+				SslProtocols protocol = SslProtocols.Tls12;
+
+				switch (_tlsProtocol)
+				{
+					case TlsProtocol.Tls10:
+						protocol = SslProtocols.Tls;
+						break;
+					case TlsProtocol.Tls11:
+						protocol = SslProtocols.Tls11;
+						break;
+					case TlsProtocol.Tls12:
+						protocol = SslProtocols.Tls12;
+						break;
+				}
+
+				await state.sslStream.AuthenticateAsServerAsync(_serverCertificate, true, protocol, false);
 
 				if (!state.sslStream.IsEncrypted)
 				{
@@ -222,13 +247,15 @@ namespace AsyncClientServer.Server
 				//Else start receiving and handle the message.
 				else
 				{
+
 					var receive = state.sslStream.EndRead(result);
+
 					_mreRead.Set();
 					//var receive = state.Listener.EndReceive(result);
 
 					if (state.Flag == 0)
 					{
-						state.CurrentState = new InitialHandlerState(state,null,this);
+						state.CurrentState = new InitialHandlerState(state, null, this);
 					}
 
 					if (receive > 0)
@@ -249,7 +276,6 @@ namespace AsyncClientServer.Server
 						StartReceiving(state);
 						return;
 					}
-
 
 					//sslstream has inconsistent buffers
 					StartReceiving(state);
@@ -319,7 +345,6 @@ namespace AsyncClientServer.Server
 			try
 			{
 				state.sslStream.EndWrite(result);
-				state.sslStream.Flush();
 				_mreWriting.Set();
 				if (state.Close)
 					Close(state.Id);
@@ -389,7 +414,6 @@ namespace AsyncClientServer.Server
 			try
 			{
 				state.sslStream.EndWrite(result);
-				state.sslStream.Flush();
 				_mreWriting.Set();
 			}
 			catch (SocketException se)

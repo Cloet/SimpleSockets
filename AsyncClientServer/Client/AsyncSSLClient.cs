@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -25,6 +26,7 @@ namespace AsyncClientServer.Client
 		private readonly ManualResetEvent _mreWriting = new ManualResetEvent(true);
 		public bool AcceptInvalidCertificates { get; set; }
 		private bool _mutualAuth = false;
+		private TlsProtocol _tlsProtocol;
 
 		/// <summary>
 		/// Constructor
@@ -32,7 +34,7 @@ namespace AsyncClientServer.Client
 		/// <param name="certificate"></param>
 		/// <param name="password"></param>
 		/// <param name="acceptInvalidCertificates"></param>
-		public AsyncSslClient(string certificate, string password, bool acceptInvalidCertificates = true) : base()
+		public AsyncSslClient(string certificate, string password,TlsProtocol tls = TlsProtocol.Tls12, bool acceptInvalidCertificates = true) : base()
 		{
 
 			if (string.IsNullOrEmpty(certificate))
@@ -47,6 +49,7 @@ namespace AsyncClientServer.Client
 				_sslCertificate = new X509Certificate2(File.ReadAllBytes(Path.GetFullPath(certificate)), password);
 			}
 
+			_tlsProtocol = tls;
 			AcceptInvalidCertificates = acceptInvalidCertificates;
 
 		}
@@ -119,7 +122,23 @@ namespace AsyncClientServer.Client
 		{
 			try
 			{
-				await sslStream.AuthenticateAsClientAsync(IpServer, _sslCertificateCollection, SslProtocols.Tls11, false);
+				SslProtocols protocol = SslProtocols.Tls12;
+
+				switch (_tlsProtocol)
+				{
+					case TlsProtocol.Tls10:
+						protocol = SslProtocols.Tls;
+						break;
+					case TlsProtocol.Tls11:
+						protocol = SslProtocols.Tls11;
+						break;
+					case TlsProtocol.Tls12:
+						protocol = SslProtocols.Tls12;
+						break;
+				}
+
+
+				await sslStream.AuthenticateAsClientAsync(IpServer, _sslCertificateCollection, protocol, false);
 
 				if (!sslStream.IsEncrypted)
 				{
@@ -172,17 +191,24 @@ namespace AsyncClientServer.Client
 				var stream = new NetworkStream(_listener);
 
 				_sslStream = new SslStream(stream, false, new RemoteCertificateValidationCallback(ValidateCertificate),null);
-				
+
 				Task.Run(() =>
 				{
-					Task<bool> success = Authenticate(_sslStream);
-					if (success.Result)
+					bool success = Authenticate(_sslStream).Result;
+
+					
+					if (success)
 					{
-						_connected.Set();
-						_keepAliveTimer.Enabled = true;
-						Receive();
+							_connected.Set();
+							_keepAliveTimer.Enabled = true;
+							Receive();
 					}
-				});
+					else
+					{
+						throw new AuthenticationException("Client cannot be authenticated.");
+					}
+
+				}, new CancellationTokenSource(10000).Token);
 
 
 			}
@@ -241,7 +267,6 @@ namespace AsyncClientServer.Client
 			{
 				var receiver = (SslStream)result.AsyncState;
 				receiver.EndWrite(result);
-				receiver.Flush();
 				_mreWriting.Set();
 			}
 			catch (SocketException se)
@@ -354,7 +379,6 @@ namespace AsyncClientServer.Client
 			{
 				var receiver = (SslStream)result.AsyncState;
 				receiver.EndWrite(result);
-				receiver.Flush();
 				_mreWriting.Set();
 			}
 			catch (SocketException se)

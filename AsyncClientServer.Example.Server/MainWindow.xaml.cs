@@ -35,10 +35,10 @@ namespace AsyncClientServer.Example.Server
 		//Starts the server thread
 		private void Window_Loaded_1(object sender, RoutedEventArgs e)
 		{
-			//_listener = new AsyncSocketSslListener(
-			//	@"",
-			//	"");
-			_listener = new AsyncSocketListener();
+			_listener = new AsyncSocketSslListener(
+				@"C:\Users\CloetOMEN\Desktop\cert.pfx",
+				"Password", TlsProtocol.Tls11);
+			//_listener = new AsyncSocketListener();
 
 			Thread t = new Thread(StartServer);
 			t.Start();
@@ -80,7 +80,7 @@ namespace AsyncClientServer.Example.Server
 		private void MessageReceived(int id, string header, string msg)
 		{
 			AppendRichtTextBox("Client " + id + " has send a " + header + ": " + msg);
-			_listener.SendMessage(id, "The message has been received.", false);
+			_listener.SendMessage(id, "The message has been received.", false,false);
 		}
 
 		private void MessageSubmitted(int id, bool close)
@@ -90,7 +90,7 @@ namespace AsyncClientServer.Example.Server
 
 		private void FileReceived(int id, string path)
 		{
-			_listener.SendMessage(id, "File has been received.", false);
+			_listener.SendMessage(id, "File has been received.", false,false);
 			Dispatcher.Invoke(() => { ProgressBarProgress.Value = 0; });
 			AppendRichtTextBox("Client " + id + "has send a file/folder and has been saved at \n" + path);
 		}

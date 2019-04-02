@@ -44,9 +44,9 @@ namespace AsyncClientServer.Example.Client
 
 		private void StartClient()
 		{
-			_client = new AsyncClient();
-			//_client = new AsyncSslClient(@"",
-			//	"");
+			//_client = new AsyncClient();
+			_client = new AsyncSslClient(@"C:\Users\CloetOMEN\Desktop\cert.pfx",
+				"Password", TlsProtocol.Tls11);
 
 			//Bind events
 			_client.ProgressFileReceived += new ProgressFileTransferHandler(Progress);
@@ -76,7 +76,7 @@ namespace AsyncClientServer.Example.Client
 
 		private void FileReceived(ITcpClient a, string file)
 		{
-			_client.SendMessage("File has been received.", false);
+			_client.SendMessage("File has been received.", false,false);
 			Dispatcher.Invoke(() => { ProgressBarProgress.Value = 0; });
 			AppendRichtTextBox("File has been received and is stored at path: " + file);
 		}
