@@ -44,8 +44,8 @@ namespace AsyncClientServer.Example.Client
 
 		private void StartClient()
 		{
-			_client = new AsyncClient();
-			//_client = new AsyncSslClient("","", TlsProtocol.Tls11);
+			//_client = new AsyncClient();
+			_client = new AsyncSslClient(@"C:\Users\CloetOMEN\Desktop\cert.pfx", "Password", TlsProtocol.Tls12);
 
 			//Bind events
 			_client.ProgressFileReceived += new ProgressFileTransferHandler(Progress);
@@ -144,10 +144,8 @@ namespace AsyncClientServer.Example.Client
 			TextBlockSource.Text = _selectedFileFolder;
 		}
 
-		//Send a file or folder
-		private async void ButtonSendFileFolder_Click(object sender, RoutedEventArgs e)
+		private async Task SendFileFolder()
 		{
-
 			try
 			{
 				if (TextBlockTarget.Text == string.Empty)
@@ -159,11 +157,11 @@ namespace AsyncClientServer.Example.Client
 
 				if (Directory.Exists(Path.GetFullPath(_selectedFileFolder)))
 				{
-					await _client.SendFolderAsync(Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text),encrypt, false);
+					await _client.SendFolderAsync(Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text), encrypt, false);
 				}
 				else
 				{
-					await _client.SendFileAsync(Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text),false);
+					await _client.SendFileAsync(Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text), false);
 				}
 
 			}
@@ -171,6 +169,13 @@ namespace AsyncClientServer.Example.Client
 			{
 				AppendRichtTextBox("\nError \n" + ex.Message);
 			}
+		}
+
+		//Send a file or folder
+		private async void ButtonSendFileFolder_Click(object sender, RoutedEventArgs e)
+		{
+
+			await SendFileFolder();
 
 		}
 

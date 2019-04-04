@@ -35,9 +35,8 @@ namespace AsyncClientServer.Example.Server
 		//Starts the server thread
 		private void Window_Loaded_1(object sender, RoutedEventArgs e)
 		{
-			//_listener = new AsyncSocketSslListener(
-			//	"","", TlsProtocol.Tls11);
-			_listener = new AsyncSocketListener();
+			_listener = new AsyncSocketSslListener(@"C:\Users\CloetOMEN\Desktop\cert.pfx", "Password", TlsProtocol.Tls12);
+			//_listener = new AsyncSocketListener();
 
 			Thread t = new Thread(StartServer);
 			t.Start();
@@ -159,8 +158,8 @@ namespace AsyncClientServer.Example.Server
 
 		//Buttons
 
-		//Send File or folder.
-		private async void ButtonSendFileFolder_Click(object sender, RoutedEventArgs e)
+
+		private async Task SendFileFolder()
 		{
 			try
 			{
@@ -210,6 +209,12 @@ namespace AsyncClientServer.Example.Server
 			{
 				AppendRichtTextBox("\nError \n" + ex.Message);
 			}
+		}
+
+		//Send File or folder.
+		private async void ButtonSendFileFolder_Click(object sender, RoutedEventArgs e)
+		{
+			await SendFileFolder();
 		}
 
 		//Send command

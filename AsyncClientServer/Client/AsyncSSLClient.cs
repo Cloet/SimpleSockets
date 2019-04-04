@@ -11,6 +11,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 using AsyncClientServer.StateObject;
 using AsyncClientServer.StateObject.StateObjectState;
 
@@ -26,7 +27,7 @@ namespace AsyncClientServer.Client
 		private readonly ManualResetEvent _mreWriting = new ManualResetEvent(true);
 		public bool AcceptInvalidCertificates { get; set; }
 		private bool _mutualAuth = false;
-		private TlsProtocol _tlsProtocol;
+		private readonly TlsProtocol _tlsProtocol;
 
 		/// <summary>
 		/// Constructor
@@ -192,6 +193,7 @@ namespace AsyncClientServer.Client
 
 				_sslStream = new SslStream(stream, false, new RemoteCertificateValidationCallback(ValidateCertificate),null);
 
+
 				Task.Run(() =>
 				{
 					bool success = Authenticate(_sslStream).Result;
@@ -214,6 +216,12 @@ namespace AsyncClientServer.Client
 			}
 			catch (SocketException)
 			{
+				if (_sslStream != null)
+				{
+					_sslStream.Dispose();
+					_sslStream = null;
+				}
+				
 				Thread.Sleep(ReconnectInSeconds * 1000);
 				_listener.BeginConnect(_endpoint, this.OnConnectCallback, _listener);
 			}
@@ -295,7 +303,6 @@ namespace AsyncClientServer.Client
 			}
 
 			_mreRead.WaitOne();
-
 			_mreRead.Reset();
 			state.sslStream.BeginRead(state.Buffer, offset, state.BufferSize - offset, ReceiveCallback, state);
 
@@ -341,6 +348,8 @@ namespace AsyncClientServer.Client
 			catch (Exception ex)
 			{
 				state.Reset();
+				_sslStream.Close();
+				_listener.BeginConnect(_endpoint, this.OnConnectCallback, _listener);
 				throw new Exception(ex.ToString());
 			}
 		}

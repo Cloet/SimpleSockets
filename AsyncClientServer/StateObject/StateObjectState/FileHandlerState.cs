@@ -84,8 +84,16 @@ namespace AsyncClientServer.StateObject.StateObjectState
 			}
 			else
 			{
-				//Get all bytes
-				bytes = State.Buffer;
+				//Get all bytes, checks if less then buffersize has been received.
+				if (receive == State.BufferSize)
+				{
+					bytes = State.Buffer;
+				}
+				else
+				{
+					bytes = new byte[receive];
+					Array.Copy(State.Buffer, 0, bytes, 0, receive);
+				}
 			}
 
 

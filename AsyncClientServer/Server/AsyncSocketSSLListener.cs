@@ -129,6 +129,7 @@ namespace AsyncClientServer.Server
 					state.sslStream = new SslStream(stream, false);
 				}
 
+
 				Task.Run(() =>
 				{
 					var success = Authenticate(state).Result;
