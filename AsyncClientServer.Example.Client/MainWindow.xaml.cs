@@ -44,8 +44,8 @@ namespace AsyncClientServer.Example.Client
 
 		private void StartClient()
 		{
-			//_client = new AsyncClient();
-			_client = new AsyncSslClient(@"C:\Users\CloetOMEN\Desktop\cert.pfx", "Password", TlsProtocol.Tls12);
+			_client = new AsyncClient();
+			//_client = new AsyncSslClient("","");
 
 			//Bind events
 			_client.ProgressFileReceived += new ProgressFileTransferHandler(Progress);
