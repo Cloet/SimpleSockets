@@ -1,9 +1,13 @@
 ﻿using System;
+using System.Data;
 using System.IO;
+using System.Net.Sockets;
+using System.Runtime.Remoting.Messaging;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using AsyncClientServer.Client;
+using AsyncClientServer.StateObject;
 using Compression;
 using Cryptography;
 
@@ -24,7 +28,11 @@ namespace AsyncClientServer.Messages
 	public abstract class MessageCreator
 	{
 		//Calls the SendBytesAsync Method.
-		private delegate void SendBytesAsyncCaller(byte[] data, bool close, int id);
+		protected delegate void SendBytesAsyncCaller(byte[] data, IStateObject state);
+
+		//Calls the SendBytesAsync Method.
+		protected delegate void AsyncCallerFile(bool close, int id);
+
 
 		//Encrypts a file and returns the new file path.
 		private static async Task<string> EncryptFile(string path)
@@ -74,6 +82,24 @@ namespace AsyncClientServer.Messages
 			}
 		}
 
+		////Begins sending file to client
+		protected abstract Task SendFile(string location, string remoteSaveLocation, bool encrypt,bool close, int id = -1);
+
+		//Gets called to send parts of the file
+		protected abstract void SendBytesOfFile(byte[] bytes, int id);
+
+		//Begins sending a file async, when completed the callback will be invoked
+		protected async Task BeginSendFile(string location, string remoteSaveLocation, bool encrypt,
+			bool close, AsyncCallerFile callback, int id = -1)
+		{
+
+			await StreamFileAndSendBytes(location, remoteSaveLocation, encrypt, id);
+
+			callback.Invoke(close, id);
+
+		}
+
+
 		/// <summary>
 		/// This method Sends a file asynchronous.
 		/// <para>It checks if the file has to be compressed and/or encrypted before being sent.
@@ -116,7 +142,8 @@ namespace AsyncClientServer.Messages
 
 			}
 
-			await StreamFileAndSendBytes(file, remoteSaveLocation, encryptFile, close, id);
+			await SendFile(file, remoteSaveLocation, encryptFile, close, id);
+			//await StreamFileAndSendBytes(file, remoteSaveLocation, encryptFile, close, id);
 
 			//Deletes the compressed file if no encryption occured.
 			if (compressFile && !encryptFile)
@@ -158,8 +185,10 @@ namespace AsyncClientServer.Messages
 				File.Delete(tempPath);
 			}
 
+			await SendFile(folderToSend, remoteFolderLocation, encryptFolder, close, id);
+
 			//Stream the file in bits and send each time the buffer is full.
-			await StreamFileAndSendBytes(folderToSend, remoteFolderLocation, encryptFolder, close, id);
+			//await StreamFileAndSendBytes(folderToSend, remoteFolderLocation, encryptFolder, close, id);
 
 			//Deletes the compressed folder if not encryption occured.
 			if (File.Exists(folderToSend))
@@ -170,7 +199,7 @@ namespace AsyncClientServer.Messages
 		//Streams the file and constantly sends bytes to server or client.
 		//This method is called in createAsyncFileMessage.
 		//Id is an optional parameter with default value of -1.
-		private async Task StreamFileAndSendBytes(string location, string remoteSaveLocation, bool encrypt, bool close, int id = -1)
+		protected async Task StreamFileAndSendBytes(string location, string remoteSaveLocation, bool encrypt, int id = -1)
 		{
 			try
 			{
@@ -235,20 +264,9 @@ namespace AsyncClientServer.Messages
 							data = message;
 						}
 
-						//Check if the connection should be closed after the last send.
-						var closeLastSend = false;
-						if (buffer.Length == read || read < buffer.Length)
-						{
-							if (close)
-								closeLastSend = true;
-						}
+						SendBytesOfFile(data, id);
 
-
-						//Calls "SendBytesAsync" Method.
-						var caller = new SendBytesAsyncCaller(SendBytesAsync);
-
-						var result = caller.BeginInvoke(data, closeLastSend, id, null, null);
-						result.AsyncWaitHandle.WaitOne();
+						
 					}
 
 				}
@@ -256,23 +274,14 @@ namespace AsyncClientServer.Messages
 				//Delete encrypted file after it has been read.
 				if (encrypt)
 					File.Delete(file);
+
+				
 			}
 			catch (Exception ex)
 			{
 				throw new Exception(ex.Message, ex);
 			}
 		}
-
-
-		/// <summary>
-		/// Gets called from StreamFileAndSendBytes.
-		/// <para>This method sends bytes to server or client.</para>
-		/// </summary>
-		/// <param name="bytes"></param>
-		/// <param name="close"></param>
-		/// <param name="id"></param>
-		protected abstract void SendBytesAsync(byte[] bytes, bool close, int id);
-
 
 		//Writes a message to byte array
 		private static byte[] CreateByteArray(string message, string header, bool encrypt)

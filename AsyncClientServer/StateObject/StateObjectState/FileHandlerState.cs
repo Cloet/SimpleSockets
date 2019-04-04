@@ -8,11 +8,8 @@ namespace AsyncClientServer.StateObject.StateObjectState
 {
 	public class FileHandlerState : StateObjectState
 	{
-		public FileHandlerState(IStateObject state) : base(state, null)
-		{
-		}
 
-		public FileHandlerState(IStateObject state, IAsyncClient client) : base(state, client)
+		public FileHandlerState(IStateObject state, TcpClient client, ServerListener listener) : base(state, client,listener)
 		{
 		}
 
@@ -87,8 +84,16 @@ namespace AsyncClientServer.StateObject.StateObjectState
 			}
 			else
 			{
-				//Get all bytes
-				bytes = State.Buffer;
+				//Get all bytes, checks if less then buffersize has been received.
+				if (receive == State.BufferSize)
+				{
+					bytes = State.Buffer;
+				}
+				else
+				{
+					bytes = new byte[receive];
+					Array.Copy(State.Buffer, 0, bytes, 0, receive);
+				}
 			}
 
 
@@ -119,8 +124,7 @@ namespace AsyncClientServer.StateObject.StateObjectState
 
 			//Tracks the progress
 			if (Client == null)
-				AsyncSocketListener.Instance.InvokeFileTransferProgress(State.Id, State.Read,
-					State.MessageSize);
+				Server.InvokeFileTransferProgress(State.Id, State.Read,State.MessageSize);
 			else
 				Client.InvokeFileTransferProgress(State.Read, State.MessageSize);
 
@@ -128,7 +132,7 @@ namespace AsyncClientServer.StateObject.StateObjectState
 			//If the message has been read and there is are no extra bytes
 			if (State.Flag == -2)
 			{
-				State.CurrentState = new FileHasBeenReceivedState(State, Client, _tempFilePath);
+				State.CurrentState = new FileHasBeenReceivedState(State, Client,Server, _tempFilePath);
 				State.CurrentState.Receive(State.Buffer.Length);
 				State.Reset();
 			}
@@ -136,11 +140,11 @@ namespace AsyncClientServer.StateObject.StateObjectState
 			else if (State.Flag == -3)
 			{
 				//Set to FileHasBeenReceivedState and invoke FileReceived event
-				State.CurrentState = new FileHasBeenReceivedState(State, Client, _tempFilePath);
+				State.CurrentState = new FileHasBeenReceivedState(State, Client,Server, _tempFilePath);
 				State.CurrentState.Receive(State.Buffer.Length);
 
 				//Change state to InitState to handle the extra bytes for new message
-				State.CurrentState = new InitialHandlerState(State, Client);
+				State.CurrentState = new InitialHandlerState(State, Client,Server);
 
 				//Resets the state and handle the new message
 				State.Reset();

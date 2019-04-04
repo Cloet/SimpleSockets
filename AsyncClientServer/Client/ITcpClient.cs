@@ -1,4 +1,5 @@
 ﻿using System;
+using AsyncClientServer.StateObject;
 
 namespace AsyncClientServer.Client
 {
@@ -7,7 +8,7 @@ namespace AsyncClientServer.Client
 	/// <para>Implements
 	/// <seealso cref="T:System.IDisposable" /></para>
 	/// </summary>
-	public interface IAsyncClient : IDisposable, ISendToServer
+	public interface ITcpClient : IDisposable, ISendToServer
 	{
 
 		/// <summary>
@@ -40,22 +41,13 @@ namespace AsyncClientServer.Client
 		/// </summary>
 		event DisconnectedFromServerHandler Disconnected;
 
-
-		/// <summary>
-		/// Tries to connect to the server
-		/// <para>Will try to reconnect every 5 seconds (default value)</para>
-		/// </summary>
-		/// <param name="ipServer">Ip of the server</param>
-		/// <param name="port">Port of the server</param>
-		void StartClient(string ipServer, int port);
-
 		/// <summary>
 		/// Tries to connect to the server
 		/// </summary>
 		/// <param name="ipServer">The server ip</param>
 		/// <param name="port">The port the server is using</param>
 		/// <param name="reconnectInSeconds">Default is 5</param>
-		void StartClient(string ipServer, int port, int reconnectInSeconds);
+		void StartClient(string ipServer, int port, int reconnectInSeconds = 5);
 
 		/// <summary>
 		/// The port on which the server is running
@@ -78,25 +70,6 @@ namespace AsyncClientServer.Client
 		/// <returns></returns>
 		bool IsConnected();
 
-		/// <summary>
-		/// Invokes a MessageReceived Event.
-		/// </summary>
-		/// <param name="header">Type of message that has been received</param>
-		/// <param name="text">The message itself</param>
-		void InvokeMessage(string header, string text);
-
-		/// <summary>
-		/// Invokes a FileReceived Event
-		/// </summary>
-		/// <param name="filePath">Location where the file is stored.</param>
-		void InvokeFileReceived(string filePath);
-
-		/// <summary>
-		/// Invokes ProgressReceived event
-		/// </summary>
-		/// <param name="bytesReceived"></param>
-		/// <param name="messageSize"></param>
-		void InvokeFileTransferProgress(int bytesReceived, int messageSize);
 
 	}
 }

@@ -24,19 +24,6 @@ namespace AsyncClientServer.Client
 		/// <param name="close">if you want to close the client after sending the message.</param>
 		protected abstract void SendBytes(byte[] msg, bool close);
 
-
-		/// <inheritdoc />
-		/// <summary>
-		/// Gets called async
-		/// </summary>
-		/// <param name="bytes"></param>
-		/// <param name="close"></param>
-		/// <param name="id"></param>
-		protected override void SendBytesAsync(byte[] bytes, bool close, int id)
-		{
-			SendBytes(bytes, close);
-		}
-
 		/*=================================
 		*
 		*	MESSAGE
@@ -46,6 +33,7 @@ namespace AsyncClientServer.Client
 		/// <inheritdoc />
 		/// <summary>
 		/// Send a message to the server
+		/// <para/>The close parameter indicates if the client should close after sending or not.
 		/// </summary>
 		/// <param name="message"></param>
 		/// <param name="encryptMessage"></param>
@@ -59,6 +47,7 @@ namespace AsyncClientServer.Client
 		/// <inheritdoc />
 		/// <summary>
 		/// Send a message to the server
+		/// <para/>The close parameter indicates if the client should close after sending or not.
 		/// <para>The message will be encrypted before sending.</para>
 		/// </summary>
 		/// <param name="message"></param>
@@ -71,6 +60,7 @@ namespace AsyncClientServer.Client
 		/// <inheritdoc />
 		/// <summary>
 		/// Send a message to the server asynchronous.
+		/// <para/>The close parameter indicates if the client should close after sending or not.
 		/// </summary>
 		/// <param name="message"></param>
 		/// <param name="encryptMessage"></param>
@@ -83,6 +73,7 @@ namespace AsyncClientServer.Client
 		/// <inheritdoc />
 		/// <summary>
 		/// Send a message to the server asynchronous.
+		/// <para/>The close parameter indicates if the client should close after sending or not.
 		/// <para>The message will be encrypted before sending.</para>
 		/// </summary>
 		/// <param name="message"></param>
@@ -116,6 +107,7 @@ namespace AsyncClientServer.Client
 		/// <inheritdoc />
 		/// <summary>
 		/// Send an object to server
+		/// <para/>The close parameter indicates if the client should close after sending or not.
 		/// <para>The object will be encrypted before sending.</para>
 		/// <para>This object will be serialized using xml</para>
 		/// </summary>
@@ -129,6 +121,7 @@ namespace AsyncClientServer.Client
 		/// <inheritdoc />
 		/// <summary>
 		/// Send an object to server asynchronous.
+		/// <para/>The close parameter indicates if the client should close after sending or not.
 		/// <para>This object will be serialized using xml</para>
 		/// </summary>
 		/// <param name="anyObj"></param>
@@ -142,6 +135,7 @@ namespace AsyncClientServer.Client
 		/// <inheritdoc />
 		/// <summary>
 		/// Send an object to server asynchronous.
+		/// <para/>The close parameter indicates if the client should close after sending or not.
 		/// <para>The object will be encrypted before sending.</para>
 		/// <para>This object will be serialized using xml</para>
 		/// </summary>
@@ -162,6 +156,7 @@ namespace AsyncClientServer.Client
 		/// <inheritdoc />
 		/// <summary>
 		/// Send a file to server
+		/// <para/>The close parameter indicates if the client should close after sending or not.
 		/// <para>Simple way of sending large files over sockets</para>
 		/// </summary>
 		/// <param name="fileLocation"></param>
@@ -178,6 +173,7 @@ namespace AsyncClientServer.Client
 		/// <inheritdoc />
 		/// <summary>
 		/// Send a file to server
+		/// <para/>The close parameter indicates if the client should close after sending or not.
 		/// <para>The file will be encrypted and compressed before sending.</para>
 		/// <para>Simple way of sending large files over sockets</para>
 		/// </summary>
@@ -192,6 +188,7 @@ namespace AsyncClientServer.Client
 		/// <inheritdoc />
 		/// <summary>
 		/// Send a file to server asynchronous.
+		/// <para/>The close parameter indicates if the client should close after sending or not.
 		/// <para>Simple way of sending large files over sockets</para>
 		/// </summary>
 		/// <param name="fileLocation"></param>
@@ -216,6 +213,7 @@ namespace AsyncClientServer.Client
 		/// <inheritdoc />
 		/// <summary>
 		/// Send a file to server asynchronous.
+		/// <para/>The close parameter indicates if the client should close after sending or not.
 		/// <para>The file will be encrypted and compressed before sending.</para>
 		/// <para>Simple way of sending large files over sockets</para>
 		/// </summary>
@@ -235,6 +233,7 @@ namespace AsyncClientServer.Client
 
 		/// <summary>
 		/// Sends a folder to the server.
+		/// <para/>The close parameter indicates if the client should close after sending or not.
 		/// <para>The folder will be compressed to a .zip file before sending.</para>
 		/// <para>Simple way of sending a folder over sockets</para>
 		/// </summary>
@@ -250,6 +249,7 @@ namespace AsyncClientServer.Client
 
 		/// <summary>
 		/// Sends a folder to the server.
+		/// <para/>The close parameter indicates if the client should close after sending or not.
 		/// <para>The folder will be encrypted and compressed before it will be sent.</para>
 		/// <para>Simple way of sending a folder over sockets</para>
 		/// </summary>
@@ -264,6 +264,7 @@ namespace AsyncClientServer.Client
 
 		/// <summary>
 		/// Sends a folder to the server asynchronous.
+		/// <para/>The close parameter indicates if the client should close after sending or not.
 		/// <para>The folder will be compressed to a .zip file before sending.</para>
 		/// <para>Simple way of sending a folder over sockets</para>
 		/// </summary>
@@ -286,6 +287,7 @@ namespace AsyncClientServer.Client
 
 		/// <summary>
 		/// Sends a folder to the server asynchronous.
+		/// <para/>The close parameter indicates if the client should close after sending or not.
 		/// <para>The folder will be encrypted and compressed before it will be sent.</para>
 		/// <para>Simple way of sending a folder over sockets</para>
 		/// </summary>
@@ -307,6 +309,7 @@ namespace AsyncClientServer.Client
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends a file to server
+		/// <para/>The close parameter indicates if the client should close after sending or not.
 		/// <para>Sends a command to server</para>
 		/// </summary>
 		/// <param name="command"></param>
@@ -322,6 +325,7 @@ namespace AsyncClientServer.Client
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends a file to server
+		/// <para/>The close parameter indicates if the client should close after sending or not.
 		/// <para>The command will be encrypted before sending.</para>
 		/// <para>Sends a command to server</para>
 		/// </summary>
@@ -335,6 +339,7 @@ namespace AsyncClientServer.Client
 		/// <inheritdoc />
 		/// <summary>
 		/// Sends a file to server
+		/// <para/>The close parameter indicates if the client should close after sending or not.
 		/// <para>Sends a command to server</para>
 		/// </summary>
 		/// <param name="command"></param>
@@ -347,7 +352,8 @@ namespace AsyncClientServer.Client
 
 		/// <inheritdoc />
 		/// <summary>
-		/// Sends a file to server
+		/// Sends a file to server.
+		/// <para/>The close parameter indicates if the client should close after sending or not.
 		/// <para>The command will be encrypted before sending.</para>
 		/// <para>Sends a command to server</para>
 		/// </summary>

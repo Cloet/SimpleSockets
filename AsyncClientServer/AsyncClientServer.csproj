@@ -33,6 +33,7 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -41,11 +42,15 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Client\IAsyncClient.cs" />
-    <Compile Include="ReceivingItem.cs" />
-    <Compile Include="Server\IAsyncSocketListener.cs" />
+    <Compile Include="Client\AsyncSslClient.cs" />
+    <Compile Include="Client\ITcpClient.cs" />
+    <Compile Include="Client\TcpClient.cs" />
+    <Compile Include="Server\AsyncSocketSslListener.cs" />
+    <Compile Include="Server\IServerListener.cs" />
     <Compile Include="Server\ISendToClient.cs" />
     <Compile Include="Client\ISendToServer.cs" />
+    <Compile Include="Server\ServerListener.cs" />
+    <Compile Include="SslProtocol.cs" />
     <Compile Include="StateObject\IStateObject.cs" />
     <Compile Include="Messages\MessageCreator.cs" />
     <Compile Include="Server\SendToClient.cs" />

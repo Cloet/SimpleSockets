@@ -28,7 +28,7 @@ namespace AsyncClientServer.Example.Client
 	{
 
 		private string _selectedFileFolder = null;
-		private IAsyncClient _client;
+		private ITcpClient _client;
 
 		public MainWindow()
 		{
@@ -45,6 +45,7 @@ namespace AsyncClientServer.Example.Client
 		private void StartClient()
 		{
 			_client = new AsyncClient();
+			//_client = new AsyncSslClient("","");
 
 			//Bind events
 			_client.ProgressFileReceived += new ProgressFileTransferHandler(Progress);
@@ -55,37 +56,37 @@ namespace AsyncClientServer.Example.Client
 			_client.Disconnected += new DisconnectedFromServerHandler(Disconnected);
 
 
-			_client.StartClient("127.0.0.1", 13000);
-
+			//_client.StartClient("127.0.0.1", 13000);
+			_client.StartClient("127.0.0.1",13000);
 		}
 
 
 		//Events
-		private void ConnectedToServer(IAsyncClient a)
+		private void ConnectedToServer(ITcpClient a)
 		{
 			Dispatcher.Invoke(() => { TextBlockStatus.Text = "CONNECTED"; });
 			AppendRichtTextBox("Client has connected to the server.");
 		}
 
-		private void ServerMessageReceived(IAsyncClient a, string header, string msg)
+		private void ServerMessageReceived(ITcpClient a, string header, string msg)
 		{
 			AppendRichtTextBox(header + " received from the server:" + msg);
 		}
 
-		private void FileReceived(IAsyncClient a, string file)
+		private void FileReceived(ITcpClient a, string file)
 		{
-			_client.SendMessage("File has been received.", false);
+			_client.SendMessage("File has been received.", false,false);
 			Dispatcher.Invoke(() => { ProgressBarProgress.Value = 0; });
 			AppendRichtTextBox("File has been received and is stored at path: " + file);
 		}
 
-		private void Disconnected(IAsyncClient a, string ip, int port)
+		private void Disconnected(ITcpClient a, string ip, int port)
 		{
 			Dispatcher.Invoke(() => { TextBlockStatus.Text = "NOT CONNECTED"; });
 			AppendRichtTextBox("Client has disconnected from the server with ip" + ip + " on port " + port);
 		}
 
-		private void Progress(IAsyncClient a, int bytes, int messageSize)
+		private void Progress(ITcpClient a, int bytes, int messageSize)
 		{
 			double b = double.Parse(bytes.ToString());
 			double m = double.Parse(messageSize.ToString());
@@ -95,7 +96,7 @@ namespace AsyncClientServer.Example.Client
 			Dispatcher.Invoke(() => ProgressBarProgress.Value = percentageDone);
 		}
 
-		private void ClientMessageSubmitted(IAsyncClient a, bool close)
+		private void ClientMessageSubmitted(ITcpClient a, bool close)
 		{
 			//Nothing
 		}
@@ -143,10 +144,8 @@ namespace AsyncClientServer.Example.Client
 			TextBlockSource.Text = _selectedFileFolder;
 		}
 
-		//Send a file or folder
-		private async void ButtonSendFileFolder_Click(object sender, RoutedEventArgs e)
+		private async Task SendFileFolder()
 		{
-
 			try
 			{
 				if (TextBlockTarget.Text == string.Empty)
@@ -158,11 +157,11 @@ namespace AsyncClientServer.Example.Client
 
 				if (Directory.Exists(Path.GetFullPath(_selectedFileFolder)))
 				{
-					await _client.SendFolderAsync(Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text),encrypt, false);
+					await _client.SendFolderAsync(Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text), encrypt, false);
 				}
 				else
 				{
-					await _client.SendFileAsync(Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text),false);
+					await _client.SendFileAsync(Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text), false);
 				}
 
 			}
@@ -170,11 +169,18 @@ namespace AsyncClientServer.Example.Client
 			{
 				AppendRichtTextBox("\nError \n" + ex.Message);
 			}
+		}
+
+		//Send a file or folder
+		private async void ButtonSendFileFolder_Click(object sender, RoutedEventArgs e)
+		{
+
+			await SendFileFolder();
 
 		}
 
 		//Send a command
-		private void ButtonSendCommand_Click(object sender, RoutedEventArgs e)
+		private async void ButtonSendCommand_Click(object sender, RoutedEventArgs e)
 		{
 			try
 			{
@@ -183,7 +189,7 @@ namespace AsyncClientServer.Example.Client
 
 				bool encrypt = CheckBoxMessage.IsChecked == true;
 
-				_client.SendCommandAsync(TextBoxCommand.Text,encrypt, false);
+				await _client.SendCommandAsync(TextBoxCommand.Text,encrypt, false);
 			}
 			catch (Exception ex)
 			{
@@ -192,7 +198,7 @@ namespace AsyncClientServer.Example.Client
 		}
 
 		//Send a message
-		private void ButtonSendMessage_Click(object sender, RoutedEventArgs e)
+		private async void ButtonSendMessage_Click(object sender, RoutedEventArgs e)
 		{
 			try
 			{
@@ -201,7 +207,7 @@ namespace AsyncClientServer.Example.Client
 
 				bool encrypt = CheckBoxMessage.IsChecked == true;
 
-				_client.SendMessageAsync(TextBoxMessage.Text,encrypt, false);
+				await _client.SendMessageAsync(TextBoxMessage.Text,encrypt, false);
 			}
 			catch (Exception ex)
 			{

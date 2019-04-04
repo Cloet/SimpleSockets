@@ -1,4 +1,5 @@
 ﻿using AsyncClientServer.Client;
+using AsyncClientServer.Server;
 
 namespace AsyncClientServer.StateObject.StateObjectState
 {
@@ -7,17 +8,14 @@ namespace AsyncClientServer.StateObject.StateObjectState
 
 		protected IStateObject State;
 		//Client is used to invoke message/file received event (not necessary when using on the server side.)
-		protected IAsyncClient Client = null;
+		protected TcpClient Client = null;
+		protected ServerListener Server = null;
 
-		protected StateObjectState(IStateObject state)
-		{
-			State = state;
-		}
-
-		protected StateObjectState(IStateObject state, IAsyncClient client)
+		protected StateObjectState(IStateObject state, TcpClient client, ServerListener listener)
 		{
 			State = state;
 			Client = client;
+			Server = listener;
 		}
 
 		/// <summary>

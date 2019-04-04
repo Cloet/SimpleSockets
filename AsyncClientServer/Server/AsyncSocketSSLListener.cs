@@ -1,42 +1,59 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Security;
 using System.Net.Sockets;
+using System.Security.Authentication;
+using System.Security.Cryptography.X509Certificates;
+using System.Text;
 using System.Threading;
-using System.Timers;
+using System.Threading.Tasks;
 using AsyncClientServer.StateObject;
 using AsyncClientServer.StateObject.StateObjectState;
 
 namespace AsyncClientServer.Server
 {
-
-
-
-	/// <summary>
-	/// This class is the server, singleton class
-	/// <para>Handles sending and receiving data to/from clients</para>
-	/// <para>Extends <see cref="SendToClient"/>, Implements <seealso cref="IServerListener"/></para>
-	/// </summary>
-	public class AsyncSocketListener : ServerListener
+	public class AsyncSocketSslListener : ServerListener
 	{
+		private readonly X509Certificate _serverCertificate = null;
+		private bool _acceptInvalidCertificates = true;
+		private bool _mutualAuth = false;
+		private readonly ManualResetEvent _mreRead = new ManualResetEvent(true);
+		private readonly ManualResetEvent _mreWriting = new ManualResetEvent(true);
+		private TlsProtocol _tlsProtocol;
+
+		public bool AcceptInvalidCertificates { get; set; }
 
 		/// <summary>
 		/// Constructor
 		/// </summary>
-		public AsyncSocketListener() : base()
+		/// <param name="certificate"></param>
+		/// <param name="password"></param>
+		/// <param name="acceptInvalidCertificates"></param>
+		public AsyncSocketSslListener(string certificate, string password,TlsProtocol tlsProtocol = TlsProtocol.Tls12, bool acceptInvalidCertificates = true): base()
 		{
+
+			if (string.IsNullOrEmpty(certificate))
+				throw new ArgumentNullException(nameof(certificate));
+
+			AcceptInvalidCertificates = acceptInvalidCertificates;
+			_tlsProtocol = tlsProtocol;
+
+			if (string.IsNullOrEmpty(password))
+			{
+				_serverCertificate = new X509Certificate2(File.ReadAllBytes(Path.GetFullPath(certificate)));
+			}
+			else
+			{
+				_serverCertificate = new X509Certificate2(File.ReadAllBytes(Path.GetFullPath(certificate)), password);
+			}
 		}
 
-		/// <summary>
-		/// Start listening on specified port and ip.
-		/// <para/>The limit is the maximum amount of client which can connect at one moment.
-		/// </summary>
-		/// <param name="ip">The ip the server will be listening to.</param>
-		/// <param name="port">The port on which the server will be running.</param>
-		/// <param name="limit">Optional parameter, default value is 500.</param>
 		public override void StartListening(string ip, int port, int limit = 500)
 		{
+
 			if (string.IsNullOrEmpty(ip))
 				throw new ArgumentNullException(nameof(ip));
 			if (port < 1)
@@ -45,6 +62,7 @@ namespace AsyncClientServer.Server
 				throw new ArgumentException("Limit cannot be under 0.");
 			if (limit == 0)
 				throw new ArgumentException("Limit cannot be 0.");
+
 
 			Port = port;
 			Ip = ip;
@@ -73,6 +91,16 @@ namespace AsyncClientServer.Server
 			{
 				throw new Exception(se.ToString());
 			}
+
+
+		}
+
+		private bool AcceptCertificate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicy)
+		{
+			if (sslPolicy == SslPolicyErrors.None)
+				return true;
+
+			return AcceptInvalidCertificates;
 		}
 
 		protected override void OnClientConnect(IAsyncResult result)
@@ -81,43 +109,133 @@ namespace AsyncClientServer.Server
 			try
 			{
 				IStateObject state;
+				int id;
 
 				lock (_clients)
 				{
-					var id = !_clients.Any() ? 1 : _clients.Keys.Max() + 1;
+					id = !_clients.Any() ? 1 : _clients.Keys.Max() + 1;
 
 					state = new StateObject.StateObject(((Socket)result.AsyncState).EndAccept(result), id);
-					_clients.Add(id, state);
-					ClientConnectedInvoke(id);
 				}
-				StartReceiving(state);
+
+				var stream = new NetworkStream(state.Listener);
+
+				if (_acceptInvalidCertificates)
+				{
+					state.sslStream = new SslStream(stream, false,new RemoteCertificateValidationCallback(AcceptCertificate));
+				}
+				else
+				{
+					state.sslStream = new SslStream(stream, false);
+				}
+
+
+				Task.Run(() =>
+				{
+					var success = Authenticate(state).Result;
+
+					if (success)
+					{
+						_clients.Add(id, state);
+						ClientConnectedInvoke(id);
+						StartReceiving(state);
+					}
+					else
+					{
+						throw new AuthenticationException("Unable to authenticate server.");
+					}
+
+				}, new CancellationTokenSource(10000).Token);
+
+
 			}
 			catch (SocketException se)
 			{
 				throw new Exception(se.ToString());
 			}
+		}
 
+		private async Task<bool> Authenticate(IStateObject state)
+		{
+			try
+			{
+				SslProtocols protocol = SslProtocols.Tls12;
+
+				switch (_tlsProtocol)
+				{
+					case TlsProtocol.Tls10:
+						protocol = SslProtocols.Tls;
+						break;
+					case TlsProtocol.Tls11:
+						protocol = SslProtocols.Tls11;
+						break;
+					case TlsProtocol.Tls12:
+						protocol = SslProtocols.Tls12;
+						break;
+				}
+
+				await state.sslStream.AuthenticateAsServerAsync(_serverCertificate, true, protocol, false);
+
+				if (!state.sslStream.IsEncrypted)
+				{
+					throw new Exception("Stream from client " + state.Id + " is not encrypted.");
+				}
+
+				if (!state.sslStream.IsAuthenticated)
+				{
+					throw new Exception("Stream from client " + state.Id + " not authenticated.");
+				}
+
+				if (_mutualAuth && !state.sslStream.IsMutuallyAuthenticated)
+				{
+					throw new Exception("Stream from client " + state.Id + " failed mutual authentication.");
+				}
+
+				return true;
+			}
+			catch (IOException ex)
+			{
+				switch (ex.Message)
+				{
+					case "Authentication failed because the remote party has closed the transport stream.":
+					case "Unable to read data from the transport connection: An existing connection was forcibly closed by the remote host.":
+						throw new IOException("IOException " + state.Id + " closed the connection.");
+					case "The handshake failed due to an unexpected packet format.":
+						throw new IOException("IOException " + state.Id + " disconnected, invalid handshake.");
+					default:
+						throw new IOException(ex.Message, ex);
+				}
+
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message, ex);
+			}
 		}
 
 		//Start receiving
 		internal override void StartReceiving(IStateObject state, int offset = 0)
 		{
-
 			if (state.Buffer.Length < state.BufferSize && offset == 0)
 			{
 				state.ChangeBuffer(new byte[state.BufferSize]);
 			}
 
-			state.Listener.BeginReceive(state.Buffer, offset, state.BufferSize - offset, SocketFlags.None,
-				ReceiveCallback, state);
+			SslStream sslStream = state.sslStream;
+
+			_mreRead.WaitOne();
+			_mreRead.Reset();
+			sslStream.BeginRead(state.Buffer, offset, state.BufferSize - offset, ReceiveCallback, state);
 		}
 
 		//Handles messages
 		protected override void HandleMessage(IAsyncResult result)
 		{
+
 			var state = (StateObject.StateObject)result.AsyncState;
 			try
 			{
+
 
 				//Check if client is still connected.
 				//If client is disconnected, send disconnected message
@@ -131,7 +249,10 @@ namespace AsyncClientServer.Server
 				else
 				{
 
-					var receive = state.Listener.EndReceive(result);
+					var receive = state.sslStream.EndRead(result);
+
+					_mreRead.Set();
+					//var receive = state.Listener.EndReceive(result);
 
 					if (state.Flag == 0)
 					{
@@ -157,7 +278,7 @@ namespace AsyncClientServer.Server
 						return;
 					}
 
-
+					//sslstream has inconsistent buffers
 					StartReceiving(state);
 				}
 			}
@@ -197,7 +318,11 @@ namespace AsyncClientServer.Server
 				var send = bytes;
 
 				state.Close = close;
-				state.Listener.BeginSend(send, 0, send.Length, SocketFlags.None, SendCallback, state);
+
+				_mreWriting.WaitOne();
+
+				_mreWriting.Reset();
+				state.sslStream.BeginWrite(send, 0, send.Length, SendCallback, state);
 			}
 			catch (SocketException se)
 			{
@@ -220,7 +345,8 @@ namespace AsyncClientServer.Server
 
 			try
 			{
-				state.Listener.EndSend(result);
+				state.sslStream.EndWrite(result);
+				_mreWriting.Set();
 				if (state.Close)
 					Close(state.Id);
 			}
@@ -243,7 +369,6 @@ namespace AsyncClientServer.Server
 		}
 
 
-
 		protected override void SendBytesOfFile(byte[] bytes, int id)
 		{
 			var state = GetClient(id);
@@ -263,8 +388,10 @@ namespace AsyncClientServer.Server
 			try
 			{
 				var send = bytes;
+				_mreWriting.WaitOne();
 
-				state.Listener.BeginSend(send, 0, send.Length, SocketFlags.None, FileTransferPartialCallback, state);
+				_mreWriting.Reset();
+				state.sslStream.BeginWrite(send, 0, send.Length, FileTransferPartialCallback, state);
 			}
 			catch (SocketException se)
 			{
@@ -287,7 +414,8 @@ namespace AsyncClientServer.Server
 
 			try
 			{
-				state.Listener.EndSend(result);
+				state.sslStream.EndWrite(result);
+				_mreWriting.Set();
 			}
 			catch (SocketException se)
 			{
@@ -302,5 +430,6 @@ namespace AsyncClientServer.Server
 				throw new Exception(ex.Message, ex);
 			}
 		}
+
 	}
 }

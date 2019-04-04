@@ -9,7 +9,7 @@ namespace AsyncClientServer.Server
 	/// Interface for AsyncSocketListener
 	/// <para>Implements <seealso cref="T:System.IDisposable" /></para>
 	/// </summary>
-	public interface IAsyncSocketListener : IDisposable, ISendToClient
+	public interface IServerListener : IDisposable, ISendToClient
 	{
 		/// <summary>
 		/// An event that is triggered when a message is received.
@@ -61,7 +61,8 @@ namespace AsyncClientServer.Server
 		/// </summary>
 		/// <param name="ip"></param>
 		/// <param name="port"></param>
-		void StartListening(string ip, int port);
+		/// <param name="limit"></param>
+		void StartListening(string ip, int port, int limit = 500);
 
 		/// <summary>
 		/// Checks if a client is connected
@@ -69,6 +70,8 @@ namespace AsyncClientServer.Server
 		/// <param name="id"></param>
 		/// <returns></returns>
 		bool IsConnected(int id);
+
+		//void StartReceiving(IStateObject state, int offset = 0);
 
 		/// <summary>
 		/// Gets all connected clients
@@ -93,28 +96,6 @@ namespace AsyncClientServer.Server
 		/// <param name="id"></param>
 		void Close(int id);
 
-		/// <summary>
-		/// Invokes FileReceived event of the server
-		/// </summary>
-		/// <param name="id">Client id</param>
-		/// <param name="filePath">the path of the file that has been received</param>
-		void InvokeFileReceived(int id, string filePath);
-
-		/// <summary>
-		/// Invokes MessageReceived event of the server
-		/// </summary>
-		/// <param name="id">Client id</param>
-		/// <param name="header">Message type</param>
-		/// <param name="text">the message</param>
-		void InvokeMessageReceived(int id, string header, string text);
-
-		/// <summary>
-		/// Invokes ProgressReceived event
-		/// </summary>
-		/// <param name="id"></param>
-		/// <param name="bytesReceived"></param>
-		/// <param name="messageSize"></param>
-		void InvokeFileTransferProgress(int id, int bytesReceived, int messageSize);
 
 	}
 }

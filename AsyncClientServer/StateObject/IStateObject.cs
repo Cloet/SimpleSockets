@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Net.Security;
 using System.Net.Sockets;
 
 namespace AsyncClientServer.StateObject
@@ -17,6 +18,8 @@ namespace AsyncClientServer.StateObject
 		/// Get or set the size of the message
 		/// </summary>
 		int MessageSize { get; set; }
+
+		SslStream sslStream { get; set; }
 
 		/// <summary>
 		/// Get or set the size of the header of the current message
