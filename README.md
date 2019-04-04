@@ -28,11 +28,10 @@ Files   use .Gcz Compression
 Folders use .Zip Compression
 
 ## Encryption
+If you don't want to use SSL but still want to be a little safer. Or if you just don't want to send plaintext when using a regular Client Server, there is an option to encrypt files and data with AES256.
 ### Warning
 THIS DOES NOT MAKE YOUR CONNECTION SAFE.
 If you're really concered with safety use the SSL variant of the client and server.
-### WHY
-If you don't want to send plaintext when using a regular Client Server, there is an option to encrypt files and data with AES256.
 ### Requirements
 The Client and server will need the same key to decrypt and encrypt data, files, else it will return an error on receipt.
 For now there is no way of setting the key, it is hardcoded.
