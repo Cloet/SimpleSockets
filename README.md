@@ -40,10 +40,10 @@ For now there is no way of setting the key, it is hardcoded.
 ## Framing
 ### How messages are framed
 The client or server sends a byte array, this array consists of:
-    - HeaderLength    [4 First bytes of the array]
-    - MessageLength   [4-8 bytes of the array are reserverd]
-    - Header          [8+Headerlength of the array]
-    - MessageData     [8+HeaderLength+MessageLength of the array]
+1. HeaderLength    [4 First bytes of the array]
+2. MessageLength   [4-8 bytes of the array are reserverd]
+3. Header          [8+Headerlength of the array]
+4. MessageData     [8+HeaderLength+MessageLength of the array]
 ### Why
 This way if multiple messages are received the client or server can correctly handle all of them and according to the header distinguish what type of message is received (Message,Command or file/folder) 
 
@@ -62,8 +62,9 @@ IServerlistener listener = new AsyncSocketSslListener("path to certificate","pas
 Starts the server
 ```C#
 //Starts the server
+string ip = "127.0.0.1"
 int port = 13000;
-listener.StartListening(port);
+listener.StartListening(ip,port);
 ```
 
 Bind the events to methods in your program
