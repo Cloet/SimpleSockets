@@ -1,23 +1,6 @@
-# AsyncClientServer
+# AsyncClientServer with ssl implementation
 Library implementing Async client and Async Server.
 The client and server connect using tcp.
-
-## Done
-- Send messages from server -> client & server -> client
-- Ability to send files from client -> server & server -> client
-- Serialize objects into xml and send from client -> server & server -> client
-- Compression algorithm (GZipStream and .zip support added)
-- Added Cryptography (AES256)
-- Can send large files.
-- Add ssl functionality
-
-## TODO
-- Disable standard encryption
-- Bug Fixing
-- Error checking
-- Add reliablity
-- Detailed exceptions
-- ?
 
 ## SSL
 ### Creating a certificate
