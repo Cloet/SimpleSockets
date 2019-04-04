@@ -35,6 +35,7 @@ If you're really concered with safety use the SSL variant of the client and serv
 If you don't want to send plaintext when using a regular Client Server, there is an option to encrypt files and data with AES256.
 ### Requirements
 The Client and server will need the same key to decrypt and encrypt data, files, else it will return an error on receipt.
+For now there is no way of setting the key, it is hardcoded.
 
 
 ## Framing
