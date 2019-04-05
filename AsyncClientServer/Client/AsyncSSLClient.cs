@@ -26,7 +26,6 @@ namespace AsyncClientServer.Client
 		private readonly ManualResetEvent _mreRead = new ManualResetEvent(true);
 		private readonly ManualResetEvent _mreWriting = new ManualResetEvent(true);
 		public bool AcceptInvalidCertificates { get; set; }
-		private bool _mutualAuth = false;
 		private readonly TlsProtocol _tlsProtocol;
 
 		/// <summary>
@@ -106,7 +105,7 @@ namespace AsyncClientServer.Client
 			}
 			catch (Exception ex)
 			{
-				throw new Exception(ex.ToString());
+				throw new Exception(ex.Message, ex);
 			}
 		}
 
@@ -151,11 +150,6 @@ namespace AsyncClientServer.Client
 					throw new Exception("Stream from server not authenticated.");
 				}
 
-				if (_mutualAuth && !sslStream.IsMutuallyAuthenticated)
-				{
-					throw new Exception("Stream from client server failed mutual authentication.");
-				}
-
 				return true;
 			}
 			catch (IOException ex)
@@ -190,7 +184,6 @@ namespace AsyncClientServer.Client
 				client.EndConnect(result);
 
 				var stream = new NetworkStream(_listener);
-
 				_sslStream = new SslStream(stream, false, new RemoteCertificateValidationCallback(ValidateCertificate),null);
 
 
@@ -216,11 +209,7 @@ namespace AsyncClientServer.Client
 			}
 			catch (SocketException)
 			{
-				if (_sslStream != null)
-				{
-					_sslStream.Dispose();
-					_sslStream = null;
-				}
+				DisposeSslStream();
 				
 				Thread.Sleep(ReconnectInSeconds * 1000);
 				_listener.BeginConnect(_endpoint, this.OnConnectCallback, _listener);
@@ -244,22 +233,24 @@ namespace AsyncClientServer.Client
 			try
 			{
 
-				if (!this.IsConnected())
+				if (!IsConnected())
 				{
-					throw new Exception("Destination socket is not connected.");
+					DisposeSslStream();
+					InvokeDisconnected(this);
+					Close();
+					throw new Exception("Client is not connected.");
 				}
-				else
-				{
+				else { 
+
 					var send = bytes;
 
 					_close = close;
 
-
+					//Waits tille one write is complete before starting another one.
 					_mreWriting.WaitOne();
-
 					_mreWriting.Reset();
+
 					_sslStream.BeginWrite(send, 0, send.Length, SendCallback, _sslStream);
-					//_listener.BeginSend(send, 0, send.Length, SocketFlags.None, SendCallback, _listener);
 				}
 			}
 			catch (Exception ex)
@@ -288,6 +279,9 @@ namespace AsyncClientServer.Client
 
 			InvokeMessageSubmitted(_close);
 
+			if(_close)
+				Close();
+
 			_sent.Set();
 		}
 
@@ -295,16 +289,23 @@ namespace AsyncClientServer.Client
 		//Start receiving
 		internal override void StartReceiving(IStateObject state, int offset = 0)
 		{
-
-			state.sslStream = _sslStream;
-			if (state.Buffer.Length < state.BufferSize && offset == 0)
+			try
 			{
-				state.ChangeBuffer(new byte[state.BufferSize]);
-			}
 
-			_mreRead.WaitOne();
-			_mreRead.Reset();
-			state.sslStream.BeginRead(state.Buffer, offset, state.BufferSize - offset, ReceiveCallback, state);
+				state.sslStream = _sslStream;
+				if (state.Buffer.Length < state.BufferSize && offset == 0)
+				{
+					state.ChangeBuffer(new byte[state.BufferSize]);
+				}
+
+				_mreRead.WaitOne();
+				_mreRead.Reset();
+				state.sslStream.BeginRead(state.Buffer, offset, state.BufferSize - offset, ReceiveCallback, state);
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message, ex);
+			}
 
 		}
 
@@ -315,7 +316,6 @@ namespace AsyncClientServer.Client
 			var state = (StateObject.StateObject)result.AsyncState;
 			try
 			{
-
 				var receive = state.sslStream.EndRead(result);
 				_mreRead.Set();
 
@@ -348,8 +348,8 @@ namespace AsyncClientServer.Client
 			catch (Exception ex)
 			{
 				state.Reset();
-				_sslStream.Close();
-				_listener.BeginConnect(_endpoint, this.OnConnectCallback, _listener);
+				DisposeSslStream();
+				_listener.BeginConnect(_endpoint, OnConnectCallback, _listener);
 				throw new Exception(ex.ToString());
 			}
 		}
@@ -361,16 +361,18 @@ namespace AsyncClientServer.Client
 			try
 			{
 
-				if (!this.IsConnected())
+				if (!IsConnected())
 				{
-					throw new Exception("Destination socket is not connected.");
+					DisposeSslStream();
+					InvokeDisconnected(this);
+					Close();
+					throw new Exception("Client is not connected.");
 				}
 				else
 				{
 					var send = bytes;
 
 					_mreWriting.WaitOne();
-
 					_mreWriting.Reset();
 					_sslStream.BeginWrite(send, 0, send.Length, FileTransferPartialCallBack, _sslStream);
 				}
@@ -400,6 +402,14 @@ namespace AsyncClientServer.Client
 			}
 		}
 
+		private void DisposeSslStream()
+		{
+			if (_sslStream != null)
+			{
+				_sslStream.Dispose();
+				_sslStream = null;
+			}
+		}
 
 	}
 }

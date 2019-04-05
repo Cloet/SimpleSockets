@@ -55,7 +55,7 @@ namespace AsyncClientServer.Client
 			{
 				//Try and connect
 				_listener = new Socket(_endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-				_listener.BeginConnect(_endpoint, this.OnConnectCallback, _listener);
+				_listener.BeginConnect(_endpoint, OnConnectCallback, _listener);
 				_connected.WaitOne();
 
 				//If client is connected activate connected event
@@ -75,7 +75,7 @@ namespace AsyncClientServer.Client
 			}
 			catch (Exception ex)
 			{
-				throw new Exception(ex.ToString());
+				throw new Exception(ex.Message, ex);
 			}
 		}
 
@@ -96,6 +96,10 @@ namespace AsyncClientServer.Client
 				Thread.Sleep(ReconnectInSeconds * 1000);
 				_listener.BeginConnect(_endpoint, OnConnectCallback, _listener);
 			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message, ex);
+			}
 		}
 
 		#region MESSAGE SENDING
@@ -111,8 +115,9 @@ namespace AsyncClientServer.Client
 			try
 			{
 
-				if (!this.IsConnected())
+				if (!IsConnected())
 				{
+					Close();
 					throw new Exception("Destination socket is not connected.");
 				}
 				else
@@ -148,6 +153,9 @@ namespace AsyncClientServer.Client
 
 			InvokeMessageSubmitted(_close);
 
+			if(_close)
+				Close();
+
 			_sent.Set();
 		}
 
@@ -161,8 +169,9 @@ namespace AsyncClientServer.Client
 			try
 			{
 
-				if (!this.IsConnected())
+				if (!IsConnected())
 				{
+					Close();
 					throw new Exception("Destination socket is not connected.");
 				}
 				else

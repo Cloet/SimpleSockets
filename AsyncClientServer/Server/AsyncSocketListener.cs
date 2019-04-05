@@ -125,7 +125,10 @@ namespace AsyncClientServer.Server
 				if (!IsConnected(state.Id))
 				{
 					ClientDisconnectedInvoke(state.Id);
-					_clients.Remove(state.Id);
+					lock (_clients)
+					{
+						_clients.Remove(state.Id);
+					}
 				}
 				//Else start receiving and handle the message.
 				else
@@ -257,7 +260,8 @@ namespace AsyncClientServer.Server
 			{
 				//Sets client with id to disconnected
 				ClientDisconnectedInvoke(state.Id);
-				throw new Exception("Destination socket is not connected.");
+				Close(state.Id);
+				throw new Exception("Client is not connected.");
 			}
 
 			try

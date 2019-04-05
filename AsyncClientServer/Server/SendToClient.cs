@@ -121,7 +121,7 @@ namespace AsyncClientServer.Server
 		/// <param name="close"></param>
 		public void SendObject(int id, object anyObj, bool close)
 		{
-			SendObject(id, anyObj, true, close);
+			SendObject(id, anyObj, false, close);
 		}
 
 		/// <inheritdoc />
@@ -173,8 +173,14 @@ namespace AsyncClientServer.Server
 		/// <param name="close"></param>
 		public void SendFile(int id, string fileLocation, string remoteSaveLocation, bool encryptFile, bool compressFile, bool close)
 		{
-			byte[] data = CreateByteFile(fileLocation, remoteSaveLocation, encryptFile, compressFile);
-			SendBytes(id, data, close);
+			try
+			{
+				Task.Run(() => SendFileAsync(id, fileLocation, remoteSaveLocation, encryptFile, compressFile, close));
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message, ex);
+			}
 		}
 
 		/// <inheritdoc />
@@ -190,7 +196,7 @@ namespace AsyncClientServer.Server
 		/// <param name="close"></param>
 		public void SendFile(int id, string fileLocation, string remoteSaveLocation, bool close)
 		{
-			SendFile(id, fileLocation, remoteSaveLocation, true, true, close);
+			SendFile(id, fileLocation, remoteSaveLocation,false, true, close);
 		}
 
 		/// <inheritdoc />
@@ -223,7 +229,7 @@ namespace AsyncClientServer.Server
 		/// <param name="close"></param>
 		public async Task SendFileAsync(int id, string fileLocation, string remoteFileLocation, bool close)
 		{
-			await SendFileAsync(id, fileLocation, remoteFileLocation, true, true, close);
+			await SendFileAsync(id, fileLocation, remoteFileLocation, false, true, close);
 		}
 
 		/*=================================
@@ -245,8 +251,14 @@ namespace AsyncClientServer.Server
 		/// <param name="close"></param>
 		public void SendFolder(int id, string folderLocation, string remoteFolderLocation, bool encryptFolder, bool close)
 		{
-			byte[] data = CreateByteFolder(folderLocation, remoteFolderLocation, encryptFolder);
-			SendBytes(id, data, close);
+			try
+			{
+				Task.Run(() => SendFolderAsync(id, folderLocation, remoteFolderLocation, encryptFolder, close));
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message, ex);
+			}
 		}
 
 		/// <inheritdoc />
@@ -300,7 +312,7 @@ namespace AsyncClientServer.Server
 		/// <param name="close"></param>
 		public async Task SendFolderAsync(int id, string folderLocation, string remoteFolderLocation, bool close)
 		{
-			await SendFolderAsync(id, folderLocation, remoteFolderLocation, true, close);
+			await SendFolderAsync(id, folderLocation, remoteFolderLocation, false, close);
 		}
 
 		/*=================================
@@ -337,7 +349,7 @@ namespace AsyncClientServer.Server
 		/// <param name="close"></param>
 		public void SendCommand(int id, string command, bool close)
 		{
-			SendCommand(id, command, true, close);
+			SendCommand(id, command, false, close);
 		}
 
 		/// <inheritdoc />
@@ -404,7 +416,7 @@ namespace AsyncClientServer.Server
 		/// <param name="close"></param>
 		public void SendFileToAllClients(string fileLocation, string remoteSaveLocation, bool close)
 		{
-			SendFileToAllClients(fileLocation, remoteSaveLocation, true, true, close);
+			SendFileToAllClients(fileLocation, remoteSaveLocation, false, true, close);
 		}
 
 		/// <inheritdoc />
@@ -432,7 +444,7 @@ namespace AsyncClientServer.Server
 		/// <param name="close"></param>
 		public async Task SendFileToAllClientsAsync(string fileLocation, string remoteSaveLocation, bool close)
 		{
-			await SendFileToAllClientsAsync(fileLocation, remoteSaveLocation, true, true, close);
+			await SendFileToAllClientsAsync(fileLocation, remoteSaveLocation, false, true, close);
 		}
 
 
@@ -465,7 +477,7 @@ namespace AsyncClientServer.Server
 		/// <param name="close"></param>
 		public void SendFolderToAllClients(string folderLocation, string remoteFolderLocation, bool close)
 		{
-			SendFolderToAllClients(folderLocation, remoteFolderLocation, true, close);
+			SendFolderToAllClients(folderLocation, remoteFolderLocation, false, close);
 		}
 
 		/// <inheritdoc />
@@ -491,7 +503,7 @@ namespace AsyncClientServer.Server
 		/// <param name="close"></param>
 		public async Task SendFolderToAllClientsAsync(string folderLocation, string remoteFolderLocation, bool close)
 		{
-			await SendFolderToAllClientsAsync(folderLocation, remoteFolderLocation, true, close);
+			await SendFolderToAllClientsAsync(folderLocation, remoteFolderLocation, false, close);
 		}
 
 		/*=================================
@@ -520,7 +532,7 @@ namespace AsyncClientServer.Server
 		/// <param name="close"></param>
 		public void SendMessageToAllClients(string message, bool close)
 		{
-			SendMessageToAllClients(message, true, close);
+			SendMessageToAllClients(message, false, close);
 		}
 
 		/// <inheritdoc />
@@ -533,7 +545,7 @@ namespace AsyncClientServer.Server
 		/// <param name="close"></param>
 		public async Task SendMessageToAllClientsAsync(string message, bool encryptMessage, bool close)
 		{
-			await Task.Run(() => SendMessageToAllClients(message, encryptMessage, close));
+			await Task.Run(() => SendMessageToAllClients(message, false, close));
 		}
 
 		/// <inheritdoc />
@@ -575,7 +587,7 @@ namespace AsyncClientServer.Server
 		/// <param name="close"></param>
 		public void SendObjectToAllClients(object obj, bool close)
 		{
-			SendObjectToAllClients(obj, true, close);
+			SendObjectToAllClients(obj, false, close);
 		}
 
 		/// <inheritdoc />
@@ -630,7 +642,7 @@ namespace AsyncClientServer.Server
 		/// <param name="close"></param>
 		public void SendCommandToAllClients(string command, bool close)
 		{
-			SendCommandToAllClients(command, true, close);
+			SendCommandToAllClients(command, false, close);
 		}
 
 		/// <inheritdoc />

@@ -273,7 +273,7 @@ namespace AsyncClientServer.Server
 		//Handles messages
 		protected abstract void HandleMessage(IAsyncResult result);
 
-		protected override async Task SendFile(string location, string remoteSaveLocation, bool encrypt,bool close, int id = -1)
+		protected override async Task SendFileAsynchronous(string location, string remoteSaveLocation, bool encrypt,bool close, int id = -1)
 		{
 			var state = GetClient(id);
 

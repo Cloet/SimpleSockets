@@ -213,7 +213,7 @@ namespace AsyncClientServer.Client
 		//***File Transfer***///
 
 		//Sends a file to server
-		protected override async Task SendFile(string location, string remoteSaveLocation, bool encrypt, bool close, int id = -1)
+		protected override async Task SendFileAsynchronous(string location, string remoteSaveLocation, bool encrypt, bool close, int id = -1)
 		{
 
 			try
@@ -275,6 +275,7 @@ namespace AsyncClientServer.Client
 			{
 				if (!this.IsConnected())
 				{
+					_connected.Reset();
 					return;
 				}
 
@@ -296,6 +297,8 @@ namespace AsyncClientServer.Client
 			_connected.Dispose();
 			_sent.Dispose();
 			Close();
+
+			GC.SuppressFinalize(this);
 		}
 
 

@@ -19,10 +19,9 @@ namespace AsyncClientServer.Server
 	{
 		private readonly X509Certificate _serverCertificate = null;
 		private bool _acceptInvalidCertificates = true;
-		private bool _mutualAuth = false;
 		private readonly ManualResetEvent _mreRead = new ManualResetEvent(true);
 		private readonly ManualResetEvent _mreWriting = new ManualResetEvent(true);
-		private TlsProtocol _tlsProtocol;
+		private readonly TlsProtocol _tlsProtocol;
 
 		public bool AcceptInvalidCertificates { get; set; }
 
@@ -31,6 +30,7 @@ namespace AsyncClientServer.Server
 		/// </summary>
 		/// <param name="certificate"></param>
 		/// <param name="password"></param>
+		/// <param name="tlsProtocol"></param>
 		/// <param name="acceptInvalidCertificates"></param>
 		public AsyncSocketSslListener(string certificate, string password,TlsProtocol tlsProtocol = TlsProtocol.Tls12, bool acceptInvalidCertificates = true): base()
 		{
@@ -186,11 +186,6 @@ namespace AsyncClientServer.Server
 					throw new Exception("Stream from client " + state.Id + " not authenticated.");
 				}
 
-				if (_mutualAuth && !state.sslStream.IsMutuallyAuthenticated)
-				{
-					throw new Exception("Stream from client " + state.Id + " failed mutual authentication.");
-				}
-
 				return true;
 			}
 			catch (IOException ex)
@@ -216,16 +211,24 @@ namespace AsyncClientServer.Server
 		//Start receiving
 		internal override void StartReceiving(IStateObject state, int offset = 0)
 		{
-			if (state.Buffer.Length < state.BufferSize && offset == 0)
+			try
 			{
-				state.ChangeBuffer(new byte[state.BufferSize]);
+				if (state.Buffer.Length < state.BufferSize && offset == 0)
+				{
+					state.ChangeBuffer(new byte[state.BufferSize]);
+				}
+
+				SslStream sslStream = state.sslStream;
+
+				_mreRead.WaitOne();
+				_mreRead.Reset();
+				sslStream.BeginRead(state.Buffer, offset, state.BufferSize - offset, ReceiveCallback, state);
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message, ex);
 			}
 
-			SslStream sslStream = state.sslStream;
-
-			_mreRead.WaitOne();
-			_mreRead.Reset();
-			sslStream.BeginRead(state.Buffer, offset, state.BufferSize - offset, ReceiveCallback, state);
 		}
 
 		//Handles messages
@@ -243,7 +246,10 @@ namespace AsyncClientServer.Server
 				if (!IsConnected(state.Id))
 				{
 					ClientDisconnectedInvoke(state.Id);
-					_clients.Remove(state.Id);
+					lock (_clients)
+					{
+						_clients.Remove(state.Id);
+					}
 				}
 				//Else start receiving and handle the message.
 				else
@@ -310,6 +316,7 @@ namespace AsyncClientServer.Server
 			{
 				//Sets client with id to disconnected
 				ClientDisconnectedInvoke(state.Id);
+				Close(state.Id);
 				throw new Exception("Destination socket is not connected.");
 			}
 
@@ -430,6 +437,7 @@ namespace AsyncClientServer.Server
 				throw new Exception(ex.Message, ex);
 			}
 		}
+
 
 	}
 }

@@ -35,7 +35,7 @@ namespace AsyncClientServer.Messages
 
 
 		//Encrypts a file and returns the new file path.
-		private static async Task<string> EncryptFile(string path)
+		private static async Task<string> EncryptFileAsync(string path)
 		{
 			try
 			{
@@ -53,7 +53,7 @@ namespace AsyncClientServer.Messages
 		}
 
 		//Compresses a file and returns the new path
-		private static async Task<string> CompressFile(string path)
+		private static async Task<string> CompressFileAsync(string path)
 		{
 			try
 			{
@@ -66,13 +66,13 @@ namespace AsyncClientServer.Messages
 		}
 
 		//Compresses a folder and returns the new path
-		private static async Task<string> CompressFolder(string path, string tempPath)
+		private static async Task<string> CompressFolderAsync(string path, string tempPath)
 		{
 			try
 			{
 				return await Task.Run(() =>
 				{
-					ZipCompression.Compress(path, tempPath);
+					ZipCompression.Compress(Path.GetFullPath(path), Path.GetFullPath(tempPath));
 					return tempPath;
 				});
 			}
@@ -82,8 +82,10 @@ namespace AsyncClientServer.Messages
 			}
 		}
 
-		////Begins sending file to client
-		protected abstract Task SendFile(string location, string remoteSaveLocation, bool encrypt,bool close, int id = -1);
+
+		////Begins sending file to client or server async
+		protected abstract Task SendFileAsynchronous(string location, string remoteSaveLocation, bool encrypt,bool close, int id = -1);
+
 
 		//Gets called to send parts of the file
 		protected abstract void SendBytesOfFile(byte[] bytes, int id);
@@ -93,7 +95,7 @@ namespace AsyncClientServer.Messages
 			bool close, AsyncCallerFile callback, int id = -1)
 		{
 
-			await StreamFileAndSendBytes(location, remoteSaveLocation, encrypt, id);
+			await StreamFileAndSendBytesAsync(location, remoteSaveLocation, encrypt, id);
 
 			callback.Invoke(close, id);
 
@@ -120,7 +122,7 @@ namespace AsyncClientServer.Messages
 			//Compresses the file
 			if (compressFile)
 			{
-				file = await CompressFile(file);
+				file = await CompressFileAsync(file);
 				remoteSaveLocation += GZipCompression.Extension;
 			}
 
@@ -133,7 +135,7 @@ namespace AsyncClientServer.Messages
 				if (compressFile)
 					previousFile = file;
 
-				file = await EncryptFile(file);
+				file = await EncryptFileAsync(file);
 				remoteSaveLocation += AES256.Extension;
 
 				//Deletes the compressed file
@@ -142,7 +144,7 @@ namespace AsyncClientServer.Messages
 
 			}
 
-			await SendFile(file, remoteSaveLocation, encryptFile, close, id);
+			await SendFileAsynchronous(file, remoteSaveLocation, encryptFile, close, id);
 			//await StreamFileAndSendBytes(file, remoteSaveLocation, encryptFile, close, id);
 
 			//Deletes the compressed file if no encryption occured.
@@ -173,19 +175,19 @@ namespace AsyncClientServer.Messages
 
 			//Add extension and compress.
 			tempPath += ZipCompression.Extension;
-			string folderToSend = await CompressFolder(folderLocation, tempPath);
+			string folderToSend = await CompressFolderAsync(folderLocation, tempPath);
 			remoteFolderLocation += ZipCompression.Extension;
 
 			//Check if folder needs to be encrypted.
 			if (encryptFolder)
 			{
 				//Encrypt and adjust file names.
-				folderToSend = await EncryptFile(folderToSend);
+				folderToSend = await EncryptFileAsync(folderToSend);
 				remoteFolderLocation += AES256.Extension;
 				File.Delete(tempPath);
 			}
 
-			await SendFile(folderToSend, remoteFolderLocation, encryptFolder, close, id);
+			await SendFileAsynchronous(folderToSend, remoteFolderLocation, encryptFolder, close, id);
 
 			//Stream the file in bits and send each time the buffer is full.
 			//await StreamFileAndSendBytes(folderToSend, remoteFolderLocation, encryptFolder, close, id);
@@ -196,10 +198,11 @@ namespace AsyncClientServer.Messages
 		}
 
 
+
 		//Streams the file and constantly sends bytes to server or client.
 		//This method is called in createAsyncFileMessage.
 		//Id is an optional parameter with default value of -1.
-		protected async Task StreamFileAndSendBytes(string location, string remoteSaveLocation, bool encrypt, int id = -1)
+		protected async Task StreamFileAndSendBytesAsync(string location, string remoteSaveLocation, bool encrypt, int id = -1)
 		{
 			try
 			{
@@ -334,6 +337,9 @@ namespace AsyncClientServer.Messages
 			}
 		}
 
+
+
+		/////////*************************************DEPRECATED************************************************//////////////
 		/// <summary>
 		/// Creates an array of bytes. DEPRECATED.
 		/// <para>This method sets the location of where the file will be copied to.
@@ -488,6 +494,7 @@ namespace AsyncClientServer.Messages
 			}
 
 		}
+		/////////*************************************END DEPRECATED************************************************//////////////
 
 		/// <summary>
 		/// Creates an array of bytes

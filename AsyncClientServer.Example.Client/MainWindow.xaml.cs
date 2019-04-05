@@ -161,7 +161,9 @@ namespace AsyncClientServer.Example.Client
 				}
 				else
 				{
-					await _client.SendFileAsync(Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text), false);
+					_client.SendFile(Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text),
+						false);
+					//await _client.SendFileAsync(Path.GetFullPath(_selectedFileFolder), Path.GetFullPath(TextBlockTarget.Text), false);
 				}
 
 			}
@@ -174,7 +176,6 @@ namespace AsyncClientServer.Example.Client
 		//Send a file or folder
 		private async void ButtonSendFileFolder_Click(object sender, RoutedEventArgs e)
 		{
-
 			await SendFileFolder();
 
 		}
