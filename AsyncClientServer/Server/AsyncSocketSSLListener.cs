@@ -15,7 +15,7 @@ using AsyncClientServer.StateObject.StateObjectState;
 
 namespace AsyncClientServer.Server
 {
-	public class AsyncSocketSslListener : ServerListener
+	public sealed class AsyncSocketSslListener : ServerListener
 	{
 		private readonly X509Certificate _serverCertificate = null;
 		private bool _acceptInvalidCertificates = true;
@@ -114,7 +114,7 @@ namespace AsyncClientServer.Server
 				lock (_clients)
 				{
 					id = !_clients.Any() ? 1 : _clients.Keys.Max() + 1;
-
+					
 					state = new StateObject.StateObject(((Socket)result.AsyncState).EndAccept(result), id);
 				}
 
@@ -122,11 +122,11 @@ namespace AsyncClientServer.Server
 
 				if (_acceptInvalidCertificates)
 				{
-					state.sslStream = new SslStream(stream, false,new RemoteCertificateValidationCallback(AcceptCertificate));
+					state.SslStream = new SslStream(stream, false,new RemoteCertificateValidationCallback(AcceptCertificate));
 				}
 				else
 				{
-					state.sslStream = new SslStream(stream, false);
+					state.SslStream = new SslStream(stream, false);
 				}
 
 
@@ -137,7 +137,9 @@ namespace AsyncClientServer.Server
 					if (success)
 					{
 						_clients.Add(id, state);
-						ClientConnectedInvoke(id);
+
+						ClientConnectedInvoke(id, state);
+
 						StartReceiving(state);
 					}
 					else
@@ -174,14 +176,14 @@ namespace AsyncClientServer.Server
 						break;
 				}
 
-				await state.sslStream.AuthenticateAsServerAsync(_serverCertificate, true, protocol, false);
+				await state.SslStream.AuthenticateAsServerAsync(_serverCertificate, true, protocol, false);
 
-				if (!state.sslStream.IsEncrypted)
+				if (!state.SslStream.IsEncrypted)
 				{
 					throw new Exception("Stream from client " + state.Id + " is not encrypted.");
 				}
 
-				if (!state.sslStream.IsAuthenticated)
+				if (!state.SslStream.IsAuthenticated)
 				{
 					throw new Exception("Stream from client " + state.Id + " not authenticated.");
 				}
@@ -218,7 +220,7 @@ namespace AsyncClientServer.Server
 					state.ChangeBuffer(new byte[state.BufferSize]);
 				}
 
-				SslStream sslStream = state.sslStream;
+				SslStream sslStream = state.SslStream;
 
 				_mreRead.WaitOne();
 				_mreRead.Reset();
@@ -255,7 +257,7 @@ namespace AsyncClientServer.Server
 				else
 				{
 
-					var receive = state.sslStream.EndRead(result);
+					var receive = state.SslStream.EndRead(result);
 
 					_mreRead.Set();
 					//var receive = state.Listener.EndReceive(result);
@@ -329,7 +331,7 @@ namespace AsyncClientServer.Server
 				_mreWriting.WaitOne();
 
 				_mreWriting.Reset();
-				state.sslStream.BeginWrite(send, 0, send.Length, SendCallback, state);
+				state.SslStream.BeginWrite(send, 0, send.Length, SendCallback, state);
 			}
 			catch (SocketException se)
 			{
@@ -352,7 +354,7 @@ namespace AsyncClientServer.Server
 
 			try
 			{
-				state.sslStream.EndWrite(result);
+				state.SslStream.EndWrite(result);
 				_mreWriting.Set();
 				if (state.Close)
 					Close(state.Id);
@@ -398,7 +400,7 @@ namespace AsyncClientServer.Server
 				_mreWriting.WaitOne();
 
 				_mreWriting.Reset();
-				state.sslStream.BeginWrite(send, 0, send.Length, FileTransferPartialCallback, state);
+				state.SslStream.BeginWrite(send, 0, send.Length, FileTransferPartialCallback, state);
 			}
 			catch (SocketException se)
 			{
@@ -421,7 +423,7 @@ namespace AsyncClientServer.Server
 
 			try
 			{
-				state.sslStream.EndWrite(result);
+				state.SslStream.EndWrite(result);
 				_mreWriting.Set();
 			}
 			catch (SocketException se)

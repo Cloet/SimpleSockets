@@ -16,11 +16,10 @@ namespace AsyncClientServer.Client
 	/// <summary>
 	/// The Following code handles the client in an Async fashion.
 	/// <para>To send messages to the corresponding Server, you should use the class "SendToServer"</para>
-	/// <para>Extends <see cref="SendToServer"/>, Implements
-	/// <seealso cref="ITcpClient"/>
+	/// <para>Extends <see cref="TcpClient"/>
 	/// </para>
 	/// </summary>
-	public class AsyncClient : TcpClient
+	public sealed class AsyncClient : TcpClient
 	{
 
 		public AsyncClient(): base()

@@ -17,7 +17,7 @@ using AsyncClientServer.StateObject.StateObjectState;
 
 namespace AsyncClientServer.Client
 {
-	public class AsyncSslClient: TcpClient
+	public sealed class AsyncSslClient: TcpClient
 	{
 
 		private SslStream _sslStream;
@@ -292,7 +292,7 @@ namespace AsyncClientServer.Client
 			try
 			{
 
-				state.sslStream = _sslStream;
+				state.SslStream = _sslStream;
 				if (state.Buffer.Length < state.BufferSize && offset == 0)
 				{
 					state.ChangeBuffer(new byte[state.BufferSize]);
@@ -300,7 +300,7 @@ namespace AsyncClientServer.Client
 
 				_mreRead.WaitOne();
 				_mreRead.Reset();
-				state.sslStream.BeginRead(state.Buffer, offset, state.BufferSize - offset, ReceiveCallback, state);
+				state.SslStream.BeginRead(state.Buffer, offset, state.BufferSize - offset, ReceiveCallback, state);
 			}
 			catch (Exception ex)
 			{
@@ -316,7 +316,7 @@ namespace AsyncClientServer.Client
 			var state = (StateObject.StateObject)result.AsyncState;
 			try
 			{
-				var receive = state.sslStream.EndRead(result);
+				var receive = state.SslStream.EndRead(result);
 				_mreRead.Set();
 
 				if (state.Flag == 0)
