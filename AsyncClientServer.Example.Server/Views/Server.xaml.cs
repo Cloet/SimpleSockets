@@ -25,14 +25,11 @@ namespace AsyncClientServer.Example.Server
 	{
 
 		private IServerListener _listener;
-		private ClientInfoViewModel _clientVm;
+		private ClientInfoViewModel _clientVM;
 
 		public Server()
 		{
 			InitializeComponent();
-
-			_clientVm = new ClientInfoViewModel();
-			ListViewClients.ItemsSource = _clientVm.ClientList;
 
 			StartServer();
 		}
@@ -40,6 +37,8 @@ namespace AsyncClientServer.Example.Server
 		public void StartServer()
 		{
 			_listener = new AsyncSocketListener();
+			_clientVM = (ClientInfoViewModel) ListViewClients.DataContext;
+			_clientVM.Listener = _listener;
 			BindEvents();
 
 			new Thread(() =>
@@ -68,19 +67,25 @@ namespace AsyncClientServer.Example.Server
 
 		private void MessageReceived(int id, string header, string msg)
 		{
-
+			Model.Client client = _clientVM.ClientList.First(x => x.Id == id);
+			client.Read(header + ": " + msg);
 		}
 
 		private void MessageSubmitted(int id, bool close)
 		{
+			Model.Client client = _clientVM.ClientList.First(x => x.Id == id);
+			client.Read("Message submitted to client.");
 		}
 
 		private void FileReceived(int id, string path)
 		{
+			Model.Client client = _clientVM.ClientList.First(x => x.Id == id);
+			client.Read("File/Folder has been received and stored at path " + path +".");
 		}
 
 		private void Progress(int id, int bytes, int messageSize)
 		{
+
 		}
 
 		private void ServerHasStarted()
@@ -90,14 +95,23 @@ namespace AsyncClientServer.Example.Server
 		private void ClientConnected(int id, IStateObject clientState)
 		{
 			Model.Client c = new Model.Client(id, clientState.LocalIPv4,clientState.LocalIPv6,clientState.RemoteIPv4,clientState.RemoteIPv6);
+			c.Connected = true;
+
 
 			Application.Current.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, 
-				new Action(() => _clientVm.ClientList.Add(c) ));
+				new Action(() =>
+				{
+					ClientInfoViewModel clientInfoVM = (ClientInfoViewModel)ListViewClients.DataContext;
+					clientInfoVM.ClientList.Add(c);
+				}));
 
 		}
 
 		private void ClientDisconnected(int id)
 		{
+			Model.Client client = _clientVM.ClientList.First(x => x.Id == id);
+			client.Connected = false;
+			client.Read("Client has disconnected from the server.");
 		}
 
 

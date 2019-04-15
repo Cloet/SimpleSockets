@@ -55,9 +55,14 @@
     <ApplicationDefinition Include="App.xaml">
       <Generator>MSBuild:Compile</Generator>
     </ApplicationDefinition>
+    <Compile Include="Converter\ConnectedToImage.cs" />
     <Compile Include="Model\Client.cs" />
+    <Compile Include="Model\RelayCommand.cs" />
     <Compile Include="Properties\Annotations.cs" />
-    <Compile Include="Server.xaml.cs">
+    <Compile Include="Views\DetailView.xaml.cs">
+      <DependentUpon>DetailView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\Server.xaml.cs">
       <DependentUpon>Server.xaml</DependentUpon>
     </Compile>
     <Compile Include="App.xaml.cs">
@@ -65,7 +70,12 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="ViewModel\ClientInfoViewModel.cs" />
-    <Page Include="Server.xaml">
+    <Compile Include="ViewModel\ViewModelLocator.cs" />
+    <Page Include="Views\DetailView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Views\Server.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

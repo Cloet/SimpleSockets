@@ -1,11 +1,11 @@
-﻿<Window x:Class="AsyncClientServer.Example.Client.Client"
+﻿<Window x:Class="AsyncClientServer.Example.Server.Views.DetailView"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:AsyncClientServer.Example.Client"
+        xmlns:local="clr-namespace:AsyncClientServer.Example.Server.Views"
         mc:Ignorable="d"
-        Title="Client" Height="567.332" Width="800">
+        Title="DetailView" Height="567.332" Width="800">
 	<Grid>
 		<TabControl>
 			<TabItem Header="Messaging">
@@ -65,7 +65,6 @@
 							<TextBlock HorizontalAlignment="Left" Margin="10,46,0,0" TextWrapping="Wrap" Text="Destination File" VerticalAlignment="Top"/>
 						</Grid>
 					</GroupBox>
-					<TextBlock x:Name="TextBlockStatus" FontSize="28" Margin="553,10,37,0" TextWrapping="Wrap" Text="TextBlock" VerticalAlignment="Top" Height="33"/>
 
 				</Grid>
 			</TabItem>

@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,105 +13,47 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
-using AsyncClientServer.Client;
+using AsyncClientServer.Example.Server.Model;
+using AsyncClientServer.Example.Server.ViewModel;
+using AsyncClientServer.Server;
 using Application = System.Windows.Application;
 using MessageBox = System.Windows.MessageBox;
+using Path = System.IO.Path;
 
-namespace AsyncClientServer.Example.Client
+namespace AsyncClientServer.Example.Server.Views
 {
 	/// <summary>
-	/// Interaction logic for Client.xaml
+	/// Interaction logic for DetailView.xaml
 	/// </summary>
-	public partial class Client : Window
+	public partial class DetailView : Window
 	{
+		private IServerListener _listener;
+		private Model.Client _client;
 
-		private ITcpClient _client;
-
-		public Client()
+		public DetailView(IServerListener listener, Model.Client client)
 		{
 			InitializeComponent();
+			_listener = listener;
+			_client = client;
 
-			_client = new AsyncClient();
-			BindEvents();
-			Task.Run(() => StartClient());
+			if (_client.LogPath != null)
+			{
+				RichTextBoxLogs.AppendText(File.ReadAllText(Path.GetFullPath(_client.LogPath)));
+			}
+
+
+			_client.TextReceived += new ReceivedText(ReceivedText);
 		}
 
-		private void StartClient()
-		{
-			_client.StartClient("127.0.0.1", 13000);
-		}
-
-		private void BindEvents()
-		{
-			_client.ProgressFileReceived += new ProgressFileTransferHandler(Progress);
-			_client.Connected += new ConnectedHandler(ConnectedToServer);
-			_client.MessageReceived += new ClientMessageReceivedHandler(ServerMessageReceived);
-			_client.MessageSubmitted += new ClientMessageSubmittedHandler(ClientMessageSubmitted);
-			_client.FileReceived += new FileFromServerReceivedHandler(FileReceived);
-			_client.Disconnected += new DisconnectedFromServerHandler(Disconnected);
-		}
-
-		//Converts DateTime to a string according to cultureInfo. (uses CurrentCulture.)
-		private static string ConvertDateTimeToString(DateTime time)
-		{
-			var cultureInfo = CultureInfo.CurrentCulture;
-			//CultureInfo us = new CultureInfo("en-US");
-			var shortDateFormatString = cultureInfo.DateTimeFormat.ShortDatePattern;
-			var longTimeFormatString = cultureInfo.DateTimeFormat.LongTimePattern;
-
-			return time.ToString(shortDateFormatString + " " + longTimeFormatString, cultureInfo);
-
-		}
-
-		private void AppendRichtTextBoxLog(string text)
+		private void ReceivedText(string message)
 		{
 			Application.Current.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background,
 				new Action(() =>
 				{
-					RichTextBoxLogs.AppendText(Environment.NewLine + "[" + ConvertDateTimeToString(DateTime.Now) + "] " + text);
-				}));			
+					RichTextBoxLogs.AppendText(Environment.NewLine + message);
+				}));
+			
 		}
-
-		private void ChangeStatus(string text)
-		{
-			Application.Current.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background,
-				new Action(() => { TextBlockStatus.Text = text; }));
-		}
-
-		private void ConnectedToServer(ITcpClient a)
-		{
-			AppendRichtTextBoxLog("The client has connected to the server.");
-			ChangeStatus("CONNECTED");
-		}
-
-		private void ServerMessageReceived(ITcpClient a, string header, string msg)
-		{
-			AppendRichtTextBoxLog(header + ": " + msg);
-		}
-
-		void FileReceived(ITcpClient a, string file)
-		{
-			AppendRichtTextBoxLog("File/Folder has been received and saved at path: " + file);
-		}
-
-		void Disconnected(ITcpClient a, string ip, int port)
-		{
-			AppendRichtTextBoxLog("Client has disconnected from the server.");
-			ChangeStatus("DISCONNECTED");
-		}
-
-		void Progress(ITcpClient a, int bytes, int messageSize)
-		{
-		}
-
-		void ClientMessageSubmitted(ITcpClient a, bool close)
-		{
-			AppendRichtTextBoxLog("Client has submitted a message.");
-		}
-
-
-
-		//Messaging
 
 		//Message
 		private void ButtonMessage_Click(object sender, RoutedEventArgs e)
@@ -119,7 +61,7 @@ namespace AsyncClientServer.Example.Client
 			try
 			{
 				string message = new TextRange(RichTextBoxMessage.Document.ContentStart, RichTextBoxMessage.Document.ContentEnd).Text;
-				_client.SendMessage(message, false);
+				_listener.SendMessage(_client.Id, message, false);
 			}
 			catch (Exception ex)
 			{
@@ -138,7 +80,7 @@ namespace AsyncClientServer.Example.Client
 			try
 			{
 				string command = new TextRange(RichTextBoxCommand.Document.ContentStart, RichTextBoxCommand.Document.ContentEnd).Text;
-				_client.SendCommand(command, false);
+				_listener.SendCommand(_client.Id, command, false);
 			}
 			catch (Exception ex)
 			{
@@ -176,7 +118,7 @@ namespace AsyncClientServer.Example.Client
 
 			try
 			{
-				Task.Run(() => _client.SendFolderAsync(source, destination, false));
+				Task.Run(() => _listener.SendFolderAsync(_client.Id, source, destination, false));
 			}
 			catch (Exception ex)
 			{
@@ -216,7 +158,7 @@ namespace AsyncClientServer.Example.Client
 
 			try
 			{
-				Task.Run(() => _client.SendFileAsync(source, destination, false));
+				Task.Run(() => _listener.SendFileAsync(_client.Id, source, destination, false));
 			}
 			catch (Exception ex)
 			{
