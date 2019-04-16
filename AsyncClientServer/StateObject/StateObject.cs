@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography;
@@ -27,6 +28,12 @@ namespace AsyncClientServer.StateObject
 		private List<byte> _receivedBytes = new List<byte>();
 		private StringBuilder _sb;
 
+		public string RemoteIPv4 { get; set; }
+		public string RemoteIPv6 { get; set; }
+
+		public string LocalIPv4 {get;set;}
+		public string LocalIPv6 { get; set; }
+
 		/// <summary>
 		/// Constructor for StateObject
 		/// </summary>
@@ -35,6 +42,16 @@ namespace AsyncClientServer.StateObject
 		public StateObject(Socket listener, int id = -1)
 		{
 			Listener = listener;
+
+			IPEndPoint localEP = (IPEndPoint) listener.LocalEndPoint;
+			IPEndPoint remoteEP = (IPEndPoint) listener.RemoteEndPoint;
+
+			RemoteIPv4 = remoteEP.Address.MapToIPv4().ToString();
+			RemoteIPv6 = remoteEP.Address.MapToIPv6().ToString();
+
+			LocalIPv4 = localEP.Address.MapToIPv4().ToString();
+			LocalIPv6 = localEP.Address.MapToIPv6().ToString();
+
 			Id = id;
 			Close = false;
 			Reset();

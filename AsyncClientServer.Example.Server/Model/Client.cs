@@ -23,6 +23,8 @@ namespace AsyncClientServer.Example.Server.Model
 		private bool _connected;
 		private string _remoteIPv4, _remoteIPv6, _localIPv4, _localIPv6;
 
+		public int ListId { get; set; }
+
 		public int Id { get; set; }
 		public bool Connected
 		{

@@ -38,7 +38,7 @@ namespace AsyncClientServer.Server
 	/// Event that is triggered when a client has connected;
 	/// </summary>
 	/// <param name="id"></param>
-	public delegate void ClientConnectedHandler(int id);
+	public delegate void ClientConnectedHandler(int id, IStateObject clientState);
 
 	/// <summary>
 	/// Event that is triggered when the server receives a file
@@ -224,9 +224,9 @@ namespace AsyncClientServer.Server
 			ClientDisconnected?.Invoke(id);
 		}
 
-		protected void ClientConnectedInvoke(int id)
+		protected void ClientConnectedInvoke(int id, IStateObject clientState)
 		{
-			ClientConnected?.Invoke(id);
+			ClientConnected?.Invoke(id,clientState);
 		}
 
 		protected void ServerHasStartedInvoke()

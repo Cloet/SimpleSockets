@@ -137,7 +137,7 @@ namespace AsyncClientServer.Server
 					if (success)
 					{
 						_clients.Add(id, state);
-						ClientConnectedInvoke(id);
+						ClientConnectedInvoke(id, state);
 						StartReceiving(state);
 					}
 					else

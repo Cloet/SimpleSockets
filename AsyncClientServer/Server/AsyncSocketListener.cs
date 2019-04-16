@@ -88,7 +88,7 @@ namespace AsyncClientServer.Server
 
 					state = new StateObject.StateObject(((Socket)result.AsyncState).EndAccept(result), id);
 					_clients.Add(id, state);
-					ClientConnectedInvoke(id);
+					ClientConnectedInvoke(id, state);
 				}
 				StartReceiving(state);
 			}
