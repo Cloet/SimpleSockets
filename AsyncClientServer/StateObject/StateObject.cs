@@ -63,7 +63,7 @@ namespace AsyncClientServer.StateObject
 			}
 			catch (Exception ex)
 			{
-
+				throw new Exception(ex.Message, ex);
 			}
 		}
 

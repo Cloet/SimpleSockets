@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using System.Timers;
 using AsyncClientServer.Cryptography;
 using System.Windows.Forms;
+using AsyncClientServer.Compression;
 using AsyncClientServer.StateObject;
 using AsyncClientServer.StateObject.StateObjectState;
 
@@ -613,7 +614,7 @@ namespace AsyncClientServer.Server
 							if (encrypt)
 							{
 								byte[] prefix = Encoding.UTF8.GetBytes("ENCRYPTED_");
-								byte[] headerData = AES256.EncryptStringToBytes_Aes(remoteSaveLocation);
+								byte[] headerData = Aes256.EncryptStringToBytes_Aes(remoteSaveLocation);
 								header = new byte[prefix.Length + headerData.Length];
 								prefix.CopyTo(header, 0);
 								headerData.CopyTo(header, 10);

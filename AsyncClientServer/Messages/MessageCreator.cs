@@ -37,7 +37,7 @@ namespace AsyncClientServer.Messages
 
 
 		//Encrypts a file and returns the new file path.
-		private async Task<string> EncryptFileAsync(string path)
+		protected async Task<string> EncryptFileAsync(string path)
 		{
 			try
 			{
