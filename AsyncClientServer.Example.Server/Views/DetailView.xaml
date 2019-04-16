@@ -1,0 +1,90 @@
+﻿<Window x:Class="AsyncClientServer.Example.Server.Views.DetailView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:AsyncClientServer.Example.Server.Views"
+        mc:Ignorable="d"
+        Title="DetailView" Height="567.332" Width="800">
+	<Grid>
+		<TabControl>
+			<TabItem Header="Messaging">
+				<Grid Background="#FFE5E5E5">
+					<TextBlock HorizontalAlignment="Left" Margin="10,10,0,0" FontSize="28" TextWrapping="Wrap" Text="Messaging" VerticalAlignment="Top"/>
+					<GroupBox Header="Message" Height="137" Margin="10,52,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="766">
+						<Grid>
+							<RichTextBox x:Name="RichTextBoxMessage" Margin="6,9,98,6">
+								<RichTextBox.Resources>
+									<Style TargetType="{x:Type Paragraph}">
+										<Setter Property="Margin" Value="0"/>
+									</Style>
+								</RichTextBox.Resources>
+								<FlowDocument>
+									<Paragraph>
+										<Run Text=""/>
+									</Paragraph>
+								</FlowDocument>
+							</RichTextBox>
+							<Button x:Name="ButtonMessage" Content="Send" Margin="663,10,10,10" Click="ButtonMessage_Click"/>
+						</Grid>
+					</GroupBox>
+					<GroupBox Header="Command" Height="76" Margin="10,194,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="766">
+						<Grid>
+							<RichTextBox x:Name="RichTextBoxCommand" Margin="6,9,98,6">
+								<RichTextBox.Resources>
+									<Style TargetType="{x:Type Paragraph}">
+										<Setter Property="Margin" Value="0"/>
+									</Style>
+								</RichTextBox.Resources>
+								<FlowDocument>
+									<Paragraph>
+										<Run Text=""/>
+									</Paragraph>
+								</FlowDocument>
+							</RichTextBox>
+							<Button x:Name="ButtonCommand" Content="Send" Margin="663,10,10,10" Click="ButtonCommand_Click"/>
+						</Grid>
+					</GroupBox>
+					<GroupBox Header="Folder" Height="99" Margin="10,282,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="766">
+						<Grid>
+							<TextBox x:Name="TextBoxFolderSource" Margin="112,8,118,0" IsReadOnly="True" Height="24" VerticalAlignment="Top"></TextBox>
+							<Button x:Name="ButtonChooseFolder" Content="Pick Folder" Margin="663,10,10,0" VerticalAlignment="Top" Height="23" Click="ButtonChooseFolder_Click"/>
+							<TextBox x:Name="TextBoxFolderDestination" Margin="112,42,118,0" Height="24" VerticalAlignment="Top"/>
+							<Button x:Name="ButtonFolder" Content="Send" Margin="663,44,10,0" VerticalAlignment="Top" Height="23" Click="ButtonFolder_Click"/>
+							<TextBlock HorizontalAlignment="Left" Margin="10,10,0,0" TextWrapping="Wrap" Text="Source Folder" VerticalAlignment="Top"/>
+							<TextBlock HorizontalAlignment="Left" Margin="10,46,0,0" TextWrapping="Wrap" Text="Destination Folder" VerticalAlignment="Top"/>
+						</Grid>
+					</GroupBox>
+					<GroupBox Header="File" Height="99" Margin="10,394,0,-32" VerticalAlignment="Top" HorizontalAlignment="Left" Width="766">
+						<Grid>
+							<TextBox x:Name="TextBoxFileSource" Margin="112,8,118,0" IsReadOnly="True" Height="24" VerticalAlignment="Top"/>
+							<Button x:Name="ButtonChooseFile" Content="Pick File" Margin="663,10,10,0" VerticalAlignment="Top" Height="23" Click="ButtonChooseFile_Click"/>
+							<TextBox x:Name="TextBoxFileDestination" Margin="112,42,118,0" Height="24" VerticalAlignment="Top"/>
+							<Button x:Name="ButtonFile" Content="Send" Margin="663,44,10,0" VerticalAlignment="Top" Height="23" Click="ButtonFile_Click"/>
+							<TextBlock HorizontalAlignment="Left" Margin="10,10,0,0" TextWrapping="Wrap" Text="Source File" VerticalAlignment="Top"/>
+							<TextBlock HorizontalAlignment="Left" Margin="10,46,0,0" TextWrapping="Wrap" Text="Destination File" VerticalAlignment="Top"/>
+						</Grid>
+					</GroupBox>
+
+				</Grid>
+			</TabItem>
+			<TabItem Header="Logs">
+				<Grid Background="#FFE5E5E5">
+					<RichTextBox x:Name="RichTextBoxLogs" IsReadOnly="True" Margin="0,42,0,0">
+						<RichTextBox.Resources>
+							<Style TargetType="{x:Type Paragraph}">
+								<Setter Property="Margin" Value="0"/>
+							</Style>
+						</RichTextBox.Resources>
+						<FlowDocument>
+							<Paragraph>
+								<Run Text=""/>
+							</Paragraph>
+						</FlowDocument>
+					</RichTextBox>
+					<TextBlock HorizontalAlignment="Left" Margin="6,7,0,0" TextWrapping="Wrap" FontSize="20" Text="Client Logs" VerticalAlignment="Top"/>
+				</Grid>
+			</TabItem>
+		</TabControl>
+	</Grid>
+</Window>

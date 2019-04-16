@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography;
@@ -27,6 +29,13 @@ namespace AsyncClientServer.StateObject
 		private List<byte> _receivedBytes = new List<byte>();
 		private StringBuilder _sb;
 
+		public string RemoteIPv4 { get; set; }
+		public string RemoteIPv6 { get; set; }
+
+		public string LocalIPv4 { get; set; }
+		public string LocalIPv6 { get; set; }
+
+
 		/// <summary>
 		/// Constructor for StateObject
 		/// </summary>
@@ -35,9 +44,28 @@ namespace AsyncClientServer.StateObject
 		public StateObject(Socket listener, int id = -1)
 		{
 			Listener = listener;
+
+			SetIps();
+
 			Id = id;
 			Close = false;
 			Reset();
+		}
+
+		private void SetIps()
+		{
+			try
+			{
+				RemoteIPv4 = ((IPEndPoint)Listener.LocalEndPoint).Address.MapToIPv4().ToString();
+				RemoteIPv6 = ((IPEndPoint)Listener.LocalEndPoint).Address.MapToIPv6().ToString();
+
+				LocalIPv4 = ((IPEndPoint)Listener.LocalEndPoint).Address.MapToIPv4().ToString();
+				LocalIPv6 = ((IPEndPoint)Listener.LocalEndPoint).Address.MapToIPv6().ToString();
+			}
+			catch (Exception ex)
+			{
+
+			}
 		}
 
 		/// <summary>
@@ -81,7 +109,10 @@ namespace AsyncClientServer.StateObject
 		/// </summary>
 		public int MessageSize { get; set; }
 
-		public SslStream sslStream { get; set; }
+		/// <summary>
+		/// Gets or sets the Sslstream of the state
+		/// </summary>
+		public SslStream SslStream { get; set; }
 
 		/// <summary>
 		/// Get or set the HeaderSize of the current message

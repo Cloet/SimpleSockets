@@ -14,12 +14,18 @@ namespace AsyncClientServer.StateObject
 		/// </summary>
 		int BufferSize { get; }
 
+		string RemoteIPv4 { get; set; }
+		string RemoteIPv6 { get; set; }
+
+		string LocalIPv4 { get; set; }
+		string LocalIPv6 { get; set; }
+
 		/// <summary>
 		/// Get or set the size of the message
 		/// </summary>
 		int MessageSize { get; set; }
 
-		SslStream sslStream { get; set; }
+		SslStream SslStream { get; set; }
 
 		/// <summary>
 		/// Get or set the size of the header of the current message
