@@ -35,7 +35,6 @@ namespace AsyncClientServer.StateObject
 		public string LocalIPv4 { get; set; }
 		public string LocalIPv6 { get; set; }
 
-
 		/// <summary>
 		/// Constructor for StateObject
 		/// </summary>

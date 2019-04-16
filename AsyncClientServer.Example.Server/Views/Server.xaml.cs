@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -101,8 +102,9 @@ namespace AsyncClientServer.Example.Server
 			Application.Current.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, 
 				new Action(() =>
 				{
-					ClientInfoViewModel clientInfoVM = (ClientInfoViewModel)ListViewClients.DataContext;
-					clientInfoVM.ClientList.Add(c);
+					var count = _clientVM.ClientList.Count;
+					c.ListId = ++count;
+					_clientVM.ClientList.Add(c);
 				}));
 
 		}

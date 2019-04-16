@@ -9,11 +9,10 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
+using AsyncClientServer.Cryptography;
 using System.Windows.Forms;
 using AsyncClientServer.StateObject;
 using AsyncClientServer.StateObject.StateObjectState;
-using Compression;
-using Cryptography;
 
 namespace AsyncClientServer.Server
 {
@@ -42,7 +41,7 @@ namespace AsyncClientServer.Server
 	/// Event that is triggered when a client has connected;
 	/// </summary>
 	/// <param name="id"></param>
-	public delegate void ClientConnectedHandler(int id, IStateObject state);
+	public delegate void ClientConnectedHandler(int id, IStateObject clientState);
 
 	/// <summary>
 	/// Event that is triggered when the server receives a file
@@ -116,6 +115,8 @@ namespace AsyncClientServer.Server
 			_keepAliveTimer.Elapsed += KeepAlive;
 			_keepAliveTimer.AutoReset = true;
 			_keepAliveTimer.Enabled = true;
+
+			Aes256 = new AES256();
 		}
 
 
@@ -229,9 +230,9 @@ namespace AsyncClientServer.Server
 			ClientDisconnected?.Invoke(id);
 		}
 
-		protected void ClientConnectedInvoke(int id, IStateObject state)
+		protected void ClientConnectedInvoke(int id, IStateObject clientState)
 		{
-			ClientConnected?.Invoke(id,state);
+			ClientConnected?.Invoke(id,clientState);
 		}
 
 		protected void ServerHasStartedInvoke()

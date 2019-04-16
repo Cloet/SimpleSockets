@@ -1,4 +1,5 @@
 ﻿using AsyncClientServer.Client;
+using AsyncClientServer.Cryptography;
 using AsyncClientServer.Server;
 
 namespace AsyncClientServer.StateObject.StateObjectState
@@ -10,12 +11,18 @@ namespace AsyncClientServer.StateObject.StateObjectState
 		//Client is used to invoke message/file received event (not necessary when using on the server side.)
 		protected TcpClient Client = null;
 		protected ServerListener Server = null;
+		protected AES256 Aes265;
 
 		protected StateObjectState(IStateObject state, TcpClient client, ServerListener listener)
 		{
 			State = state;
 			Client = client;
 			Server = listener;
+
+			if (client == null)
+				Aes265 = Server.Aes256;
+			if (Server == null)
+				Aes265 = client.Aes256;
 		}
 
 		/// <summary>

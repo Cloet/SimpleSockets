@@ -3,7 +3,6 @@ using System.Linq;
 using System.Text;
 using AsyncClientServer.Client;
 using AsyncClientServer.Server;
-using Cryptography;
 
 namespace AsyncClientServer.StateObject.StateObjectState
 {
@@ -27,7 +26,7 @@ namespace AsyncClientServer.StateObject.StateObjectState
 
 			//Check if the bytes are encrypted or not.
 			if (State.Encrypted)
-				text = AES256.DecryptStringFromBytes_Aes(receivedMessageBytes);
+				text = Aes265.DecryptStringFromBytes_Aes(receivedMessageBytes);
 			else
 				text = Encoding.UTF8.GetString(receivedMessageBytes);
 

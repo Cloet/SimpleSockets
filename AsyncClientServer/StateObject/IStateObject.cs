@@ -14,11 +14,11 @@ namespace AsyncClientServer.StateObject
 		/// </summary>
 		int BufferSize { get; }
 
-		string RemoteIPv4 { get; set; }
-		string RemoteIPv6 { get; set; }
+		string RemoteIPv4 { get;}
+		string RemoteIPv6 { get; }
 
-		string LocalIPv4 { get; set; }
-		string LocalIPv6 { get; set; }
+		string LocalIPv4 { get; }
+		string LocalIPv6 { get; }
 
 		/// <summary>
 		/// Get or set the size of the message

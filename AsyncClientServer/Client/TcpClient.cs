@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
+using AsyncClientServer.Cryptography;
 using AsyncClientServer.Server;
 using AsyncClientServer.StateObject;
 using AsyncClientServer.StateObject.StateObjectState;
@@ -119,6 +120,8 @@ namespace AsyncClientServer.Client
 			_keepAliveTimer.Elapsed += KeepAlive;
 			_keepAliveTimer.AutoReset = true;
 			_keepAliveTimer.Enabled = false;
+
+			Aes256 = new AES256();
 		}
 
 		//Timer that tries reconnecting every x seconds
