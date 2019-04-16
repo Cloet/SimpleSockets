@@ -31,12 +31,14 @@ To change the salt or key use 'ChangeSalt()' or 'ChangeKey()' method in Client o
 ## Framing
 ### How the message are framed.
 The client or server sends a byte array, this array consists of:
+
 | Message part | Location in byte array | More info |  
 |--------------|------------------------|-----------|
 | HeaderLength | 4 first bytes of the array | The length of the header part of the byte array. |
 | MessageLength | 4-8 bytes of the array    | The length of the message part of the byte array. |
 | Header        | 8 + HeaderLength of the array | The header of the byte array. |
 | MessageData   | 8 + HeaderLength + MessageLength of the array | The part where the message is contained. |
+
 ### Reason for using framing
 Using framed message makes sure multiples message can be correctly handles by the server or client and have the ability to distinguish what type of message is received.
 
@@ -44,6 +46,7 @@ Using framed message makes sure multiples message can be correctly handles by th
 ### Server
 
 There are two different options of async client:
+
 | Server | Description|
 |--------| -----------|
 | AsyncSocketListener    | Server using Async calls without using Ssl. |
@@ -121,6 +124,7 @@ public async Task SendCommandAsync(int id, string command, bool close);
 ### Client
 
 There are two different options of async client:
+
 | Client| Description|
 |-------| -----------|
 | AsyncClient    | Client using Async Calls without using Ssl. |
