@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Compression
+namespace AsyncClientServer.Compression
 {
 	public static class GZipCompression
 	{

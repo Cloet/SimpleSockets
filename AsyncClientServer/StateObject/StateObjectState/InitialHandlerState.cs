@@ -3,7 +3,6 @@ using System.Linq;
 using System.Text;
 using AsyncClientServer.Client;
 using AsyncClientServer.Server;
-using Cryptography;
 
 namespace AsyncClientServer.StateObject.StateObjectState
 {
@@ -105,7 +104,7 @@ namespace AsyncClientServer.StateObject.StateObjectState
 					//Get the header without the "ENCRYPTED_" String, then set the state to Encrypted.
 					byte[] newHeader = new byte[headerBytes.Length - 10];
 					Array.Copy(headerBytes, 10, newHeader, 0, newHeader.Length);
-					State.Header = AES256.DecryptStringFromBytes_Aes(newHeader);
+					State.Header = Aes265.DecryptStringFromBytes_Aes(newHeader);
 					State.Encrypted = true;
 				}
 			}

@@ -5,8 +5,6 @@ using System.Runtime.Remoting.Messaging;
 using System.Text;
 using System.Threading.Tasks;
 using AsyncClientServer.Messages;
-using Compression;
-using Cryptography;
 
 namespace AsyncClientServer.Client
 {

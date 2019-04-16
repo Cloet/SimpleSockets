@@ -2,7 +2,6 @@
 using System.IO;
 using AsyncClientServer.Client;
 using AsyncClientServer.Server;
-using Compression;
 
 namespace AsyncClientServer.StateObject.StateObjectState
 {

@@ -1,9 +1,9 @@
 ﻿using System;
 using System.IO;
 using AsyncClientServer.Client;
+using AsyncClientServer.Compression;
+using AsyncClientServer.Cryptography;
 using AsyncClientServer.Server;
-using Compression;
-using Cryptography;
 
 namespace AsyncClientServer.StateObject.StateObjectState
 {
@@ -89,7 +89,7 @@ namespace AsyncClientServer.StateObject.StateObjectState
 				newFileName = info.FullName.Remove(info.FullName.Length - info.Extension.Length);
 
 				//Decrypts the file and save at new location. Deletes the encrypted file after decrypting.
-				AES256.FileDecrypt(_tempFilePath, newFileName);
+				Aes265.FileDecrypt(_tempFilePath, newFileName);
 				File.Delete(_tempFilePath);
 			}
 
@@ -110,7 +110,6 @@ namespace AsyncClientServer.StateObject.StateObjectState
 
 			Client.InvokeFileReceived(decompressed);
 		}
-
 
 		/// <summary>
 		/// Decompress the received file or folder

@@ -8,16 +8,22 @@ using System.Security.Policy;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Cryptography
+namespace AsyncClientServer.Cryptography
 {
-	public static class AES256
+	public class AES256
 	{
 
 		public static string Extension => ".aes";
 
+		internal AES256()
+		{
+			_key = Encoding.UTF8.GetBytes("AEJ46SDLZOEER467");
+			_IV = Encoding.UTF8.GetBytes("JFKZER82340qsdDF");
 
-		private static readonly byte[] _key = Encoding.UTF8.GetBytes("AEJ46SDLZOEER467");
-		private static readonly byte[] _IV = Encoding.UTF8.GetBytes("JFKZER82340qsdDF");
+		}
+
+		private byte[] _key;
+		private byte[] _IV;
 
 
 		//String
@@ -27,7 +33,7 @@ namespace Cryptography
 		/// </summary>
 		/// <param name="plainText"></param>
 		/// <returns></returns>
-		public static byte[] EncryptStringToBytes_Aes(string plainText)
+		internal byte[] EncryptStringToBytes_Aes(string plainText)
 		{
 			// Check arguments.
 			if (plainText == null || plainText.Length <= 0)
@@ -71,7 +77,7 @@ namespace Cryptography
 		/// </summary>
 		/// <param name="cipherText"></param>
 		/// <returns></returns>
-		public static string DecryptStringFromBytes_Aes(byte[] cipherText)
+		internal string DecryptStringFromBytes_Aes(byte[] cipherText)
 		{
 
 			try
@@ -128,7 +134,7 @@ namespace Cryptography
 		/// Creates a random salt that will be used to encrypt your file. This method is required on FileEncrypt.
 		/// </summary>
 		/// <returns></returns>
-		private static byte[] GenerateRandomSalt()
+		private byte[] GenerateRandomSalt()
 		{
 			byte[] data = new byte[32];
 
@@ -148,7 +154,7 @@ namespace Cryptography
 		/// Encrypts a file from its path and a plain password.
 		/// </summary>
 		/// <param name="inputFile"></param>
-		public static void FileEncrypt(string inputFile)
+		internal void FileEncrypt(string inputFile)
 		{
 
 			//generate random salt
@@ -210,7 +216,7 @@ namespace Cryptography
 		/// </summary>
 		/// <param name="inputFile"></param>
 		/// <param name="outputFile"></param>
-		public static void FileDecrypt(string inputFile, string outputFile)
+		internal void FileDecrypt(string inputFile, string outputFile)
 		{
 			byte[] passwordBytes = _key;
 			byte[] salt = new byte[32];

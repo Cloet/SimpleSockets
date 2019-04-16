@@ -7,9 +7,9 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using AsyncClientServer.Client;
+using AsyncClientServer.Compression;
+using AsyncClientServer.Cryptography;
 using AsyncClientServer.StateObject;
-using Compression;
-using Cryptography;
 
 namespace AsyncClientServer.Messages
 {
@@ -33,15 +33,17 @@ namespace AsyncClientServer.Messages
 		//Calls the SendBytesAsync Method.
 		protected delegate void AsyncCallerFile(bool close, int id);
 
+		public AES256 Aes256 { get; protected set; }
+
 
 		//Encrypts a file and returns the new file path.
-		private static async Task<string> EncryptFileAsync(string path)
+		private async Task<string> EncryptFileAsync(string path)
 		{
 			try
 			{
 				return await Task.Run(() =>
 				{
-					AES256.FileEncrypt(Path.GetFullPath(path));
+					Aes256.FileEncrypt(Path.GetFullPath(path));
 					path += AES256.Extension;
 					return path;
 				});
@@ -236,7 +238,7 @@ namespace AsyncClientServer.Messages
 							if (encrypt)
 							{
 								byte[] prefix = Encoding.UTF8.GetBytes("ENCRYPTED_");
-								byte[] headerData = AES256.EncryptStringToBytes_Aes(remoteSaveLocation);
+								byte[] headerData = Aes256.EncryptStringToBytes_Aes(remoteSaveLocation);
 								header = new byte[prefix.Length + headerData.Length];
 								prefix.CopyTo(header, 0);
 								headerData.CopyTo(header, 10);
@@ -287,7 +289,7 @@ namespace AsyncClientServer.Messages
 		}
 
 		//Writes a message to byte array
-		private static byte[] CreateByteArray(string message, string header, bool encrypt)
+		private byte[] CreateByteArray(string message, string header, bool encrypt)
 		{
 			try
 			{
@@ -298,14 +300,14 @@ namespace AsyncClientServer.Messages
 				{
 					//Header
 					byte[] encryptedPrefix = Encoding.UTF8.GetBytes("ENCRYPTED_");
-					byte[] encryptedHeader = AES256.EncryptStringToBytes_Aes(header);
+					byte[] encryptedHeader = Aes256.EncryptStringToBytes_Aes(header);
 
 					headerArray = new byte[encryptedHeader.Length + encryptedPrefix.Length];
 
 					encryptedPrefix.CopyTo(headerArray, 0);
 					encryptedHeader.CopyTo(headerArray, 10);
 
-					messageArray = AES256.EncryptStringToBytes_Aes(message);
+					messageArray = Aes256.EncryptStringToBytes_Aes(message);
 				}
 				else
 				{
@@ -368,7 +370,7 @@ namespace AsyncClientServer.Messages
 				//Check if the file and header have to be encrypted.
 				if (encryptFile)
 				{
-					AES256.FileEncrypt(fileToSend.FullName);
+					Aes256.FileEncrypt(fileToSend.FullName);
 					//Delete compressed file
 					if (compressFile)
 						File.Delete(fileToSend.FullName);
@@ -377,7 +379,7 @@ namespace AsyncClientServer.Messages
 					remoteSaveLocation += AES256.Extension;
 
 					byte[] encryptedPrefix = Encoding.UTF8.GetBytes("ENCRYPTED_");
-					byte[] encryptedHeader = AES256.EncryptStringToBytes_Aes(remoteSaveLocation);
+					byte[] encryptedHeader = Aes256.EncryptStringToBytes_Aes(remoteSaveLocation);
 
 					header = new byte[encryptedHeader.Length + encryptedPrefix.Length];
 
@@ -445,7 +447,7 @@ namespace AsyncClientServer.Messages
 				if (encryptFolder)
 				{
 					//Encrypt the file with AES256
-					AES256.FileEncrypt(tempPath);
+					Aes256.FileEncrypt(tempPath);
 
 					//Delete compressed file
 					File.Delete(tempPath);
@@ -456,7 +458,7 @@ namespace AsyncClientServer.Messages
 
 					//The encrypted header
 					byte[] encryptedPrefix = Encoding.UTF8.GetBytes("ENCRYPTED_");
-					byte[] encryptedHeader = AES256.EncryptStringToBytes_Aes(remoteFolderLocation);
+					byte[] encryptedHeader = Aes256.EncryptStringToBytes_Aes(remoteFolderLocation);
 
 					header = new byte[encryptedHeader.Length + encryptedPrefix.Length];
 

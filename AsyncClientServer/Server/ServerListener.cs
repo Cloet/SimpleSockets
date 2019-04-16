@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
+using AsyncClientServer.Cryptography;
 using AsyncClientServer.StateObject;
 using AsyncClientServer.StateObject.StateObjectState;
 
@@ -108,6 +109,8 @@ namespace AsyncClientServer.Server
 			_keepAliveTimer.Elapsed += KeepAlive;
 			_keepAliveTimer.AutoReset = true;
 			_keepAliveTimer.Enabled = true;
+
+			Aes256 = new AES256();
 		}
 
 

@@ -2,7 +2,6 @@
 using System.Text;
 using AsyncClientServer.Client;
 using AsyncClientServer.Server;
-using Cryptography;
 
 namespace AsyncClientServer.StateObject.StateObjectState
 {
