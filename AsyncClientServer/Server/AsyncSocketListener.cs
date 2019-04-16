@@ -16,9 +16,9 @@ namespace AsyncClientServer.Server
 	/// <summary>
 	/// This class is the server, singleton class
 	/// <para>Handles sending and receiving data to/from clients</para>
-	/// <para>Extends <see cref="SendToClient"/>, Implements <seealso cref="IServerListener"/></para>
+	/// <para/>Extends <see cref="ServerListener"/>
 	/// </summary>
-	public class AsyncSocketListener : ServerListener
+	public sealed class AsyncSocketListener : ServerListener
 	{
 
 		/// <summary>

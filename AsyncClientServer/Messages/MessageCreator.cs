@@ -55,7 +55,7 @@ namespace AsyncClientServer.Messages
 		}
 
 		//Compresses a file and returns the new path
-		private static async Task<string> CompressFileAsync(string path)
+		protected static async Task<string> CompressFileAsync(string path)
 		{
 			try
 			{
@@ -68,7 +68,7 @@ namespace AsyncClientServer.Messages
 		}
 
 		//Compresses a folder and returns the new path
-		private static async Task<string> CompressFolderAsync(string path, string tempPath)
+		protected static async Task<string> CompressFolderAsync(string path, string tempPath)
 		{
 			try
 			{
@@ -102,6 +102,7 @@ namespace AsyncClientServer.Messages
 			callback.Invoke(close, id);
 
 		}
+
 
 
 		/// <summary>

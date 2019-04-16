@@ -25,7 +25,7 @@ namespace AsyncClientServer.StateObject
 		/// </summary>
 		int MessageSize { get; set; }
 
-		SslStream sslStream { get; set; }
+		SslStream SslStream { get; set; }
 
 		/// <summary>
 		/// Get or set the size of the header of the current message
