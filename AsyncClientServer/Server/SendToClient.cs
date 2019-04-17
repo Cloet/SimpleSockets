@@ -1,9 +1,14 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Net.Sockets;
 using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 using System.Threading.Tasks;
+using AsyncClientServer.Compression;
+using AsyncClientServer.Cryptography;
 using AsyncClientServer.Messages;
+using AsyncClientServer.StateObject;
 
 namespace AsyncClientServer.Server
 {
@@ -11,7 +16,7 @@ namespace AsyncClientServer.Server
 	/// This abstract class has classes to send messages, objects and files to the client.
 	/// <para>Extends <see cref="T:AsyncClientServer.ByteCreator.ByteConverter" />, Implements <see cref="T:AsyncClientServer.Server.ISendToClient" /></para>
 	/// </summary>
-	public abstract class SendToClient : MessageCreator, ISendToClient
+	public abstract class SendToClient : MessageFactory, ISendToClient
 	{
 
 
@@ -24,6 +29,7 @@ namespace AsyncClientServer.Server
 		/// <param name="close"></param>
 		protected abstract void SendBytes(int id, byte[] data, bool close);
 
+		public abstract IDictionary<int, ISocketState> GetClients();
 
 		/*==========================================
 		*
@@ -215,7 +221,7 @@ namespace AsyncClientServer.Server
 		/// <param name="close"></param>
 		public async Task SendFileAsync(int id, string fileLocation, string remoteFileLocation, bool encryptFile, bool compressFile, bool close)
 		{
-			await CreateAsyncFileMessage(fileLocation, remoteFileLocation, compressFile, encryptFile, close, id);
+			await CreateAndSendAsyncFileMessage(fileLocation, remoteFileLocation, compressFile, encryptFile, close, id);
 		}
 
 		/// <inheritdoc />
@@ -293,7 +299,7 @@ namespace AsyncClientServer.Server
 		{
 			try
 			{
-				await CreateAsyncFolderMessage(folderLocation, remoteFolderLocation, encryptFolder, close, id);
+				await CreateAndSendAsyncFolderMessage(folderLocation, remoteFolderLocation, encryptFolder, close, id);
 			}
 			catch (Exception ex)
 			{
@@ -404,8 +410,15 @@ namespace AsyncClientServer.Server
 		/// <param name="encryptFile"></param>
 		/// <param name="compressFile"></param>
 		/// <param name="close"></param>
-		public abstract void SendFileToAllClients(string fileLocation, string remoteSaveLocation, bool encryptFile,
-			bool compressFile, bool close);
+		public void SendFileToAllClients(string fileLocation, string remoteSaveLocation, bool encryptFile,
+			bool compressFile, bool close)
+		{
+			var data = CreateByteFile(fileLocation, remoteSaveLocation, encryptFile, compressFile);
+			foreach (var c in GetClients())
+			{
+				SendBytes(c.Key, data, close);
+			}
+		}
 
 		/// <inheritdoc />
 		/// <summary>
@@ -431,9 +444,12 @@ namespace AsyncClientServer.Server
 		/// <param name="encryptFile"></param>
 		/// <param name="compressFile"></param>
 		/// <param name="close"></param>
-		public abstract Task SendFileToAllClientsAsync(string fileLocation, string remoteSaveLocation, bool encryptFile,
+		public async Task SendFileToAllClientsAsync(string fileLocation, string remoteSaveLocation, bool encryptFile,
 			bool compressFile,
-			bool close);
+			bool close)
+		{
+			await CreateAsyncFileMessageBroadcast(fileLocation, remoteSaveLocation, compressFile, encryptFile, close);
+		}
 
 		/// <inheritdoc />
 		/// <summary>
@@ -465,8 +481,14 @@ namespace AsyncClientServer.Server
 		/// <param name="remoteFolderLocation"></param>
 		/// <param name="encryptFolder"></param>
 		/// <param name="close"></param>
-		public abstract void SendFolderToAllClients(string folderLocation, string remoteFolderLocation, bool encryptFolder,
-			bool close);
+		public void SendFolderToAllClients(string folderLocation, string remoteFolderLocation, bool encryptFolder,bool close)
+		{
+			var data = CreateByteFolder(folderLocation, remoteFolderLocation, encryptFolder);
+			foreach (var c in GetClients())
+			{
+				SendBytes(c.Key, data, close);
+			}
+		}
 
 		/// <inheritdoc />
 		/// <summary>
@@ -491,8 +513,10 @@ namespace AsyncClientServer.Server
 		/// <param name="remoteFolderLocation"></param>
 		/// <param name="encryptFolder"></param>
 		/// <param name="close"></param>
-		public abstract Task SendFolderToAllClientsAsync(string folderLocation, string remoteFolderLocation,
-			bool encryptFolder, bool close);
+		public async Task SendFolderToAllClientsAsync(string folderLocation, string remoteFolderLocation, bool encryptFolder,bool close)
+		{
+			await CreateAsyncFolderMessageBroadcast(folderLocation, remoteFolderLocation, encryptFolder, close);
+		}
 
 		/// <inheritdoc />
 		/// <summary>
@@ -522,7 +546,14 @@ namespace AsyncClientServer.Server
 		/// <param name="message"></param>
 		/// <param name="encryptMessage"></param>
 		/// <param name="close"></param>
-		public abstract void SendMessageToAllClients(string message, bool encryptMessage, bool close);
+		public void SendMessageToAllClients(string message, bool encryptMessage, bool close)
+		{
+			var data = CreateByteMessage(message, encryptMessage);
+			foreach (var c in GetClients())
+			{
+				SendBytes(c.Key, data, close);
+			}
+		}
 
 		/// <inheritdoc />
 		/// <summary>
@@ -577,7 +608,15 @@ namespace AsyncClientServer.Server
 		/// <param name="obj"></param>
 		/// <param name="encryptObject"></param>
 		/// <param name="close"></param>
-		public abstract void SendObjectToAllClients(object obj, bool encryptObject, bool close);
+		public void SendObjectToAllClients(object obj, bool encryptObject, bool close)
+		{
+			var data = CreateByteObject(obj, encryptObject);
+			foreach (var c in GetClients())
+			{
+				SendBytes(c.Key, data, close);
+			}
+
+		}
 
 		/// <inheritdoc />
 		/// <summary>
@@ -633,7 +672,14 @@ namespace AsyncClientServer.Server
 		/// <param name="command"></param>
 		/// <param name="encryptCommand"></param>
 		/// <param name="close"></param>
-		public abstract void SendCommandToAllClients(string command, bool encryptCommand, bool close);
+		public void SendCommandToAllClients(string command, bool encryptCommand, bool close)
+		{
+			var data = CreateByteCommand(command, encryptCommand);
+			foreach (var c in GetClients())
+			{
+				SendBytes(c.Key, data, close);
+			}
+		}
 
 		/// <inheritdoc />
 		/// <summary>
@@ -671,6 +717,191 @@ namespace AsyncClientServer.Server
 		{
 			await Task.Run(() => SendCommandToAllClients(command, close));
 		}
+
+
+		#region Broadcast File/folder
+
+		protected async Task<List<int>> StreamFileAndSendToAllClients(string location, string remoteSaveLocation, bool encrypt)
+		{
+			try
+			{
+				var file = location;
+				var buffer = new byte[10485760];
+				bool firstRead = true;
+				List<int> clientIds = new List<int>();
+
+				foreach (var c in GetClients())
+				{
+					clientIds.Add(c.Key);
+				}
+
+				//Stream that reads the file and sends bits to the server.
+				using (var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, buffer.Length, true))
+				{
+					//How much bytes that have been read
+					int read = 0;
+
+
+					while ((read = await stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+					{
+						//data bytes
+						byte[] data = null;
+
+						//The message
+						byte[] message = new byte[read];
+						Array.Copy(buffer, 0, message, 0, read);
+
+
+						//Checks if it is the first read of the file
+						if (firstRead)
+						{
+
+							byte[] header = null;
+
+							if (encrypt)
+							{
+								byte[] prefix = Encoding.UTF8.GetBytes("ENCRYPTED_");
+								byte[] headerData = Aes256.EncryptStringToBytes_Aes(remoteSaveLocation);
+								header = new byte[prefix.Length + headerData.Length];
+								prefix.CopyTo(header, 0);
+								headerData.CopyTo(header, 10);
+							}
+							else
+							{
+								header = Encoding.UTF8.GetBytes(remoteSaveLocation);
+							}
+
+							//Message
+							byte[] messageData = message; //Message part
+							byte[] headerBytes = header; //Header
+							byte[] headerLen = BitConverter.GetBytes(headerBytes.Length); //Length of the header
+							byte[] messageLength = BitConverter.GetBytes(stream.Length); //Total bytes in the file
+
+							data = new byte[4 + 4 + headerBytes.Length + messageData.Length];
+
+							messageLength.CopyTo(data, 0);
+							headerLen.CopyTo(data, 4);
+							headerBytes.CopyTo(data, 8);
+							messageData.CopyTo(data, 8 + headerBytes.Length);
+
+							firstRead = false;
+
+						}
+						else
+						{
+							data = message;
+						}
+
+
+						foreach (var key in clientIds)
+						{
+							SendBytesPartial(data, key);
+						}
+
+					}
+
+				}
+
+				//Delete encrypted file after it has been read.
+				if (encrypt)
+					File.Delete(file);
+
+				return clientIds;
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message, ex);
+			}
+		}
+
+
+		protected async Task CreateAsyncFileMessageBroadcast(string fileLocation, string remoteSaveLocation,bool compressFile, bool encryptFile, bool close)
+		{
+			var file = Path.GetFullPath(fileLocation);
+
+			IList<int> clients;
+
+			//Compresses the file
+			if (compressFile)
+			{
+				file = await CompressFileAsync(file);
+				remoteSaveLocation += GZipCompression.Extension;
+			}
+
+			//Encrypts the file and deletes the compressed file
+			if (encryptFile)
+			{
+				//Gets the location before the encryption
+
+				string previousFile = string.Empty;
+				if (compressFile)
+					previousFile = file;
+
+				file = await EncryptFileAsync(file);
+				remoteSaveLocation += AES256.Extension;
+
+				//Deletes the compressed file
+				if (previousFile != string.Empty)
+					File.Delete(previousFile);
+
+			}
+
+			clients = await StreamFileAndSendToAllClients(file, remoteSaveLocation, encryptFile);
+
+			//Deletes the compressed file if no encryption occured.
+			if (compressFile && !encryptFile)
+				File.Delete(file);
+
+
+			//Invoke completed for each client that should have received the file
+			foreach (var client in clients)
+			{
+				FileTransferCompleted(close, client);
+			}
+
+		}
+
+		protected async Task CreateAsyncFolderMessageBroadcast(string folderLocation, string remoteFolderLocation,bool encryptFolder, 
+			bool close)
+		{
+
+			IList<int> clients;
+
+			//Gets a temp path for the zip file.
+			string tempPath = Path.GetTempFileName();
+
+			//Check if the current temp file exists, if so delete it.
+			File.Delete(tempPath);
+
+			//Add extension and compress.
+			tempPath += ZipCompression.Extension;
+			string folderToSend = await CompressFolderAsync(folderLocation, tempPath);
+			remoteFolderLocation += ZipCompression.Extension;
+
+			//Check if folder needs to be encrypted.
+			if (encryptFolder)
+			{
+				//Encrypt and adjust file names.
+				folderToSend = await EncryptFileAsync(folderToSend);
+				remoteFolderLocation += AES256.Extension;
+				File.Delete(tempPath);
+			}
+
+			clients = await StreamFileAndSendToAllClients(folderToSend, remoteFolderLocation, encryptFolder);
+
+			//Deletes the compressed folder if not encryption occured.
+			if (File.Exists(folderToSend))
+				File.Delete(folderToSend);
+
+			//Invoke completed for each client that should have received the file
+			foreach (var client in clients)
+			{
+				FileTransferCompleted(close, client);
+			}
+
+		}
+		#endregion
+
 
 	}
 }

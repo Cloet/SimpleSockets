@@ -1,14 +1,13 @@
 ﻿using System;
-using System.Text;
 using AsyncClientServer.Client;
 using AsyncClientServer.Server;
 
-namespace AsyncClientServer.StateObject.StateObjectState
+namespace AsyncClientServer.StateObject.MessageHandlerState
 {
-	public class MessageHandlerState: StateObjectState
+	internal class MessageHandlerState: SocketStateState
 	{
 
-		public MessageHandlerState(IStateObject state, TcpClient client, ServerListener listener) : base(state, client,listener)
+		public MessageHandlerState(ISocketState state, TcpClient client, ServerListener listener) : base(state, client,listener)
 		{
 		}
 

@@ -41,6 +41,7 @@ namespace AsyncClientServer.Example.Server
 			_clientVM = (ClientInfoViewModel) ListViewClients.DataContext;
 			_clientVM.Listener = _listener;
 			BindEvents();
+			_listener.ChangeSocketBufferSize(500);
 
 			new Thread(() =>
 			{
@@ -60,6 +61,7 @@ namespace AsyncClientServer.Example.Server
 			_listener.ClientConnected += new ClientConnectedHandler(ClientConnected);
 			_listener.FileReceived += new FileFromClientReceivedHandler(FileReceived);
 			_listener.ServerHasStarted += new ServerHasStartedHandler(ServerHasStarted);
+			_listener.MessageFailed += new DataTransferToClientFailedHandler(MessageFailed);
 		}
 
 
@@ -93,7 +95,12 @@ namespace AsyncClientServer.Example.Server
 		{
 		}
 
-		private void ClientConnected(int id, IStateObject clientState)
+		private void MessageFailed(int id, byte[] messageData, string exceptionMessage)
+		{
+
+		}
+
+		private void ClientConnected(int id, ISocketState clientState)
 		{
 			Model.Client c = new Model.Client(id, clientState.LocalIPv4,clientState.LocalIPv6,clientState.RemoteIPv4,clientState.RemoteIPv6);
 			c.Connected = true;

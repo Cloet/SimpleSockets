@@ -1,15 +1,13 @@
-﻿using System;
-using System.Linq;
-using System.Text;
+﻿using System.Text;
 using AsyncClientServer.Client;
 using AsyncClientServer.Server;
 
-namespace AsyncClientServer.StateObject.StateObjectState
+namespace AsyncClientServer.StateObject.MessageHandlerState
 {
-	public class MessageHasBeenReceivedState: StateObjectState
+	internal class MessageHasBeenReceivedState: SocketStateState
 	{
 
-		public MessageHasBeenReceivedState(IStateObject state, TcpClient client, ServerListener listener) : base(state, client, listener)
+		public MessageHasBeenReceivedState(ISocketState state, TcpClient client, ServerListener listener) : base(state, client, listener)
 		{
 		}
 

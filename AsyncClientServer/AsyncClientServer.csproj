@@ -56,19 +56,19 @@
     <Compile Include="Client\ISendToServer.cs" />
     <Compile Include="Server\ServerListener.cs" />
     <Compile Include="SslProtocol.cs" />
-    <Compile Include="StateObject\IStateObject.cs" />
-    <Compile Include="Messages\MessageCreator.cs" />
+    <Compile Include="StateObject\ISocketState.cs" />
+    <Compile Include="Messages\MessageFactory.cs" />
     <Compile Include="Server\SendToClient.cs" />
     <Compile Include="Client\SendToServer.cs" />
     <Compile Include="Client\AsyncClient.cs" />
     <Compile Include="Server\AsyncSocketListener.cs" />
-    <Compile Include="StateObject\StateObjectState\FileHandlerState.cs" />
-    <Compile Include="StateObject\StateObjectState\FileHasBeenReceivedState.cs" />
-    <Compile Include="StateObject\StateObjectState\InitialHandlerState.cs" />
-    <Compile Include="StateObject\StateObjectState\MessageHandlerState.cs" />
-    <Compile Include="StateObject\StateObjectState\MessageHasBeenReceivedState.cs" />
-    <Compile Include="StateObject\StateObjectState\StateObjectState.cs" />
-    <Compile Include="StateObject\StateObject.cs" />
+    <Compile Include="StateObject\MessageHandlerState\FileHandlerState.cs" />
+    <Compile Include="StateObject\MessageHandlerState\FileHasBeenReceivedState.cs" />
+    <Compile Include="StateObject\MessageHandlerState\InitialHandlerState.cs" />
+    <Compile Include="StateObject\MessageHandlerState\MessageHandlerState.cs" />
+    <Compile Include="StateObject\MessageHandlerState\MessageHasBeenReceivedState.cs" />
+    <Compile Include="StateObject\MessageHandlerState\SocketStateState.cs" />
+    <Compile Include="StateObject\SocketState.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

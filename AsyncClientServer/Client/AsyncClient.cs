@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
 using AsyncClientServer.StateObject;
-using AsyncClientServer.StateObject.StateObjectState;
+using AsyncClientServer.StateObject.MessageHandlerState;
 
 namespace AsyncClientServer.Client
 {
@@ -35,7 +35,7 @@ namespace AsyncClientServer.Client
 
 			if (string.IsNullOrEmpty(ipServer))
 				throw new ArgumentNullException(nameof(ipServer));
-			if (port < 1)
+			if (port < 1 || port > 65535)
 				throw new ArgumentOutOfRangeException(nameof(port));
 			if (reconnectInSeconds < 3)
 				throw new ArgumentOutOfRangeException(nameof(reconnectInSeconds));
@@ -129,7 +129,7 @@ namespace AsyncClientServer.Client
 			}
 			catch (Exception ex)
 			{
-				throw new Exception(ex.Message, ex);
+				InvokeMessageFailed(bytes, ex.Message);
 			}
 		}
 
@@ -138,7 +138,7 @@ namespace AsyncClientServer.Client
 		{
 			try
 			{
-				var receiver = (Socket)result.AsyncState;
+				var receiver = (Socket) result.AsyncState;
 				receiver.EndSend(result);
 			}
 			catch (SocketException se)
@@ -149,13 +149,15 @@ namespace AsyncClientServer.Client
 			{
 				throw new Exception(se.ToString());
 			}
+			finally
+			{
+				InvokeMessageSubmitted(_close);
 
-			InvokeMessageSubmitted(_close);
+				if (_close)
+					Close();
 
-			if(_close)
-				Close();
-
-			_sent.Set();
+				_sent.Set();
+			}
 		}
 
 		#endregion
@@ -163,7 +165,7 @@ namespace AsyncClientServer.Client
 		#region FILE SENDING
 
 		//Sends bytes of file
-		protected override void SendBytesOfFile(byte[] bytes, int id)
+		protected override void SendBytesPartial(byte[] bytes, int id)
 		{
 			try
 			{
@@ -177,17 +179,17 @@ namespace AsyncClientServer.Client
 				{
 					var send = bytes;
 
-					_listener.BeginSend(send, 0, send.Length, SocketFlags.None, FileTransferPartialCallBack, _listener);
+					_listener.BeginSend(send, 0, send.Length, SocketFlags.None, SendCallbackPartial, _listener);
 				}
 			}
 			catch (Exception ex)
 			{
-				throw new Exception(ex.Message, ex);
+				InvokeMessageFailed(bytes, ex.Message);
 			}
 		}
 
 		//Gets called when file is done sending
-		protected override void FileTransferPartialCallBack(IAsyncResult result)
+		protected override void SendCallbackPartial(IAsyncResult result)
 		{
 			try
 			{
@@ -212,7 +214,7 @@ namespace AsyncClientServer.Client
 		#region Receiving
 
 		//Start receiving
-		internal override void StartReceiving(IStateObject state, int offset = 0)
+		internal override void StartReceiving(ISocketState state, int offset = 0)
 		{
 			if (state.Buffer.Length < state.BufferSize && offset == 0)
 			{
@@ -226,7 +228,7 @@ namespace AsyncClientServer.Client
 		//Handle a message
 		protected override void HandleMessage(IAsyncResult result)
 		{
-			var state = (StateObject.StateObject)result.AsyncState;
+			var state = (StateObject.SocketState)result.AsyncState;
 			try
 			{
 
@@ -264,7 +266,7 @@ namespace AsyncClientServer.Client
 			catch (Exception ex)
 			{
 				state.Reset();
-				throw new Exception(ex.ToString());
+				InvokeErrorThrown(ex.Message);
 			}
 		}
 

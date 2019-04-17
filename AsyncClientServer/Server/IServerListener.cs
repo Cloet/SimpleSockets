@@ -45,6 +45,16 @@ namespace AsyncClientServer.Server
 		/// Event that is triggered when the server has started.
 		/// </summary>
 		event ServerHasStartedHandler ServerHasStarted;
+		
+		/// <summary>
+		/// Triggered when message failed to transmit
+		/// </summary>
+		event DataTransferToClientFailedHandler MessageFailed;
+
+		/// <summary>
+		/// Triggered when error is thrown
+		/// </summary>
+		event ServerErrorThrownHandler ErrorThrown;
 
 		/// <summary>
 		/// The port the server is running on
@@ -77,7 +87,7 @@ namespace AsyncClientServer.Server
 		/// Gets all connected clients
 		/// </summary>
 		/// <returns></returns>
-		IDictionary<int, IStateObject> GetClients();
+		IDictionary<int, ISocketState> GetClients();
 
 		/// <summary>
 		/// Check a single client if he's still active
@@ -96,6 +106,11 @@ namespace AsyncClientServer.Server
 		/// <param name="id"></param>
 		void Close(int id);
 
+		/// <summary>
+		/// Change the BufferSize of the socket
+		/// </summary>
+		/// <param name="bufferSize"></param>
+		void ChangeSocketBufferSize(int bufferSize);
 
 	}
 }

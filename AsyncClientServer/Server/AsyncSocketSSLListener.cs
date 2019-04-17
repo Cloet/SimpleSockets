@@ -11,7 +11,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using AsyncClientServer.StateObject;
-using AsyncClientServer.StateObject.StateObjectState;
+using AsyncClientServer.StateObject.MessageHandlerState;
 
 namespace AsyncClientServer.Server
 {
@@ -108,14 +108,14 @@ namespace AsyncClientServer.Server
 			_mre.Set();
 			try
 			{
-				IStateObject state;
+				ISocketState state;
 				int id;
 
 				lock (_clients)
 				{
 					id = !_clients.Any() ? 1 : _clients.Keys.Max() + 1;
 					
-					state = new StateObject.StateObject(((Socket)result.AsyncState).EndAccept(result), id);
+					state = new StateObject.SocketState(((Socket)result.AsyncState).EndAccept(result), id);
 				}
 
 				var stream = new NetworkStream(state.Listener);
@@ -155,7 +155,7 @@ namespace AsyncClientServer.Server
 			}
 		}
 
-		private async Task<bool> Authenticate(IStateObject state)
+		private async Task<bool> Authenticate(ISocketState state)
 		{
 			try
 			{
@@ -209,7 +209,7 @@ namespace AsyncClientServer.Server
 		}
 
 		//Start receiving
-		internal override void StartReceiving(IStateObject state, int offset = 0)
+		internal override void StartReceiving(ISocketState state, int offset = 0)
 		{
 			try
 			{
@@ -235,7 +235,7 @@ namespace AsyncClientServer.Server
 		protected override void HandleMessage(IAsyncResult result)
 		{
 
-			var state = (StateObject.StateObject)result.AsyncState;
+			var state = (StateObject.SocketState)result.AsyncState;
 			try
 			{
 
@@ -291,7 +291,7 @@ namespace AsyncClientServer.Server
 			catch (Exception ex)
 			{
 				state.Reset();
-				throw new Exception(ex.Message, ex);
+				InvokeErrorThrown(ex.Message);
 			}
 		}
 
@@ -331,24 +331,16 @@ namespace AsyncClientServer.Server
 				_mreWriting.Reset();
 				state.SslStream.BeginWrite(send, 0, send.Length, SendCallback, state);
 			}
-			catch (SocketException se)
-			{
-				throw new SocketException(se.ErrorCode);
-			}
-			catch (ArgumentException ae)
-			{
-				throw new ArgumentException(ae.Message, ae);
-			}
 			catch (Exception ex)
 			{
-				throw new Exception(ex.Message, ex);
+				InvokeMessageFailed(id, bytes, ex.Message);
 			}
 		}
 
 		//End the send and invoke MessageSubmitted event.
 		protected override void SendCallback(IAsyncResult result)
 		{
-			var state = (IStateObject)result.AsyncState;
+			var state = (ISocketState)result.AsyncState;
 
 			try
 			{
@@ -375,8 +367,8 @@ namespace AsyncClientServer.Server
 			}
 		}
 
-
-		protected override void SendBytesOfFile(byte[] bytes, int id)
+		//Send partial message
+		protected override void SendBytesPartial(byte[] bytes, int id)
 		{
 			var state = GetClient(id);
 
@@ -398,26 +390,19 @@ namespace AsyncClientServer.Server
 				_mreWriting.WaitOne();
 
 				_mreWriting.Reset();
-				state.SslStream.BeginWrite(send, 0, send.Length, FileTransferPartialCallback, state);
-			}
-			catch (SocketException se)
-			{
-				throw new SocketException(se.ErrorCode);
-			}
-			catch (ArgumentException ae)
-			{
-				throw new ArgumentException(ae.Message, ae);
+				state.SslStream.BeginWrite(send, 0, send.Length, SendCallbackPartial, state);
 			}
 			catch (Exception ex)
 			{
-				throw new Exception(ex.Message, ex);
+				InvokeMessageFailed(id, bytes, ex.Message);
 			}
+
 		}
 
 		//End the send and invoke MessageSubmitted event.
-		protected override void FileTransferPartialCallback(IAsyncResult result)
+		protected override void SendCallbackPartial(IAsyncResult result)
 		{
-			var state = (IStateObject)result.AsyncState;
+			var state = (ISocketState)result.AsyncState;
 
 			try
 			{

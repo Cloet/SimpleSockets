@@ -1,13 +1,14 @@
 ﻿using System.Collections.Generic;
 using System.Net.Security;
 using System.Net.Sockets;
+using AsyncClientServer.StateObject.MessageHandlerState;
 
 namespace AsyncClientServer.StateObject
 {
 	/// <summary>
 	/// Interface for stateobject
 	/// </summary>
-	public interface IStateObject
+	public  interface ISocketState
 	{
 		/// <summary>
 		/// Get the buffersize
@@ -25,6 +26,11 @@ namespace AsyncClientServer.StateObject
 		/// </summary>
 		int MessageSize { get; set; }
 
+		int UnhandledBytes { get; set; }
+
+		/// <summary>
+		/// Get or set the SslStream
+		/// </summary>
 		SslStream SslStream { get; set; }
 
 		/// <summary>
@@ -73,17 +79,6 @@ namespace AsyncClientServer.StateObject
 		Socket Listener { get; }
 
 		/// <summary>
-		/// Currently received text
-		/// </summary>
-		string Text { get; }
-
-		/// <summary>
-		/// Append text to stringBuilder
-		/// </summary>
-		/// <param name="text"></param>
-		void Append(string text);
-
-		/// <summary>
 		/// Append byte
 		/// </summary>
 		/// <param name="length"></param>
@@ -98,13 +93,13 @@ namespace AsyncClientServer.StateObject
 		/// <summary>
 		/// Change the value of the buffer
 		/// </summary>
-		/// <param name="test"></param>
-		void ChangeBuffer(byte[] test);
+		/// <param name="newBuffer"></param>
+		void ChangeBuffer(byte[] newBuffer);
 
 		/// <summary>
 		/// The current state object.
 		/// </summary>
-		StateObjectState.StateObjectState CurrentState { get; set; }
+		SocketStateState CurrentState { get; set; }
 
 		/// <summary>
 		/// Reset the current state object.

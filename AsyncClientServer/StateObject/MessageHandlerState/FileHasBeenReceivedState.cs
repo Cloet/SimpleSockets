@@ -1,16 +1,14 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using AsyncClientServer.Client;
 using AsyncClientServer.Compression;
-using AsyncClientServer.Cryptography;
 using AsyncClientServer.Server;
 
-namespace AsyncClientServer.StateObject.StateObjectState
+namespace AsyncClientServer.StateObject.MessageHandlerState
 {
-	public class FileHasBeenReceivedState: StateObjectState
+	internal class FileHasBeenReceivedState: SocketStateState
 	{
 
-		public FileHasBeenReceivedState(IStateObject state, TcpClient client,ServerListener listener, string tempFilePath) : base(state, client,listener)
+		public FileHasBeenReceivedState(ISocketState state, TcpClient client,ServerListener listener, string tempFilePath) : base(state, client,listener)
 		{
 			_tempFilePath = tempFilePath;
 		}

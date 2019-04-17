@@ -13,7 +13,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using AsyncClientServer.StateObject;
-using AsyncClientServer.StateObject.StateObjectState;
+using AsyncClientServer.StateObject.MessageHandlerState;
 
 namespace AsyncClientServer.Client
 {
@@ -64,7 +64,7 @@ namespace AsyncClientServer.Client
 		{
 			if (string.IsNullOrEmpty(ipServer))
 				throw new ArgumentNullException(nameof(ipServer));
-			if (port < 1)
+			if (port < 1 || port > 65535)
 				throw new ArgumentOutOfRangeException(nameof(port));
 			if (reconnectInSeconds < 3)
 				throw new ArgumentOutOfRangeException(nameof(reconnectInSeconds));
@@ -105,7 +105,7 @@ namespace AsyncClientServer.Client
 			}
 			catch (Exception ex)
 			{
-				throw new Exception(ex.Message, ex);
+				InvokeErrorThrown(ex.Message);
 			}
 		}
 
@@ -154,21 +154,13 @@ namespace AsyncClientServer.Client
 			}
 			catch (IOException ex)
 			{
-				switch (ex.Message)
-				{
-					case "Authentication failed because the remote party has closed the transport stream.":
-					case "Unable to read data from the transport connection: An existing connection was forcibly closed by the remote host.":
-						throw new IOException("IOException server closed the connection.");
-					case "The handshake failed due to an unexpected packet format.":
-						throw new IOException("IOException server disconnected, invalid handshake.");
-					default:
-						throw new IOException(ex.Message, ex);
-				}
-
+				InvokeErrorThrown(ex.Message);
+				return false;
 			}
 			catch (Exception ex)
 			{
-				throw new Exception(ex.Message, ex);
+				InvokeErrorThrown(ex.Message);
+				return false;
 			}
 
 
@@ -255,7 +247,7 @@ namespace AsyncClientServer.Client
 			}
 			catch (Exception ex)
 			{
-				throw new Exception(ex.Message, ex);
+				InvokeMessageFailed(bytes,ex.Message);
 			}
 		}
 
@@ -264,30 +256,34 @@ namespace AsyncClientServer.Client
 		{
 			try
 			{
-				var receiver = (SslStream)result.AsyncState;
+				var receiver = (SslStream) result.AsyncState;
 				receiver.EndWrite(result);
 				_mreWriting.Set();
 			}
 			catch (SocketException se)
 			{
-				throw new Exception(se.ToString());
+				throw new SocketException(se.ErrorCode);
 			}
-			catch (ObjectDisposedException se)
+			catch (ObjectDisposedException ode)
 			{
-				throw new Exception(se.ToString());
+				throw new ObjectDisposedException(ode.ObjectName, ode.Message);
+			}
+			finally
+			{
+				InvokeMessageSubmitted(_close);
+
+				if (_close)
+					Close();
+
+				_sent.Set();
 			}
 
-			InvokeMessageSubmitted(_close);
 
-			if(_close)
-				Close();
-
-			_sent.Set();
 		}
 
 
 		//Start receiving
-		internal override void StartReceiving(IStateObject state, int offset = 0)
+		internal override void StartReceiving(ISocketState state, int offset = 0)
 		{
 			try
 			{
@@ -313,7 +309,7 @@ namespace AsyncClientServer.Client
 		//Handle a message
 		protected override void HandleMessage(IAsyncResult result)
 		{
-			var state = (StateObject.StateObject)result.AsyncState;
+			var state = (StateObject.SocketState)result.AsyncState;
 			try
 			{
 				var receive = state.SslStream.EndRead(result);
@@ -350,13 +346,13 @@ namespace AsyncClientServer.Client
 				state.Reset();
 				DisposeSslStream();
 				_listener.BeginConnect(_endpoint, OnConnectCallback, _listener);
-				throw new Exception(ex.ToString());
+				InvokeErrorThrown(ex.Message);
 			}
 		}
 
 
 		//Sends bytes of file
-		protected override void SendBytesOfFile(byte[] bytes, int id)
+		protected override void SendBytesPartial(byte[] bytes, int id)
 		{
 			try
 			{
@@ -374,17 +370,17 @@ namespace AsyncClientServer.Client
 
 					_mreWriting.WaitOne();
 					_mreWriting.Reset();
-					_sslStream.BeginWrite(send, 0, send.Length, FileTransferPartialCallBack, _sslStream);
+					_sslStream.BeginWrite(send, 0, send.Length, SendCallbackPartial, _sslStream);
 				}
 			}
 			catch (Exception ex)
 			{
-				throw new Exception(ex.Message, ex);
+				InvokeMessageFailed(bytes, ex.Message);
 			}
 		}
 
 		//Gets called when file is done sending
-		protected override void FileTransferPartialCallBack(IAsyncResult result)
+		protected override void SendCallbackPartial(IAsyncResult result)
 		{
 			try
 			{

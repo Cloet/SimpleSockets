@@ -3,12 +3,12 @@ using System.IO;
 using AsyncClientServer.Client;
 using AsyncClientServer.Server;
 
-namespace AsyncClientServer.StateObject.StateObjectState
+namespace AsyncClientServer.StateObject.MessageHandlerState
 {
-	public class FileHandlerState : StateObjectState
+	internal class FileHandlerState : SocketStateState
 	{
 
-		public FileHandlerState(IStateObject state, TcpClient client, ServerListener listener) : base(state, client,listener)
+		public FileHandlerState(ISocketState state, TcpClient client, ServerListener listener) : base(state, client,listener)
 		{
 		}
 

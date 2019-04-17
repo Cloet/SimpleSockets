@@ -42,6 +42,16 @@ namespace AsyncClientServer.Client
 		event DisconnectedFromServerHandler Disconnected;
 
 		/// <summary>
+		/// Event that is triggered when a message fails to send
+		/// </summary>
+		event DataTransferFailedHandler MessageFailed;
+
+		/// <summary>
+		/// Event that is triggered when an error is thrown
+		/// </summary>
+		event ErrorHandler ErrorThrown;
+
+		/// <summary>
 		/// Tries to connect to the server
 		/// </summary>
 		/// <param name="ipServer">The server ip</param>
@@ -70,6 +80,10 @@ namespace AsyncClientServer.Client
 		/// <returns></returns>
 		bool IsConnected();
 
-
+		/// <summary>
+		/// Changes the BufferSize of the client.
+		/// </summary>
+		/// <param name="bufferSize"></param>
+		void ChangeSocketBufferSize(int bufferSize);
 	}
 }

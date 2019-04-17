@@ -12,7 +12,7 @@ namespace AsyncClientServer.Client
 	/// Implements methods to send messages to the server
 	/// <para>Extends <see cref="T:AsyncClientServer.ByteCreator.ByteConverter" />, Implements <see cref="ISendToServer"/></para>
 	/// </summary>
-	public abstract class SendToServer : MessageCreator, ISendToServer
+	public abstract class SendToServer : MessageFactory, ISendToServer
 	{
 
 		/// <summary>
@@ -194,7 +194,7 @@ namespace AsyncClientServer.Client
 		{
 			try
 			{
-				await CreateAsyncFileMessage(fileLocation, remoteSaveLocation, compressFile, encryptFile, close);
+				await CreateAndSendAsyncFileMessage(fileLocation, remoteSaveLocation, compressFile, encryptFile, close);
 			}
 			catch (Exception ex)
 			{
@@ -270,7 +270,7 @@ namespace AsyncClientServer.Client
 
 			try
 			{
-				await CreateAsyncFolderMessage(folderLocation, remoteFolderLocation, encryptFolder, close);
+				await CreateAndSendAsyncFolderMessage(folderLocation, remoteFolderLocation, encryptFolder, close);
 			}
 			catch (Exception ex)
 			{

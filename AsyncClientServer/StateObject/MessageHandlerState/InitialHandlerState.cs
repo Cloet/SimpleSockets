@@ -4,18 +4,32 @@ using System.Text;
 using AsyncClientServer.Client;
 using AsyncClientServer.Server;
 
-namespace AsyncClientServer.StateObject.StateObjectState
+namespace AsyncClientServer.StateObject.MessageHandlerState
 {
-	public class InitialHandlerState : StateObjectState
+	internal class InitialHandlerState : SocketStateState
 	{
 		//The types of messages that can be send.
 		private readonly string[] _messageTypes = { "COMMAND", "MESSAGE", "OBJECT" };
 
-		public InitialHandlerState(IStateObject state, TcpClient client, ServerListener listener) : base(state, client,listener)
+		public InitialHandlerState(ISocketState state, TcpClient client, ServerListener listener) : base(state, client,listener)
 		{
 		}
 
-		private static int prevRead = 0;
+		//private static int prevRead = 0;
+
+		private void ReceiveMore(int receive)
+		{
+			State.UnhandledBytes = receive;
+			if (Server != null)
+			{
+				Server.StartReceiving(State, receive);
+			}
+
+			if (Client != null)
+			{
+				Client.StartReceiving(State, receive);
+			}
+		}
 
 		/// <summary>
 		/// The first check when a message is received.
@@ -23,34 +37,31 @@ namespace AsyncClientServer.StateObject.StateObjectState
 		/// <param name="receive"></param>
 		public override void Receive(int receive)
 		{
-			if(receive < 10)
+			if(receive < 8)
 			{
-
-				prevRead = receive;
-				if (Server != null)
-				{
-					Server.StartReceiving(State, receive);
-					return;
-				}
-
-				if (Client != null)
-				{
-					Client.StartReceiving(State, receive);
-					return;
-				}
-
+				ReceiveMore(receive);
+				return;
 			}
 
-			receive += prevRead;
-			prevRead = 0;
+			receive += State.UnhandledBytes;
+			State.UnhandledBytes = 0;
 
 
 			//First check
 			if (State.Flag == 0)
 			{
+
 				//Get the size of the message, the header size and the header string and save it to the StateObject.
-				State.MessageSize = BitConverter.ToInt32(State.Buffer, 0);
-				State.HeaderSize = BitConverter.ToInt32(State.Buffer, 4);
+				if(State.MessageSize == 0)
+					State.MessageSize = BitConverter.ToInt32(State.Buffer, 0);
+				if(State.HeaderSize == 0)
+					State.HeaderSize = BitConverter.ToInt32(State.Buffer, 4);
+
+				if (State.Buffer.Length < State.HeaderSize)
+				{
+					ReceiveMore(receive);
+					return;
+				}
 
 				//Check if kthe message/file is encrypted and sets the header
 				CheckIfEncryptedAndSetHeader();

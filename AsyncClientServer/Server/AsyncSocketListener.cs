@@ -6,7 +6,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Timers;
 using AsyncClientServer.StateObject;
-using AsyncClientServer.StateObject.StateObjectState;
+using AsyncClientServer.StateObject.MessageHandlerState;
 
 namespace AsyncClientServer.Server
 {
@@ -39,7 +39,7 @@ namespace AsyncClientServer.Server
 		{
 			if (string.IsNullOrEmpty(ip))
 				throw new ArgumentNullException(nameof(ip));
-			if (port < 1)
+			if (port < 1 || port > 65535)
 				throw new ArgumentOutOfRangeException(nameof(port));
 			if (limit < 0)
 				throw new ArgumentException("Limit cannot be under 0.");
@@ -80,13 +80,13 @@ namespace AsyncClientServer.Server
 			_mre.Set();
 			try
 			{
-				IStateObject state;
+				ISocketState state;
 
 				lock (_clients)
 				{
 					var id = !_clients.Any() ? 1 : _clients.Keys.Max() + 1;
 
-					state = new StateObject.StateObject(((Socket)result.AsyncState).EndAccept(result), id);
+					state = new StateObject.SocketState(((Socket)result.AsyncState).EndAccept(result), id);
 					_clients.Add(id, state);
 					ClientConnectedInvoke(id, state);
 				}
@@ -100,7 +100,7 @@ namespace AsyncClientServer.Server
 		}
 
 		//Start receiving
-		internal override void StartReceiving(IStateObject state, int offset = 0)
+		internal override void StartReceiving(ISocketState state, int offset = 0)
 		{
 
 			if (state.Buffer.Length < state.BufferSize && offset == 0)
@@ -115,7 +115,7 @@ namespace AsyncClientServer.Server
 		//Handles messages
 		protected override void HandleMessage(IAsyncResult result)
 		{
-			var state = (StateObject.StateObject)result.AsyncState;
+			var state = (StateObject.SocketState)result.AsyncState;
 			try
 			{
 
@@ -167,7 +167,7 @@ namespace AsyncClientServer.Server
 			catch (Exception ex)
 			{
 				state.Reset();
-				throw new Exception(ex.Message, ex);
+				InvokeErrorThrown(ex.Message);
 			}
 		}
 
@@ -202,24 +202,16 @@ namespace AsyncClientServer.Server
 				state.Close = close;
 				state.Listener.BeginSend(send, 0, send.Length, SocketFlags.None, SendCallback, state);
 			}
-			catch (SocketException se)
-			{
-				throw new SocketException(se.ErrorCode);
-			}
-			catch (ArgumentException ae)
-			{
-				throw new ArgumentException(ae.Message, ae);
-			}
 			catch (Exception ex)
 			{
-				throw new Exception(ex.Message, ex);
+				InvokeMessageFailed(id,bytes,ex.Message);
 			}
 		}
 
 		//End the send and invoke MessageSubmitted event.
 		protected override void SendCallback(IAsyncResult result)
 		{
-			var state = (IStateObject)result.AsyncState;
+			var state = (ISocketState)result.AsyncState;
 
 			try
 			{
@@ -246,8 +238,8 @@ namespace AsyncClientServer.Server
 		}
 
 
-
-		protected override void SendBytesOfFile(byte[] bytes, int id)
+		//Sends part of a message
+		protected override void SendBytesPartial(byte[] bytes, int id)
 		{
 			var state = GetClient(id);
 
@@ -268,26 +260,18 @@ namespace AsyncClientServer.Server
 			{
 				var send = bytes;
 
-				state.Listener.BeginSend(send, 0, send.Length, SocketFlags.None, FileTransferPartialCallback, state);
-			}
-			catch (SocketException se)
-			{
-				throw new SocketException(se.ErrorCode);
-			}
-			catch (ArgumentException ae)
-			{
-				throw new ArgumentException(ae.Message, ae);
+				state.Listener.BeginSend(send, 0, send.Length, SocketFlags.None, SendCallbackPartial, state);
 			}
 			catch (Exception ex)
 			{
-				throw new Exception(ex.Message, ex);
+				InvokeMessageFailed(id, bytes, ex.Message);
 			}
 		}
 
 		//End the send and invoke MessageSubmitted event.
-		protected override void FileTransferPartialCallback(IAsyncResult result)
+		protected override void SendCallbackPartial(IAsyncResult result)
 		{
-			var state = (IStateObject)result.AsyncState;
+			var state = (ISocketState)result.AsyncState;
 
 			try
 			{

@@ -6,6 +6,7 @@ using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
+using AsyncClientServer.StateObject.MessageHandlerState;
 
 namespace AsyncClientServer.StateObject
 {
@@ -14,10 +15,10 @@ namespace AsyncClientServer.StateObject
 	/// This class is used to keep track of certain values for server/client
 	/// <para>This is needed because the client and server work async</para>
 	/// <para>Implements
-	///<seealso cref="IStateObject"/>
+	///<seealso cref="ISocketState"/>
 	/// </para>
 	/// </summary>
-	public class StateObject: IStateObject
+	internal class SocketState: ISocketState
 	{
 
 		/* Contains the state information. */
@@ -25,9 +26,8 @@ namespace AsyncClientServer.StateObject
 		//8192 = 8kb
 		//16384 = 16kb
 		//131072 = 0.131072Mb
-		private const int Buffer_Size = 524288;
-		private List<byte> _receivedBytes = new List<byte>();
-		private StringBuilder _sb;
+		private static int _bufferSize = 524288;
+		private IList<byte> _receivedBytes = new List<byte>();
 
 		public string RemoteIPv4 { get; set; }
 		public string RemoteIPv6 { get; set; }
@@ -35,12 +35,13 @@ namespace AsyncClientServer.StateObject
 		public string LocalIPv4 { get; set; }
 		public string LocalIPv6 { get; set; }
 
+
 		/// <summary>
 		/// Constructor for StateObject
 		/// </summary>
 		/// <param name="listener"></param>
 		/// <param name="id"></param>
-		public StateObject(Socket listener, int id = -1)
+		internal SocketState(Socket listener, int id = -1)
 		{
 			Listener = listener;
 
@@ -68,9 +69,23 @@ namespace AsyncClientServer.StateObject
 		}
 
 		/// <summary>
+		/// Change the buffer size of the socket state
+		/// </summary>
+		/// <param name="size"></param>
+		internal static void ChangeBufferSize(int size)
+		{
+			_bufferSize = size;
+		}
+
+		/// <summary>
 		/// How many bytes have been read
 		/// </summary>
 		public int Read { get; private set; }
+
+		/// <summary>
+		/// Bytes that have been read but are not yet handled
+		/// </summary>
+		public int UnhandledBytes { get; set; }
 
 		/// <summary>
 		/// The flag of the state
@@ -101,7 +116,7 @@ namespace AsyncClientServer.StateObject
 		/// <summary>
 		/// Gets the bufferSize
 		/// </summary>
-		public int BufferSize => Buffer_Size;
+		public int BufferSize => _bufferSize;
 
 		/// <summary>
 		/// Get or set the MessageSize of the current message
@@ -121,17 +136,12 @@ namespace AsyncClientServer.StateObject
 		/// <summary>
 		/// Gets the amount of bytes in the buffer
 		/// </summary>
-		public byte[] Buffer { get; set; } = new byte[Buffer_Size];
+		public byte[] Buffer { get; set; } = new byte[_bufferSize];
 
 		/// <summary>
 		/// Returns the listener socket
 		/// </summary>
 		public Socket Listener { get; }
-
-		/// <summary>
-		/// Returns the text from stringBuilder
-		/// </summary>
-		public string Text => this._sb.ToString();
 
 		/// <summary>
 		/// Gets how much bytes have been received.
@@ -148,15 +158,6 @@ namespace AsyncClientServer.StateObject
 			{
 				_receivedBytes.Add(b);
 			}
-		}
-
-		/// <summary>
-		/// Add text to stringBuilder
-		/// </summary>
-		/// <param name="text"></param>
-		public void Append(string text)
-		{
-			_sb.Append(text);
 		}
 
 		/// <summary>
@@ -189,7 +190,7 @@ namespace AsyncClientServer.StateObject
 		/// <summary>
 		/// Change the state of the current stateObject
 		/// </summary>
-		public StateObjectState.StateObjectState CurrentState { get; set; }
+		public SocketStateState CurrentState { get; set; }
 
 
 		/// <summary>
@@ -204,7 +205,6 @@ namespace AsyncClientServer.StateObject
 			_receivedBytes = new List<byte>();
 			Read = 0;
 			Flag = 0;
-			_sb = new StringBuilder();
 		}
 
 	}

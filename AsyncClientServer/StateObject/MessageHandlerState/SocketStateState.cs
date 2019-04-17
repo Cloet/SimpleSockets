@@ -2,18 +2,18 @@
 using AsyncClientServer.Cryptography;
 using AsyncClientServer.Server;
 
-namespace AsyncClientServer.StateObject.StateObjectState
+namespace AsyncClientServer.StateObject.MessageHandlerState
 {
-	public abstract class StateObjectState
+	public abstract class SocketStateState
 	{
 
-		protected IStateObject State;
+		protected ISocketState State;
 		//Client is used to invoke message/file received event (not necessary when using on the server side.)
 		protected TcpClient Client = null;
 		protected ServerListener Server = null;
 		protected AES256 Aes265;
 
-		protected StateObjectState(IStateObject state, TcpClient client, ServerListener listener)
+		protected SocketStateState(ISocketState state, TcpClient client, ServerListener listener)
 		{
 			State = state;
 			Client = client;

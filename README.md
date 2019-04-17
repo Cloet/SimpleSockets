@@ -76,6 +76,7 @@ listener.ClientDisconnected += new ClientDisconnectedHandler(ClientDisconnected)
 listener.ClientConnected += new ClientConnectedHandler(ClientConnected);
 listener.FileReceived += new FileFromClientReceivedHandler(FileReceived);
 listener.ServerHasStarted += new ServerHasStartedHandler(ServerHasStarted);
+listener.MessageFailed += new DataTransferToClientFailedHandler(MessageFailed);
 ```
 ```C#
 //Methods
@@ -86,6 +87,7 @@ void Progress(int id, int bytes, int messageSize);
 void ServerHasStarted();
 void ClientConnected(int id);
 void ClientDisconnected(int id);
+void MessageFailed(int id, byte[] messageData, string exceptionMessage);
 ```
 
 Methods used to send messages to server
@@ -153,16 +155,18 @@ client.MessageReceived += new ClientMessageReceivedHandler(ServerMessageReceived
 client.MessageSubmitted += new ClientMessageSubmittedHandler(ClientMessageSubmitted);
 client.FileReceived += new FileFromServerReceivedHandler(FileReceived);
 client.Disconnected += new DisconnectedFromServerHandler(Disconnected);
+client.MessageFailed += new DataTransferFailedHandler(MessageFailed);
 ```
 
 ```C#
 //Events
-void ConnectedToServer(ITcpClient a);
-void ServerMessageReceived(ITcpClient a, string header, string msg);
-void FileReceived(ITcpClient a, string file);
-void Disconnected(ITcpClient a, string ip, int port);
-void Progress(ITcpClient a, int bytes, int messageSize);
-void ClientMessageSubmitted(ITcpClient a, bool close);
+void ConnectedToServer(ITcpClient tcpClient);
+void ServerMessageReceived(ITcpClient tcpClient, string header, string msg);
+void FileReceived(ITcpClient tcpClient, string file);
+void Disconnected(ITcpClient tcpClient, string ip, int port);
+void Progress(ITcpClient tcpClient, int bytes, int messageSize);
+void ClientMessageSubmitted(ITcpClient tcpClient, bool close);
+void MessageFailed(ITcpClient tcpClient, byte[] messageData, string exceptionMessage)
 ```
 
 Methods used to send messages to clients
