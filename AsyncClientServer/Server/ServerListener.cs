@@ -402,6 +402,9 @@ namespace AsyncClientServer.Server
 		/// <param name="bufferSize"></param>
 		public void ChangeSocketBufferSize(int bufferSize)
 		{
+			if (bufferSize < 1024)
+				throw new ArgumentOutOfRangeException("The buffer size should be more then 1024 bytes.");
+
 			SocketState.ChangeBufferSize(bufferSize);
 		}
 

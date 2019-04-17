@@ -49,6 +49,7 @@ namespace AsyncClientServer.Example.Client
 			_client.MessageSubmitted += new ClientMessageSubmittedHandler(ClientMessageSubmitted);
 			_client.FileReceived += new FileFromServerReceivedHandler(FileReceived);
 			_client.Disconnected += new DisconnectedFromServerHandler(Disconnected);
+			_client.MessageFailed += new DataTransferFailedHandler(MessageFailed);
 		}
 
 		//Converts DateTime to a string according to cultureInfo. (uses CurrentCulture.)
@@ -109,6 +110,9 @@ namespace AsyncClientServer.Example.Client
 			AppendRichtTextBoxLog("Client has submitted a message.");
 		}
 
+		private void MessageFailed(ITcpClient tcpClient, byte[] messageData, string exceptionMessage)
+		{
+		}
 
 
 		//Messaging

@@ -202,4 +202,31 @@ public async Task SendCommandAsync(string command, bool encryptCommand, bool clo
 public async Task SendCommandAsync(string command, bool close);
 ```
 
+Broadcast messages for server
+```C#
+public void SendFileToAllClients(string fileLocation, string remoteSaveLocation, bool encryptFile,bool compressFile, bool close);
+public void SendFileToAllClients(string fileLocation, string remoteSaveLocation, bool close);
+public async Task SendFileToAllClientsAsync(string fileLocation, string remoteSaveLocation, bool encryptFile, bool compressFile,bool close);
+public async Task SendFileToAllClientsAsync(string fileLocation, string remoteSaveLocation, bool close);
+
+public void SendFolderToAllClients(string folderLocation, string remoteFolderLocation, bool encryptFolder,bool close);
+public void SendFolderToAllClients(string folderLocation, string remoteFolderLocation, bool close);
+public async Task SendFolderToAllClientsAsync(string folderLocation, string remoteFolderLocation, bool encryptFolder,bool close);
+public async Task SendFolderToAllClientsAsync(string folderLocation, string remoteFolderLocation, bool close);
+
+public void SendMessageToAllClients(string message, bool encryptMessage, bool close);
+public void SendMessageToAllClients(string message, bool close);
+public async Task SendMessageToAllClientsAsync(string message, bool encryptMessage, bool close);
+public async Task SendMessageToAllClientsAsync(string message, bool close);
+
+public void SendObjectToAllClients(object obj, bool encryptObject, bool close);
+public void SendObjectToAllClients(object obj, bool close);
+public async Task SendObjectToAllClientsAsync(object obj, bool encryptObject, bool close);
+public async Task SendObjectToAllClientsAsync(object obj, bool close);
+
+public void SendCommandToAllClients(string command, bool encryptCommand, bool close);
+public void SendCommandToAllClients(string command, bool close);
+public async Task SendCommandToAllClientsAsync(string command, bool encryptCommand, bool close);
+public async Task SendCommandToAllClientsAsync(string command, bool close);
+```
 
