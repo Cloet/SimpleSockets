@@ -521,8 +521,9 @@ namespace AsyncClientServer.Messages
 		/// <returns>Byte[]</returns>
 		protected byte[] CreateByteObject(object serObj, bool encryptObject)
 		{
-			var message = XmlSerialization.XmlSerialization.SerializeToXml(serObj);
-			return CreateByteArray(message, "OBJECT", encryptObject);
+			throw new NotSupportedException("This option is not yet supported.");
+			//var message = XmlSerialization.XmlSerialization.SerializeToXml(serObj);
+			//return CreateByteArray(message, "OBJECT", encryptObject);
 		}
 
 	}

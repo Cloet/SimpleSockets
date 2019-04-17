@@ -71,11 +71,5 @@
     <Compile Include="StateObject\SocketState.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\XmlSerialization\XmlSerialization.csproj">
-      <Project>{b559c268-1c92-4543-ba0e-5f486b9c9c04}</Project>
-      <Name>XmlSerialization</Name>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
