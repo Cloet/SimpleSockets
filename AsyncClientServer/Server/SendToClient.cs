@@ -7,8 +7,8 @@ using System.Text;
 using System.Threading.Tasks;
 using AsyncClientServer.Compression;
 using AsyncClientServer.Cryptography;
-using AsyncClientServer.Messages;
-using AsyncClientServer.StateObject;
+using AsyncClientServer.Messaging;
+using AsyncClientServer.Messaging.Metadata;
 
 namespace AsyncClientServer.Server
 {
@@ -29,7 +29,7 @@ namespace AsyncClientServer.Server
 		/// <param name="close"></param>
 		protected abstract void SendBytes(int id, byte[] data, bool close);
 
-		public abstract IDictionary<int, ISocketState> GetClients();
+		internal abstract IDictionary<int, ISocketState> GetClients();
 
 		/*==========================================
 		*
@@ -416,7 +416,7 @@ namespace AsyncClientServer.Server
 			var data = CreateByteFile(fileLocation, remoteSaveLocation, encryptFile, compressFile);
 			foreach (var c in GetClients())
 			{
-				SendBytes(c.Key, data, close);
+				SendBytes(c.Value.Id, data, close);
 			}
 		}
 
@@ -486,7 +486,7 @@ namespace AsyncClientServer.Server
 			var data = CreateByteFolder(folderLocation, remoteFolderLocation, encryptFolder);
 			foreach (var c in GetClients())
 			{
-				SendBytes(c.Key, data, close);
+				SendBytes(c.Value.Id, data, close);
 			}
 		}
 
@@ -551,7 +551,7 @@ namespace AsyncClientServer.Server
 			var data = CreateByteMessage(message, encryptMessage);
 			foreach (var c in GetClients())
 			{
-				SendBytes(c.Key, data, close);
+				SendBytes(c.Value.Id, data, close);
 			}
 		}
 
@@ -613,7 +613,7 @@ namespace AsyncClientServer.Server
 			var data = CreateByteObject(obj, encryptObject);
 			foreach (var c in GetClients())
 			{
-				SendBytes(c.Key, data, close);
+				SendBytes(c.Value.Id, data, close);
 			}
 
 		}
@@ -677,7 +677,7 @@ namespace AsyncClientServer.Server
 			var data = CreateByteCommand(command, encryptCommand);
 			foreach (var c in GetClients())
 			{
-				SendBytes(c.Key, data, close);
+				SendBytes(c.Value.Id, data, close);
 			}
 		}
 
@@ -732,7 +732,7 @@ namespace AsyncClientServer.Server
 
 				foreach (var c in GetClients())
 				{
-					clientIds.Add(c.Key);
+					clientIds.Add(c.Value.Id);
 				}
 
 				//Stream that reads the file and sends bits to the server.

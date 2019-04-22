@@ -16,6 +16,9 @@ Files will be compressed before being sent. (This can be turned off)
 Folder will be compressed before being sent. (This cannot be turned off)  
 Files   use .Gcz Compression  
 Folders use .Zip Compression  
+###Using your own compression
+You can change the FileCompression by changeing the "FileCompressor" property of the client and server with a class that has been extended with FileCompressor class.  
+You can change the FolderCompression by change the "FolderCompressor" property of the client and server with a class that has been extended with FolderCompressor class.  
 
 ## Encryption
 If you don't want to use Ssl but don't want to send plaintext over the internet, there is an option to encrypt files and data with AES256.  
@@ -26,6 +29,8 @@ If you're really concered with safety use the Ssl variant of the client and serv
 ### Requirements
 The Client and Server will need the same key and salt to encrypt and decrypt data and files. If they do not they will return an error on receipt of data.  
 To change the salt or key use 'ChangeSalt()' or 'ChangeKey()' method in Client or Server.  
+### Using your own encryption
+You can use your own encryption and decryption by creating a new class that extends "Encryption" in AsyncClientServer and then changing the MessageEncrypter of the server and client.
 
 
 ## Framing

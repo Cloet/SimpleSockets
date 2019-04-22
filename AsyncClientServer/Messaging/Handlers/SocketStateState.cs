@@ -1,11 +1,12 @@
 ﻿using AsyncClientServer.Client;
 using AsyncClientServer.Compression;
 using AsyncClientServer.Cryptography;
+using AsyncClientServer.Messaging.Metadata;
 using AsyncClientServer.Server;
 
-namespace AsyncClientServer.StateObject.MessageHandlerState
+namespace AsyncClientServer.Messaging.Handlers
 {
-	public abstract class SocketStateState
+	internal abstract class SocketStateState
 	{
 
 		protected ISocketState State;

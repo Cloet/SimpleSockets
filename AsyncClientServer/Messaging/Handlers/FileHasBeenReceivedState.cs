@@ -1,9 +1,9 @@
 ﻿using System.IO;
 using AsyncClientServer.Client;
-using AsyncClientServer.Compression;
+using AsyncClientServer.Messaging.Metadata;
 using AsyncClientServer.Server;
 
-namespace AsyncClientServer.StateObject.MessageHandlerState
+namespace AsyncClientServer.Messaging.Handlers
 {
 	internal class FileHasBeenReceivedState: SocketStateState
 	{

@@ -6,8 +6,8 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
-using AsyncClientServer.StateObject;
-using AsyncClientServer.StateObject.MessageHandlerState;
+using AsyncClientServer.Messaging.Handlers;
+using AsyncClientServer.Messaging.Metadata;
 
 namespace AsyncClientServer.Server
 {
@@ -100,7 +100,7 @@ namespace AsyncClientServer.Server
 				{
 					var id = !_clients.Any() ? 1 : _clients.Keys.Max() + 1;
 
-					state = new StateObject.SocketState(((Socket) result.AsyncState).EndAccept(result), id);
+					state = new SocketState(((Socket) result.AsyncState).EndAccept(result), id);
 					_clients.Add(id, state);
 					ClientConnectedInvoke(id, state);
 				}
@@ -121,9 +121,16 @@ namespace AsyncClientServer.Server
 		internal override void StartReceiving(ISocketState state, int offset = 0)
 		{
 
-			if (state.Buffer.Length < state.BufferSize && offset == 0)
+			if (offset > 0)
+			{
+				state.UnhandledBytes = state.Buffer;
+			}
+
+			if (state.Buffer.Length < state.BufferSize)
 			{
 				state.ChangeBuffer(new byte[state.BufferSize]);
+				if (offset > 0)
+					Array.Copy(state.UnhandledBytes, 0, state.Buffer, 0, state.UnhandledBytes.Length);
 			}
 
 			state.Listener.BeginReceive(state.Buffer, offset, state.BufferSize - offset, SocketFlags.None,

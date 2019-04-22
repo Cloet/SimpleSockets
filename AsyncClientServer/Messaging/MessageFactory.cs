@@ -1,17 +1,11 @@
 ﻿using System;
-using System.Data;
 using System.IO;
-using System.Net.Sockets;
-using System.Runtime.Remoting.Messaging;
-using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
-using AsyncClientServer.Client;
 using AsyncClientServer.Compression;
 using AsyncClientServer.Cryptography;
-using AsyncClientServer.StateObject;
 
-namespace AsyncClientServer.Messages
+namespace AsyncClientServer.Messaging
 {
 
 	/// <summary>

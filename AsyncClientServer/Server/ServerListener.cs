@@ -12,7 +12,7 @@ using System.Timers;
 using AsyncClientServer.Cryptography;
 using System.Windows.Forms;
 using AsyncClientServer.Compression;
-using AsyncClientServer.StateObject;
+using AsyncClientServer.Messaging.Metadata;
 
 namespace AsyncClientServer.Server
 {
@@ -41,7 +41,7 @@ namespace AsyncClientServer.Server
 	/// Event that is triggered when a client has connected;
 	/// </summary>
 	/// <param name="id"></param>
-	public delegate void ClientConnectedHandler(int id, ISocketState clientState);
+	public delegate void ClientConnectedHandler(int id, ISocketInfo clientInfo);
 
 	/// <summary>
 	/// Event that is triggered when the server receives a file
@@ -86,7 +86,7 @@ namespace AsyncClientServer.Server
 		protected int Limit = 500;
 		protected ManualResetEvent _serverCanListen = new ManualResetEvent(false);
 		protected readonly ManualResetEvent _mre = new ManualResetEvent(false);
-		protected IDictionary<int, ISocketState> _clients = new Dictionary<int, ISocketState>();
+		internal IDictionary<int, ISocketState> _clients = new Dictionary<int, ISocketState>();
 		private static System.Timers.Timer _keepAliveTimer;
 		protected Socket _listener { get; set; }
 		protected bool _disposed { get; set; }
@@ -114,9 +114,19 @@ namespace AsyncClientServer.Server
 		/// Get dictionary of clients
 		/// </summary>
 		/// <returns></returns>
-		public override IDictionary<int, ISocketState> GetClients()
+		internal override IDictionary<int, ISocketState> GetClients()
 		{
 			return _clients;
+		}
+
+		/// <inheritdoc />
+		/// <summary>
+		/// Returns all currently connected clients
+		/// </summary>
+		/// <returns></returns>
+		public IDictionary<int, ISocketInfo> GetConnectedClients()
+		{
+			return _clients.ToDictionary(x => x.Key, x => (ISocketInfo) x.Value);
 		}
 
 		/// <inheritdoc />
@@ -135,7 +145,6 @@ namespace AsyncClientServer.Server
 		/// </summary>
 		public Encryption MessageEncrypter
 		{
-			get => Encrypter;
 			set => Encrypter = value ?? throw new ArgumentNullException(nameof(value));
 		}
 
@@ -144,7 +153,6 @@ namespace AsyncClientServer.Server
 		/// </summary>
 		public FileCompression ServerFileCompressor
 		{
-			get => FileCompressor;
 			set => FileCompressor = value ?? throw new ArgumentNullException(nameof(value));
 		}
 
@@ -153,7 +161,6 @@ namespace AsyncClientServer.Server
 		/// </summary>
 		public FolderCompression ServerFolderCompressor
 		{
-			get => FolderCompressor;
 			set => FolderCompressor = value ?? throw new ArgumentNullException(nameof(value));
 		}
 
@@ -261,7 +268,7 @@ namespace AsyncClientServer.Server
 		}
 
 		/* Gets a socket from the clients dictionary by his Id. */
-		protected ISocketState GetClient(int id)
+		internal ISocketState GetClient(int id)
 		{
 			ISocketState state;
 
@@ -324,9 +331,9 @@ namespace AsyncClientServer.Server
 			ClientDisconnected?.Invoke(id);
 		}
 
-		protected void ClientConnectedInvoke(int id, ISocketState clientState)
+		protected void ClientConnectedInvoke(int id, ISocketInfo clientInfo)
 		{
-			ClientConnected?.Invoke(id,clientState);
+			ClientConnected?.Invoke(id,clientInfo);
 		}
 
 		protected void ServerHasStartedInvoke()
@@ -476,7 +483,7 @@ namespace AsyncClientServer.Server
 
 					_clients = new Dictionary<int, ISocketState>();
 					_disposed = true;
-					//GC.SuppressFinalize(this);
+					GC.SuppressFinalize(this);
 				}
 
 			}
