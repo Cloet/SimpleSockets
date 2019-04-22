@@ -21,6 +21,18 @@ namespace AsyncClientServer.Cryptography
 		}
 
 
+		public Aes256(string key, string IV)
+		{
+			_key = Encoding.UTF8.GetBytes(key);
+			_IV = Encoding.UTF8.GetBytes(IV);
+		}
+
+		public Aes256(byte[] key, byte[] IV)
+		{
+			_key = key;
+			_IV = IV;
+		}
+
 		private byte[] _key;
 		private byte[] _IV;
 
