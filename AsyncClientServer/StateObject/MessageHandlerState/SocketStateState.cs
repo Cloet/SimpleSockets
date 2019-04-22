@@ -1,4 +1,5 @@
 ﻿using AsyncClientServer.Client;
+using AsyncClientServer.Compression;
 using AsyncClientServer.Cryptography;
 using AsyncClientServer.Server;
 
@@ -12,6 +13,8 @@ namespace AsyncClientServer.StateObject.MessageHandlerState
 		protected TcpClient Client = null;
 		protected ServerListener Server = null;
 		protected AES256 Aes265;
+		protected FileEncryption FileEncrypter;
+		protected FolderEncryption FolderEncrypter;
 
 		protected SocketStateState(ISocketState state, TcpClient client, ServerListener listener)
 		{
@@ -20,9 +23,19 @@ namespace AsyncClientServer.StateObject.MessageHandlerState
 			Server = listener;
 
 			if (client == null)
+			{
 				Aes265 = Server.Aes256;
+				FileEncrypter = Server.FileEncrypter;
+				FolderEncrypter = Server.FolderEncrypter;
+			}
+
 			if (Server == null)
+			{
 				Aes265 = client.Aes256;
+				FileEncrypter = client.FileEncrypter;
+				FolderEncrypter = client.FolderEncrypter;
+			}
+
 		}
 
 		/// <summary>

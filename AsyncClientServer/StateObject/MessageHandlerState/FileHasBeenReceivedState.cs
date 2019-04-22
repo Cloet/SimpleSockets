@@ -118,17 +118,17 @@ namespace AsyncClientServer.StateObject.MessageHandlerState
 		{
 			FileInfo info = new FileInfo(path);
 
-			if (info.Extension == GZipCompression.Extension)
+			if (info.Extension == FileEncrypter.Extension)
 			{
-				FileInfo decompressedFile = GZipCompression.Decompress(info);
+				FileInfo decompressedFile = FileEncrypter.Decompress(info);
 				File.Delete(info.FullName);
 				return decompressedFile.Name;
 			}
 			
-			if (info.Extension == ZipCompression.Extension)
+			if (info.Extension == FolderEncrypter.Extension)
 			{
 				DirectoryInfo extractedFolder = new DirectoryInfo(info.FullName.Remove(info.FullName.Length - info.Extension.Length));
-				ZipCompression.Extract(info.FullName, extractedFolder.FullName);
+				FolderEncrypter.Extract(info.FullName, extractedFolder.FullName);
 				File.Delete(info.FullName);
 				return extractedFolder.Name;
 			}

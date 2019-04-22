@@ -9,16 +9,15 @@ using System.Threading.Tasks;
 
 namespace AsyncClientServer.Compression
 {
-	public static class GZipCompression
+	public class GZipCompression: FileEncryption
 	{
-		public static string Extension => ".CGz";
 
 		/// <summary>
 		/// Compress a file and return the FileInfo of the new file.
 		/// </summary>
 		/// <param name="fileToCompress"></param>
 		/// <returns></returns>
-		public static FileInfo Compress(FileInfo fileToCompress)
+		public override FileInfo Compress(FileInfo fileToCompress)
 		{
 			try
 			{
@@ -58,7 +57,7 @@ namespace AsyncClientServer.Compression
 		/// Decompresses a file
 		/// </summary>
 		/// <param name="fileToDecompress"></param>
-		public static FileInfo Decompress(FileInfo fileToDecompress)
+		public override FileInfo Decompress(FileInfo fileToDecompress)
 		{
 			try
 			{
