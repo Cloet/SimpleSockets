@@ -46,36 +46,47 @@ namespace AsyncClientServer.Client
 			ReconnectInSeconds = reconnectInSeconds;
 			_keepAliveTimer.Enabled = false;
 
+			TokenSource = new CancellationTokenSource();
+			Token = TokenSource.Token;
+
 			var host = Dns.GetHostEntry(ipServer);
 			var ip = host.AddressList[0];
 			_endpoint = new IPEndPoint(ip, port);
 
-			try
+			Task.Run(() =>
 			{
-				//Try and connect
-				_listener = new Socket(_endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-				_listener.BeginConnect(_endpoint, OnConnectCallback, _listener);
-				_connected.WaitOne();
+				try
+				{
+					if (Token.IsCancellationRequested)
+						return;
 
-				//If client is connected activate connected event
-				if (IsConnected())
-				{
-					InvokeConnected(this);
-				}
-				else
-				{
-					_keepAliveTimer.Enabled = false;
-					InvokeDisconnected(this);
-					Close();
-					_connected.Reset();
+					//Try and connect
+					_listener = new Socket(_endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 					_listener.BeginConnect(_endpoint, OnConnectCallback, _listener);
-				}
+					_connected.WaitOne();
 
-			}
-			catch (Exception ex)
-			{
-				throw new Exception(ex.Message, ex);
-			}
+					//If client is connected activate connected event
+					if (IsConnected())
+					{
+						InvokeConnected(this);
+					}
+					else {
+						_keepAliveTimer.Enabled = false;
+						InvokeDisconnected(this);
+						Close();
+						_connected.Reset();
+						_listener.BeginConnect(_endpoint, OnConnectCallback, _listener);
+						
+					}
+
+				}
+				catch (Exception ex)
+				{
+					throw new Exception(ex.Message, ex);
+				}
+			},Token);
+
+
 		}
 
 		protected override void OnConnectCallback(IAsyncResult result)
@@ -93,7 +104,8 @@ namespace AsyncClientServer.Client
 			catch (SocketException)
 			{
 				Thread.Sleep(ReconnectInSeconds * 1000);
-				_listener.BeginConnect(_endpoint, OnConnectCallback, _listener);
+				if (!IsConnected())
+					Task.Run(() => _listener.BeginConnect(_endpoint, OnConnectCallback, _listener), Token);
 			}
 			catch (Exception ex)
 			{

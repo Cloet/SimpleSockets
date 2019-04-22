@@ -85,9 +85,9 @@ namespace AsyncClientServer.Example.Client
 			ChangeStatus("CONNECTED");
 		}
 
-		private void ServerMessageReceived(ITcpClient a, string header, string msg)
+		private void ServerMessageReceived(ITcpClient a, string msg)
 		{
-			AppendRichtTextBoxLog(header + ": " + msg);
+			AppendRichtTextBoxLog("MESSAGE" + ": " + msg);
 		}
 
 		void FileReceived(ITcpClient a, string file)

@@ -80,33 +80,40 @@ namespace AsyncClientServer.Client
 			var ip = host.AddressList[0];
 			_endpoint = new IPEndPoint(ip, port);
 
+			TokenSource = new CancellationTokenSource();
+			Token = TokenSource.Token;
 
-			try
+
+			Task.Run(() =>
 			{
-				//Try and connect
-				_listener = new Socket(_endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-				_listener.BeginConnect(_endpoint, this.OnConnectCallback, _listener);
-				_connected.WaitOne();
-
-				//If client is connected activate connected event
-				if (IsConnected())
+				try
 				{
-					InvokeConnected(this);
-				}
-				else
-				{
-					_keepAliveTimer.Enabled = false;
-					InvokeDisconnected(this);
-					Close();
-					_connected.Reset();
-					_listener.BeginConnect(_endpoint, OnConnectCallback, _listener);
-				}
+					//Try and connect
+					_listener = new Socket(_endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+					_listener.BeginConnect(_endpoint, this.OnConnectCallback, _listener);
+					_connected.WaitOne();
 
-			}
-			catch (Exception ex)
-			{
-				InvokeErrorThrown(ex.Message);
-			}
+					//If client is connected activate connected event
+					if (IsConnected())
+					{
+						InvokeConnected(this);
+					}
+					else
+					{
+						_keepAliveTimer.Enabled = false;
+						InvokeDisconnected(this);
+						Close();
+						_connected.Reset();
+						_listener.BeginConnect(_endpoint, OnConnectCallback, _listener);
+					}
+
+				}
+				catch (Exception ex)
+				{
+					InvokeErrorThrown(ex.Message);
+				}
+			},Token);
+
 		}
 
 		//Validates the certificate

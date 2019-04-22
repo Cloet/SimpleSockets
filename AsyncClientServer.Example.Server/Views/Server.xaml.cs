@@ -67,10 +67,10 @@ namespace AsyncClientServer.Example.Server
 		//*****Begin Events************///
 
 
-		private void MessageReceived(int id, string header, string msg)
+		private void MessageReceived(int id, string msg)
 		{
 			Model.Client client = _clientVM.ClientList.First(x => x.Id == id);
-			client.Read(header + ": " + msg);
+			client.Read("MESSAGE" + ": " + msg);
 		}
 
 		private void MessageSubmitted(int id, bool close)

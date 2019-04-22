@@ -109,12 +109,12 @@ namespace AsyncClientServer.Server
 		/// <para>The id is not zero-based!</para>
 		/// </summary>
 		/// <param name="id"></param>
-		/// <param name="anyObj"></param>
+		/// <param name="serializedObject"></param>
 		/// <param name="encryptObject"></param>
 		/// <param name="close"></param>
-		public void SendObject(int id, object anyObj, bool encryptObject, bool close)
+		public void SendObject(int id, string serializedObject, bool encryptObject, bool close)
 		{
-			byte[] data = CreateByteObject(anyObj, encryptObject);
+			byte[] data = CreateByteObject(serializedObject, encryptObject);
 			SendBytes(id, data, close);
 		}
 
@@ -125,11 +125,11 @@ namespace AsyncClientServer.Server
 		/// <para>The id is not zero-based!</para>
 		/// </summary>
 		/// <param name="id"></param>
-		/// <param name="anyObj"></param>
+		/// <param name="serializedObject"></param>
 		/// <param name="close"></param>
-		public void SendObject(int id, object anyObj, bool close)
+		public void SendObject(int id, string serializedObject, bool close)
 		{
-			SendObject(id, anyObj, false, close);
+			SendObject(id, serializedObject, false, close);
 		}
 
 		/// <inheritdoc />
@@ -139,12 +139,12 @@ namespace AsyncClientServer.Server
 		/// <para>The id is not zero-based!</para>
 		/// </summary>
 		/// <param name="id"></param>
-		/// <param name="anyObj"></param>
+		/// <param name="serializedObject"></param>
 		/// <param name="encryptObject"></param>
 		/// <param name="close"></param>
-		public async Task SendObjectAsync(int id, object anyObj, bool encryptObject, bool close)
+		public async Task SendObjectAsync(int id, string serializedObject, bool encryptObject, bool close)
 		{
-			await Task.Run(() => SendObject(id, anyObj, encryptObject, close));
+			await Task.Run(() => SendObject(id, serializedObject, encryptObject, close));
 		}
 
 		/// <inheritdoc />
@@ -154,11 +154,11 @@ namespace AsyncClientServer.Server
 		/// <para>The id is not zero-based!</para>
 		/// </summary>
 		/// <param name="id"></param>
-		/// <param name="anyObj"></param>
+		/// <param name="serializedObject"></param>
 		/// <param name="close"></param>
-		public async Task SendObjectAsync(int id, object anyObj, bool close)
+		public async Task SendObjectAsync(int id, string serializedObject, bool close)
 		{
-			await Task.Run(() => SendObject(id, anyObj, close));
+			await Task.Run(() => SendObject(id, serializedObject, close));
 		}
 
 		/*================================
@@ -605,12 +605,12 @@ namespace AsyncClientServer.Server
 		/// Sends an object to all clients
 		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
 		/// </summary>
-		/// <param name="obj"></param>
+		/// <param name="serializedObject"></param>
 		/// <param name="encryptObject"></param>
 		/// <param name="close"></param>
-		public void SendObjectToAllClients(object obj, bool encryptObject, bool close)
+		public void SendObjectToAllClients(string serializedObject, bool encryptObject, bool close)
 		{
-			var data = CreateByteObject(obj, encryptObject);
+			var data = CreateByteObject(serializedObject, encryptObject);
 			foreach (var c in GetClients())
 			{
 				SendBytes(c.Value.Id, data, close);
@@ -624,11 +624,11 @@ namespace AsyncClientServer.Server
 		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
 		/// <para>Will encrypt the object before sending.</para>
 		/// </summary>
-		/// <param name="obj"></param>
+		/// <param name="serializedObject"></param>
 		/// <param name="close"></param>
-		public void SendObjectToAllClients(object obj, bool close)
+		public void SendObjectToAllClients(string serializedObject, bool close)
 		{
-			SendObjectToAllClients(obj, false, close);
+			SendObjectToAllClients(serializedObject, false, close);
 		}
 
 		/// <inheritdoc />
@@ -636,12 +636,12 @@ namespace AsyncClientServer.Server
 		/// Sends an object to all clients asynchronous.
 		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
 		/// </summary>
-		/// <param name="obj"></param>
+		/// <param name="serializedObject"></param>
 		/// <param name="encryptObject"></param>
 		/// <param name="close"></param>
-		public async Task SendObjectToAllClientsAsync(object obj, bool encryptObject, bool close)
+		public async Task SendObjectToAllClientsAsync(string serializedObject, bool encryptObject, bool close)
 		{
-			await Task.Run(() => SendObjectToAllClients(obj, encryptObject, close));
+			await Task.Run(() => SendObjectToAllClients(serializedObject, encryptObject, close));
 		}
 
 		/// <inheritdoc />
@@ -652,9 +652,9 @@ namespace AsyncClientServer.Server
 		/// </summary>
 		/// <param name="obj"></param>
 		/// <param name="close"></param>
-		public async Task SendObjectToAllClientsAsync(object obj, bool close)
+		public async Task SendObjectToAllClientsAsync(string serializedObject, bool close)
 		{
-			await Task.Run(() => SendObjectToAllClients(obj, close));
+			await Task.Run(() => SendObjectToAllClients(serializedObject, close));
 		}
 
 
