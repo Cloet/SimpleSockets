@@ -12,9 +12,9 @@ namespace AsyncClientServer.StateObject.MessageHandlerState
 		//Client is used to invoke message/file received event (not necessary when using on the server side.)
 		protected TcpClient Client = null;
 		protected ServerListener Server = null;
-		protected AES256 Aes265;
-		protected FileEncryption FileEncrypter;
-		protected FolderEncryption FolderEncrypter;
+		protected Encryption Encrypter;
+		protected FileCompression FileEncrypter;
+		protected FolderCompression FolderEncrypter;
 
 		protected SocketStateState(ISocketState state, TcpClient client, ServerListener listener)
 		{
@@ -24,16 +24,16 @@ namespace AsyncClientServer.StateObject.MessageHandlerState
 
 			if (client == null)
 			{
-				Aes265 = Server.Aes256;
-				FileEncrypter = Server.FileEncrypter;
-				FolderEncrypter = Server.FolderEncrypter;
+				Encrypter = Server.Encrypter;
+				FileEncrypter = Server.FileCompressor;
+				FolderEncrypter = Server.FolderCompressor;
 			}
 
 			if (Server == null)
 			{
-				Aes265 = client.Aes256;
-				FileEncrypter = client.FileEncrypter;
-				FolderEncrypter = client.FolderEncrypter;
+				Encrypter = client.Encrypter;
+				FileEncrypter = client.FileCompressor;
+				FolderEncrypter = client.FolderCompressor;
 			}
 
 		}

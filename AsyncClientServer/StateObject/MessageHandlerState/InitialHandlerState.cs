@@ -115,7 +115,7 @@ namespace AsyncClientServer.StateObject.MessageHandlerState
 					//Get the header without the "ENCRYPTED_" String, then set the state to Encrypted.
 					byte[] newHeader = new byte[headerBytes.Length - 10];
 					Array.Copy(headerBytes, 10, newHeader, 0, newHeader.Length);
-					State.Header = Aes265.DecryptStringFromBytes_Aes(newHeader);
+					State.Header = Encrypter.DecryptStringFromBytes(newHeader);
 					State.Encrypted = true;
 				}
 			}

@@ -69,7 +69,7 @@ namespace AsyncClientServer.Server
 		/// <summary>
 		/// True if the server is currently running
 		/// </summary>
-		bool ServerStarted { get;}
+		bool IsServerRunning { get;}
 
 		/// <summary>
 		/// Starts the server on a certain port

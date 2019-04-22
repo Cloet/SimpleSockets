@@ -93,7 +93,7 @@ namespace AsyncClientServer.Server
 
 
 
-		public bool ServerStarted { get; protected set; }
+		public bool IsServerRunning { get; protected set; }
 
 		//Events
 		public event MessageReceivedHandler MessageReceived;
@@ -137,9 +137,11 @@ namespace AsyncClientServer.Server
 			_keepAliveTimer.AutoReset = true;
 			_keepAliveTimer.Enabled = true;
 
-			Aes256 = new AES256();
-			FileEncrypter = new GZipCompression();
-			FolderEncrypter = new ZipCompression();
+			IsServerRunning = false;
+
+			Encrypter = new Aes256();
+			FileCompressor = new GZipCompression();
+			FolderCompressor = new ZipCompression();
 		}
 
 
@@ -260,7 +262,7 @@ namespace AsyncClientServer.Server
 
 		protected void ServerHasStartedInvoke()
 		{
-			ServerStarted = true;
+			IsServerRunning = true;
 			ServerHasStarted?.Invoke();
 		}
 
@@ -392,6 +394,7 @@ namespace AsyncClientServer.Server
 			{
 				if (!_Disposed)
 				{
+					IsServerRunning = false;
 					_listener.Dispose();
 					_mre.Dispose();
 
