@@ -1,32 +1,28 @@
-﻿using System.Collections.Generic;
-using System.Net.Security;
+﻿using System.Net.Security;
 using System.Net.Sockets;
-using AsyncClientServer.StateObject.MessageHandlerState;
+using AsyncClientServer.Messaging.Handlers;
 
-namespace AsyncClientServer.StateObject
+namespace AsyncClientServer.Messaging.Metadata
 {
 	/// <summary>
-	/// Interface for stateobject
+	/// Interface for SocketState
 	/// </summary>
-	public  interface ISocketState
+	internal  interface ISocketState: ISocketInfo
 	{
 		/// <summary>
 		/// Get the buffersize
 		/// </summary>
 		int BufferSize { get; }
 
-		string RemoteIPv4 { get;}
-		string RemoteIPv6 { get; }
-
-		string LocalIPv4 { get; }
-		string LocalIPv6 { get; }
-
 		/// <summary>
 		/// Get or set the size of the message
 		/// </summary>
 		int MessageSize { get; set; }
 
-		int UnhandledBytes { get; set; }
+		/// <summary>
+		/// Bytes that need to be processed
+		/// </summary>
+		byte[] UnhandledBytes { get; set; }
 
 		/// <summary>
 		/// Get or set the SslStream
@@ -57,11 +53,6 @@ namespace AsyncClientServer.StateObject
 		/// True if the bytes are encrypted.
 		/// </summary>
 		bool Encrypted { get; set; }
-
-		/// <summary>
-		/// The id of the state
-		/// </summary>
-		int Id { get; }
 
 		/// <summary>
 		/// If the state should be closed after this message

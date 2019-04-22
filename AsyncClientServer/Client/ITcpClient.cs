@@ -1,7 +1,6 @@
 ﻿using System;
 using AsyncClientServer.Compression;
 using AsyncClientServer.Cryptography;
-using AsyncClientServer.StateObject;
 
 namespace AsyncClientServer.Client
 {
@@ -74,17 +73,17 @@ namespace AsyncClientServer.Client
 		/// <summary>
 		/// Used to encrypt files/folders
 		/// </summary>
-		Encryption MessageEncrypter { get; set; }
+		Encryption MessageEncrypter { set; }
 
 		/// <summary>
 		/// Used to compress files before sending
 		/// </summary>
-		FileCompression ClientFileCompressor { get; set; }
+		FileCompression ClientFileCompressor { set; }
 
 		/// <summary>
 		/// Used to compress folder before sending
 		/// </summary>
-		FolderCompression ClientFolderCompressor { get; set; }
+		FolderCompression ClientFolderCompressor { set; }
 
 		/// <summary>
 		/// Tries to reconnect every x seconds

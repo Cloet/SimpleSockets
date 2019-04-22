@@ -59,20 +59,22 @@
     <Compile Include="Client\ISendToServer.cs" />
     <Compile Include="Server\ServerListener.cs" />
     <Compile Include="SslProtocol.cs" />
-    <Compile Include="StateObject\ISocketState.cs" />
-    <Compile Include="Messages\MessageFactory.cs" />
+    <Compile Include="Messaging\Metadata\ISocketInfo.cs" />
+    <Compile Include="Messaging\Metadata\ISocketState.cs" />
+    <Compile Include="Messaging\MessageFactory.cs" />
     <Compile Include="Server\SendToClient.cs" />
     <Compile Include="Client\SendToServer.cs" />
     <Compile Include="Client\AsyncClient.cs" />
     <Compile Include="Server\AsyncSocketListener.cs" />
-    <Compile Include="StateObject\MessageHandlerState\FileHandlerState.cs" />
-    <Compile Include="StateObject\MessageHandlerState\FileHasBeenReceivedState.cs" />
-    <Compile Include="StateObject\MessageHandlerState\InitialHandlerState.cs" />
-    <Compile Include="StateObject\MessageHandlerState\MessageHandlerState.cs" />
-    <Compile Include="StateObject\MessageHandlerState\MessageHasBeenReceivedState.cs" />
-    <Compile Include="StateObject\MessageHandlerState\SocketStateState.cs" />
-    <Compile Include="StateObject\SocketState.cs" />
+    <Compile Include="Messaging\Handlers\FileHandlerState.cs" />
+    <Compile Include="Messaging\Handlers\FileHasBeenReceivedState.cs" />
+    <Compile Include="Messaging\Handlers\InitialHandlerState.cs" />
+    <Compile Include="Messaging\Handlers\MessageHandlerState.cs" />
+    <Compile Include="Messaging\Handlers\MessageHasBeenReceivedState.cs" />
+    <Compile Include="Messaging\Handlers\SocketStateState.cs" />
+    <Compile Include="Messaging\Metadata\SocketState.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

@@ -12,8 +12,8 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using AsyncClientServer.StateObject;
-using AsyncClientServer.StateObject.MessageHandlerState;
+using AsyncClientServer.Messaging.Handlers;
+using AsyncClientServer.Messaging.Metadata;
 
 namespace AsyncClientServer.Client
 {
@@ -289,9 +289,17 @@ namespace AsyncClientServer.Client
 			{
 
 				state.SslStream = _sslStream;
-				if (state.Buffer.Length < state.BufferSize && offset == 0)
+
+				if (offset > 0)
+				{
+					state.UnhandledBytes = state.Buffer;
+				}
+
+				if (state.Buffer.Length < state.BufferSize)
 				{
 					state.ChangeBuffer(new byte[state.BufferSize]);
+					if (offset > 0)
+						Array.Copy(state.UnhandledBytes, 0, state.Buffer, 0, state.UnhandledBytes.Length);
 				}
 
 				_mreRead.WaitOne();
@@ -309,7 +317,7 @@ namespace AsyncClientServer.Client
 		//Handle a message
 		protected override void HandleMessage(IAsyncResult result)
 		{
-			var state = (StateObject.SocketState)result.AsyncState;
+			var state = (SocketState)result.AsyncState;
 			try
 			{
 				var receive = state.SslStream.EndRead(result);

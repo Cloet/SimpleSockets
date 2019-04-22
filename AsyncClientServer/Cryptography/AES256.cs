@@ -17,7 +17,6 @@ namespace AsyncClientServer.Cryptography
 		{
 			_key = Encoding.UTF8.GetBytes("AEJ46SDLZOEER467");
 			_IV = Encoding.UTF8.GetBytes("JFKZER82340qsdDF");
-
 		}
 
 

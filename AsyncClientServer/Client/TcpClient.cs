@@ -11,8 +11,8 @@ using System.Timers;
 using System.Windows.Forms;
 using AsyncClientServer.Compression;
 using AsyncClientServer.Cryptography;
+using AsyncClientServer.Messaging.Metadata;
 using AsyncClientServer.Server;
-using AsyncClientServer.StateObject;
 
 namespace AsyncClientServer.Client
 {
@@ -97,7 +97,6 @@ namespace AsyncClientServer.Client
 		/// </summary>
 		public Encryption MessageEncrypter
 		{
-			get => Encrypter;
 			set => Encrypter = value ?? throw new ArgumentNullException(nameof(value));
 		}
 
@@ -106,7 +105,6 @@ namespace AsyncClientServer.Client
 		/// </summary>
 		public FileCompression ClientFileCompressor
 		{
-			get => FileCompressor;
 			set => FileCompressor = value ?? throw new ArgumentNullException(nameof(value));
 		}
 
@@ -115,7 +113,6 @@ namespace AsyncClientServer.Client
 		/// </summary>
 		public FolderCompression ClientFolderCompressor
 		{
-			get => FolderCompressor;
 			set => FolderCompressor = value ?? throw new ArgumentNullException(nameof(value));
 		}
 
@@ -227,7 +224,7 @@ namespace AsyncClientServer.Client
 		protected  void Receive()
 		{
 			//Start receiving data
-			var state = new StateObject.SocketState(_listener);
+			var state = new SocketState(_listener);
 			StartReceiving(state);
 		}
 

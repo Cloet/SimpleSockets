@@ -1,8 +1,9 @@
 ﻿using System;
 using AsyncClientServer.Client;
+using AsyncClientServer.Messaging.Metadata;
 using AsyncClientServer.Server;
 
-namespace AsyncClientServer.StateObject.MessageHandlerState
+namespace AsyncClientServer.Messaging.Handlers
 {
 	internal class MessageHandlerState: SocketStateState
 	{

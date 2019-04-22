@@ -9,24 +9,25 @@ namespace AsyncClientServer.Cryptography
 	public abstract class Encryption
 	{
 
-		public string Extension => ".aes";
+		public string Extension => ".EncryptedPART";
 
 		/// <summary>
 		/// Encrypt a string to bytes
 		/// </summary>
 		/// <param name="plainText"></param>
-		/// <returns></returns>
+		/// <returns>The encrypted bytes</returns>
 		public abstract byte[] EncryptStringToBytes(string plainText);
 
 		/// <summary>
-		/// Decrypt bytes to string
+		/// Decrypt bytes to string.
 		/// </summary>
 		/// <param name="cipherText"></param>
-		/// <returns></returns>
+		/// <returns>The decrypted string.</returns>
 		public abstract string DecryptStringFromBytes(byte[] cipherText);
 
 		/// <summary>
 		/// Encrypts a file from its path and a plain password.
+		/// <para>The file has to be saved at the same location as the inputfile</para>
 		/// </summary>
 		/// <param name="inputFile"></param>
 		public abstract void FileEncrypt(string inputFile);

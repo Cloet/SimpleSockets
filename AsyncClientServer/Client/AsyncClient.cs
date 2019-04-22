@@ -4,8 +4,8 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
-using AsyncClientServer.StateObject;
-using AsyncClientServer.StateObject.MessageHandlerState;
+using AsyncClientServer.Messaging.Handlers;
+using AsyncClientServer.Messaging.Metadata;
 
 namespace AsyncClientServer.Client
 {
@@ -216,9 +216,16 @@ namespace AsyncClientServer.Client
 		//Start receiving
 		internal override void StartReceiving(ISocketState state, int offset = 0)
 		{
-			if (state.Buffer.Length < state.BufferSize && offset == 0)
+			if (offset > 0)
+			{
+				state.UnhandledBytes = state.Buffer;
+			}
+
+			if (state.Buffer.Length < state.BufferSize)
 			{
 				state.ChangeBuffer(new byte[state.BufferSize]);
+				if (offset > 0)
+					Array.Copy(state.UnhandledBytes, 0, state.Buffer, 0, state.UnhandledBytes.Length);
 			}
 
 			state.Listener.BeginReceive(state.Buffer, offset, state.BufferSize - offset, SocketFlags.None,
@@ -228,7 +235,7 @@ namespace AsyncClientServer.Client
 		//Handle a message
 		protected override void HandleMessage(IAsyncResult result)
 		{
-			var state = (StateObject.SocketState)result.AsyncState;
+			var state = (SocketState)result.AsyncState;
 			try
 			{
 
