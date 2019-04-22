@@ -91,6 +91,11 @@ namespace AsyncClientServer.Client
 		int ReconnectInSeconds { get; }
 
 		/// <summary>
+		/// Closes the client, makes sure the client can be reused.
+		/// </summary>
+		void Close();
+
+		/// <summary>
 		/// Checks if client is connected to the server
 		/// </summary>
 		/// <returns></returns>

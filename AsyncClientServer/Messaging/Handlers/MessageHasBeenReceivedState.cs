@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System;
+using System.Text;
 using AsyncClientServer.Client;
 using AsyncClientServer.Messaging.Metadata;
 using AsyncClientServer.Server;
@@ -31,11 +32,34 @@ namespace AsyncClientServer.Messaging.Handlers
 
 			if (Client == null)
 			{
-				Server.InvokeMessageReceived(State.Id, State.Header, text);
+				if (State.Header == "MESSAGE")
+					Server.InvokeMessageReceived(State.Id, text);
+				else if (State.Header == "COMMAND")
+					Server.InvokeCommandReceived(State.Id, text);
+				else if (State.Header == "OBJECT")
+					Server.InvokeObjectReceived(State.Id, text);
+				else
+					throw new Exception("Incorrect header received.");
+
+
 				return;
 			}
 
-			Client.InvokeMessage(State.Header, text);
+			if (Server == null)
+			{
+				if (State.Header == "MESSAGE")
+					Client.InvokeMessage(text);
+				else if (State.Header == "COMMAND")
+					Client.InvokeCommand(text);
+				else if (State.Header == "OBJECT")
+					Client.InvokeObject(text);
+				else
+					throw new Exception("Incorrect header received.");
+
+
+				return;
+			}
+
 
 		}
 	}

@@ -57,11 +57,6 @@ namespace AsyncClientServer.Messaging.Handlers
 			//Append the received bytes to the state object.
 			State.AppendBytes(bytes);
 
-			//DEPRECATED
-			//Convert from bytes to string and append to state stringBuilder.
-			//string msg = Encoding.UTF8.GetString(bytes, 0, bytes.Length);
-			//State.Append(msg);
-
 		}
 
 		/// <summary>

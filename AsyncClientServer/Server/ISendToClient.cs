@@ -50,35 +50,35 @@ namespace AsyncClientServer.Server
 		/// Used to send an object to a certain client.
 		/// </summary>
 		/// <param name="id"></param>
-		/// <param name="anyObj"></param>
+		/// <param name="serializedObject"></param>
 		/// <param name="encryptObject"></param>
 		/// <param name="close">true if the client should be closed after this message</param>
-		void SendObject(int id, object anyObj,bool encryptObject, bool close);
+		void SendObject(int id, string serializedObject, bool encryptObject, bool close);
 
 		/// <summary>
 		/// Used to send an object to a certain client.
 		/// </summary>
 		/// <param name="id"></param>
-		/// <param name="anyObj"></param>
+		/// <param name="serializedObject"></param>
 		/// <param name="close">true if the client should be closed after this message</param>
-		void SendObject(int id,object anyObj, bool close);
+		void SendObject(int id,string serializedObject, bool close);
 
 		/// <summary>
 		/// Used to send an object to a certain client asynchronous.
 		/// </summary>
 		/// <param name="id"></param>
-		/// <param name="anyObj"></param>
+		/// <param name="serializedObject"></param>
 		/// <param name="encryptObject"></param>
 		/// <param name="close">true if the client should be closed after this message</param>
-		Task SendObjectAsync(int id, object anyObj, bool encryptObject, bool close);
+		Task SendObjectAsync(int id, string serializedObject, bool encryptObject, bool close);
 
 		/// <summary>
 		/// Used to send an object to a certain client asynchronous.
 		/// </summary>
 		/// <param name="id"></param>
-		/// <param name="anyObj"></param>
+		/// <param name="serializedObject"></param>
 		/// <param name="close">true if the client should be closed after this message</param>
-		Task SendObjectAsync(int id, object anyObj, bool close);
+		Task SendObjectAsync(int id, string serializedObject, bool close);
 
 		//File
 
@@ -313,32 +313,32 @@ namespace AsyncClientServer.Server
 		/// <summary>
 		/// Sends objects to all clients
 		/// </summary>
-		/// <param name="obj">The object you want to send</param>
+		/// <param name="serializedObject">The object you want to send</param>
 		/// <param name="encryptObject"></param>
 		/// <param name="close">true if the client should be closed after this message</param>
-		void SendObjectToAllClients(object obj,bool encryptObject, bool close);
+		void SendObjectToAllClients(string serializedObject, bool encryptObject, bool close);
 
 		/// <summary>
 		/// Sends objects to all clients
 		/// </summary>
-		/// <param name="obj">The object you want to send</param>
+		/// <param name="serializedObject">The object you want to send</param>
 		/// <param name="close">true if the client should be closed after this message</param>
-		void SendObjectToAllClients(object obj, bool close);
+		void SendObjectToAllClients(string serializedObject, bool close);
 
 		/// <summary>
 		/// Sends objects to all clients asynchronous.
 		/// </summary>
-		/// <param name="obj">The object you want to send</param>
+		/// <param name="serializedObject">The object you want to send</param>
 		/// <param name="encryptObject"></param>
 		/// <param name="close">true if the client should be closed after this message</param>
-		Task SendObjectToAllClientsAsync(object obj, bool encryptObject, bool close);
+		Task SendObjectToAllClientsAsync(string serializedObject, bool encryptObject, bool close);
 
 		/// <summary>
 		/// Sends objects to all clients asynchronous.
 		/// </summary>
-		/// <param name="obj">The object you want to send</param>
+		/// <param name="serializedObject">The object you want to send</param>
 		/// <param name="close">true if the client should be closed after this message</param>
-		Task SendObjectToAllClientsAsync(object obj, bool close);
+		Task SendObjectToAllClientsAsync(string serializedObject, bool close);
 
 		//Command//
 
