@@ -13,6 +13,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using AsyncClientServer.Cryptography;
 using AsyncClientServer.Example.Server.ViewModel;
 using AsyncClientServer.Server;
 using AsyncClientServer.StateObject;
@@ -42,11 +43,11 @@ namespace AsyncClientServer.Example.Server
 			_clientVM.Listener = _listener;
 			BindEvents();
 
-			new Thread(() =>
-			{
-				Thread.CurrentThread.IsBackground = true;
+			//new Thread(() =>
+			//{
+			//	Thread.CurrentThread.IsBackground = true;
 				_listener.StartListening("127.0.0.1", 13000);
-			}).Start();
+			//}).Start();
 		}
 
 		public void BindEvents()
@@ -125,26 +126,31 @@ namespace AsyncClientServer.Example.Server
 		//Stop
 		private void Button_Click(object sender, RoutedEventArgs e)
 		{
-			
-			_listener.Dispose();
+			_listener.StopListening();
+			//_listener.Dispose();
 		}
 
 		//Start
 		private void Button_Click_1(object sender, RoutedEventArgs e)
 		{
-			if (!_listener.IsServerRunning)
-			{
-				_listener = new AsyncSocketListener();
-				_clientVM = new ClientInfoViewModel();
-				_clientVM.Listener = _listener;
-				ListViewClients.DataContext = _clientVM;
-				BindEvents();
-				new Thread(() =>
-				{
-					Thread.CurrentThread.IsBackground = true;
-					_listener.StartListening("127.0.0.1", 13000);
-				}).Start();
-			}
+			_clientVM = new ClientInfoViewModel();
+			_clientVM.Listener = _listener;
+			ListViewClients.DataContext = _clientVM;
+			_listener.ResumeListening();
+
+			//if (!_listener.IsServerRunning)
+			//{
+			//	_listener = new AsyncSocketListener();
+			//	_clientVM = new ClientInfoViewModel();
+			//	_clientVM.Listener = _listener;
+			//	ListViewClients.DataContext = _clientVM;
+			//	BindEvents();
+			//	//new Thread(() =>
+			//	//{
+			//	//	Thread.CurrentThread.IsBackground = true;
+			//		_listener.StartListening("127.0.0.1", 13000);
+			//	//}).Start();
+			//}
 
 
 		}

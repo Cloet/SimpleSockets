@@ -1,4 +1,6 @@
 ﻿using System;
+using AsyncClientServer.Compression;
+using AsyncClientServer.Cryptography;
 using AsyncClientServer.StateObject;
 
 namespace AsyncClientServer.Client
@@ -68,6 +70,21 @@ namespace AsyncClientServer.Client
 		/// The ip of the server
 		/// </summary>
 		string IpServer { get; }
+
+		/// <summary>
+		/// Used to encrypt files/folders
+		/// </summary>
+		Encryption MessageEncrypter { get; set; }
+
+		/// <summary>
+		/// Used to compress files before sending
+		/// </summary>
+		FileCompression ClientFileCompressor { get; set; }
+
+		/// <summary>
+		/// Used to compress folder before sending
+		/// </summary>
+		FolderCompression ClientFolderCompressor { get; set; }
 
 		/// <summary>
 		/// Tries to reconnect every x seconds
