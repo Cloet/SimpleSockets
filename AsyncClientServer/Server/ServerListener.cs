@@ -189,12 +189,6 @@ namespace AsyncClientServer.Server
 		/// <param name="limit"></param>
 		public abstract void StartListening(string ip, int port, int limit = 500);
 
-		public void StopListening()
-		{
-			_listener.Close();
-			_listener = null;
-		}
-
 		/* Gets a socket from the clients dictionary by his Id. */
 		protected ISocketState GetClient(int id)
 		{
@@ -406,9 +400,9 @@ namespace AsyncClientServer.Server
 						Close(id);
 					}
 
-					_clients = null;
+					_clients = new Dictionary<int, ISocketState>();
 					_Disposed = true;
-					GC.SuppressFinalize(this);
+					//GC.SuppressFinalize(this);
 				}
 
 			}

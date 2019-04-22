@@ -80,12 +80,6 @@ namespace AsyncClientServer.Server
 		void StartListening(string ip, int port, int limit = 500);
 
 		/// <summary>
-		/// Stops the server from listening
-		/// <para>The server can be resumed with StartListening</para>
-		/// </summary>
-		void StopListening();
-
-		/// <summary>
 		/// Checks if a client is connected
 		/// </summary>
 		/// <param name="id"></param>
