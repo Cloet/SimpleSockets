@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Timers;
 using AsyncClientServer.StateObject;
 using AsyncClientServer.StateObject.MessageHandlerState;
@@ -53,34 +54,42 @@ namespace AsyncClientServer.Server
 			var ipServer = host.AddressList[0];
 			var endpoint = new IPEndPoint(ipServer, port);
 
-			try
+			Task.Run(() =>
 			{
-				using (var listener = new Socket(endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp))
+				try
 				{
-					_listener = listener;
-					listener.Bind(endpoint);
-					listener.Listen(Limit);
-
-					ServerHasStartedInvoke();
-					while (_Disposed == false)
+					using (var listener = new Socket(endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp))
 					{
-						_mre.Reset();
-						listener.BeginAccept(OnClientConnect, listener);
-						_mre.WaitOne();
+						_listener = listener;
+						listener.Bind(endpoint);
+						listener.Listen(Limit);
+
+						ServerHasStartedInvoke();
+						while (!Token.IsCancellationRequested)
+						{
+							_mre.Reset();
+							listener.BeginAccept(OnClientConnect, listener);
+							_mre.WaitOne();
+						}
+
 					}
 				}
-			}
-			catch (ObjectDisposedException)
-			{
-			}
-			catch (SocketException se)
-			{
-				throw new Exception(se.ToString());
-			}
+				catch (ObjectDisposedException)
+				{
+				}
+				catch (SocketException se)
+				{
+					throw new Exception(se.ToString());
+				}
+			},Token);
+
 		}
 
 		protected override void OnClientConnect(IAsyncResult result)
 		{
+
+			if (Token.IsCancellationRequested)
+				return;
 
 			_mre.Set();
 			try
@@ -124,7 +133,7 @@ namespace AsyncClientServer.Server
 		//Handles messages
 		protected override void HandleMessage(IAsyncResult result)
 		{
-			var state = (StateObject.SocketState)result.AsyncState;
+			var state = (SocketState)result.AsyncState;
 			try
 			{
 

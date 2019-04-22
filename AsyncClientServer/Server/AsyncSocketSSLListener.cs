@@ -71,28 +71,30 @@ namespace AsyncClientServer.Server
 			var ipServer = host.AddressList[0];
 			var endpoint = new IPEndPoint(ipServer, port);
 
-			try
+			Task.Run(() =>
 			{
-				using (var listener = new Socket(endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp))
+				try
 				{
-					_listener = listener;
-					listener.Bind(endpoint);
-					listener.Listen(Limit);
-
-					ServerHasStartedInvoke();
-					while (_Disposed == false)
+					using (var listener = new Socket(endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp))
 					{
-						_mre.Reset();
-						listener.BeginAccept(OnClientConnect, listener);
-						_mre.WaitOne();
+						_listener = listener;
+						listener.Bind(endpoint);
+						listener.Listen(Limit);
+
+						ServerHasStartedInvoke();
+						while (_disposed == false)
+						{
+							_mre.Reset();
+							listener.BeginAccept(OnClientConnect, listener);
+							_mre.WaitOne();
+						}
 					}
 				}
-			}
-			catch (SocketException se)
-			{
-				throw new Exception(se.ToString());
-			}
-
+				catch (SocketException se)
+				{
+					throw new Exception(se.ToString());
+				}
+			}, Token);
 
 		}
 

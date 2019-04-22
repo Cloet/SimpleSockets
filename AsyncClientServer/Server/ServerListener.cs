@@ -89,11 +89,15 @@ namespace AsyncClientServer.Server
 		protected IDictionary<int, ISocketState> _clients = new Dictionary<int, ISocketState>();
 		private static System.Timers.Timer _keepAliveTimer;
 		protected Socket _listener { get; set; }
-		protected bool _Disposed { get; set; }
+		protected bool _disposed { get; set; }
 
+		protected CancellationTokenSource TokenSource { get; set; }
+		protected CancellationToken Token { get; set; }
 
-
-		public bool ServerStarted { get; protected set; }
+		/// <summary>
+		/// Returns true when the server is running.
+		/// </summary>
+		public bool IsServerRunning { get; protected set; }
 
 		//Events
 		public event MessageReceivedHandler MessageReceived;
@@ -127,6 +131,33 @@ namespace AsyncClientServer.Server
 		public string Ip { get; protected set; }
 
 		/// <summary>
+		/// Used to encrypt files/folders
+		/// </summary>
+		public Encryption MessageEncrypter
+		{
+			get => Encrypter;
+			set => Encrypter = value ?? throw new ArgumentNullException(nameof(value));
+		}
+
+		/// <summary>
+		/// Used to compress files before sending
+		/// </summary>
+		public FileCompression ServerFileCompressor
+		{
+			get => FileCompressor;
+			set => FileCompressor = value ?? throw new ArgumentNullException(nameof(value));
+		}
+
+		/// <summary>
+		/// Used to compress folder before sending
+		/// </summary>
+		public FolderCompression ServerFolderCompressor
+		{
+			get => FolderCompressor;
+			set => FolderCompressor = value ?? throw new ArgumentNullException(nameof(value));
+		}
+
+		/// <summary>
 		/// Base constructor
 		/// </summary>
 		protected ServerListener()
@@ -137,9 +168,14 @@ namespace AsyncClientServer.Server
 			_keepAliveTimer.AutoReset = true;
 			_keepAliveTimer.Enabled = true;
 
-			Aes256 = new AES256();
-			FileEncrypter = new GZipCompression();
-			FolderEncrypter = new ZipCompression();
+			IsServerRunning = false;
+
+			TokenSource = new CancellationTokenSource();
+			Token = TokenSource.Token;
+
+			Encrypter = new Aes256();
+			FileCompressor = new GZipCompression();
+			FolderCompressor = new ZipCompression();
 		}
 
 
@@ -188,6 +224,41 @@ namespace AsyncClientServer.Server
 		/// <param name="port"></param>
 		/// <param name="limit"></param>
 		public abstract void StartListening(string ip, int port, int limit = 500);
+
+		/// <summary>
+		/// Stops the server from listening
+		/// </summary>
+		public void StopListening()
+		{
+			TokenSource.Cancel();
+			IsServerRunning = false;
+
+			foreach (var id in _clients.Keys.ToList())
+			{
+				Close(id);
+			}
+
+			_listener.Close();
+		}
+
+		/// <summary>
+		/// Resumes listening
+		/// </summary>
+		public void ResumeListening()
+		{
+			if (IsServerRunning)
+				throw new Exception("The server is already running.");
+
+			TokenSource = new CancellationTokenSource();
+			Token = TokenSource.Token;
+
+			if (string.IsNullOrEmpty(Ip))
+				throw new ArgumentException("This method should only be used after using 'StopListening()'");
+			if (Port == 0)
+				throw new ArgumentException("This method should only be used after using 'StopListening()'");
+
+			StartListening(Ip, Port, Limit);
+		}
 
 		/* Gets a socket from the clients dictionary by his Id. */
 		protected ISocketState GetClient(int id)
@@ -260,7 +331,7 @@ namespace AsyncClientServer.Server
 
 		protected void ServerHasStartedInvoke()
 		{
-			ServerStarted = true;
+			IsServerRunning = true;
 			ServerHasStarted?.Invoke();
 		}
 
@@ -390,8 +461,11 @@ namespace AsyncClientServer.Server
 		{
 			try
 			{
-				if (!_Disposed)
+				if (!_disposed)
 				{
+					TokenSource.Cancel();
+					TokenSource.Dispose();
+					IsServerRunning = false;
 					_listener.Dispose();
 					_mre.Dispose();
 
@@ -401,7 +475,7 @@ namespace AsyncClientServer.Server
 					}
 
 					_clients = new Dictionary<int, ISocketState>();
-					_Disposed = true;
+					_disposed = true;
 					//GC.SuppressFinalize(this);
 				}
 

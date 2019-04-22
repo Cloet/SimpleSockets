@@ -92,6 +92,33 @@ namespace AsyncClientServer.Client
 		/// </summary>
 		public string IpServer { get; protected set; }
 
+		/// <summary>
+		/// Used to encrypt files/folders
+		/// </summary>
+		public Encryption MessageEncrypter
+		{
+			get => Encrypter;
+			set => Encrypter = value ?? throw new ArgumentNullException(nameof(value));
+		}
+
+		/// <summary>
+		/// Used to compress files before sending
+		/// </summary>
+		public FileCompression ClientFileCompressor
+		{
+			get => FileCompressor;
+			set => FileCompressor = value ?? throw new ArgumentNullException(nameof(value));
+		}
+
+		/// <summary>
+		/// Used to compress folder before sending
+		/// </summary>
+		public FolderCompression ClientFolderCompressor
+		{
+			get => FolderCompressor;
+			set => FolderCompressor = value ?? throw new ArgumentNullException(nameof(value));
+		}
+
 		/// <inheritdoc />
 		/// <summary>
 		/// This is how many seconds te client waits to try and reconnect to the server
@@ -148,9 +175,9 @@ namespace AsyncClientServer.Client
 			_keepAliveTimer.AutoReset = true;
 			_keepAliveTimer.Enabled = false;
 
-			Aes256 = new AES256();
-			FileEncrypter = new GZipCompression();
-			FolderEncrypter = new ZipCompression();
+			Encrypter = new Aes256();
+			FileCompressor = new GZipCompression();
+			FolderCompressor = new ZipCompression();
 		}
 
 		//Timer that tries reconnecting every x seconds

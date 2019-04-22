@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using AsyncClientServer.Compression;
+using AsyncClientServer.Cryptography;
 using AsyncClientServer.StateObject;
 
 namespace AsyncClientServer.Server
@@ -67,9 +69,24 @@ namespace AsyncClientServer.Server
 		string Ip { get; }
 
 		/// <summary>
+		/// Used to encrypt files/folders
+		/// </summary>
+		Encryption MessageEncrypter { get; set; }
+
+		/// <summary>
+		/// Used to compress files before sending
+		/// </summary>
+		FileCompression ServerFileCompressor { get; set; }
+
+		/// <summary>
+		/// Used to compress folder before sending
+		/// </summary>
+		FolderCompression ServerFolderCompressor { get; set; }
+
+		/// <summary>
 		/// True if the server is currently running
 		/// </summary>
-		bool ServerStarted { get;}
+		bool IsServerRunning { get;}
 
 		/// <summary>
 		/// Starts the server on a certain port
@@ -78,6 +95,10 @@ namespace AsyncClientServer.Server
 		/// <param name="port"></param>
 		/// <param name="limit"></param>
 		void StartListening(string ip, int port, int limit = 500);
+
+		void StopListening();
+
+		void ResumeListening();
 
 		/// <summary>
 		/// Checks if a client is connected

@@ -31,10 +31,10 @@ namespace AsyncClientServer.Messages
 		/// Used for encryption.
 		/// Created in ServerListener and TcpClient
 		/// </summary>
-		public AES256 Aes256 { get; protected set; }
+		public Encryption Encrypter { get; protected set; }
 
-		public FileEncryption FileEncrypter { get; set; }
-		public FolderEncryption FolderEncrypter { get; set; }
+		public FileCompression FileCompressor { get; set; }
+		public FolderCompression FolderCompressor { get; set; }
 
 		//Encrypts a file and returns the new file path.
 		protected async Task<string> EncryptFileAsync(string path)
@@ -43,8 +43,8 @@ namespace AsyncClientServer.Messages
 			{
 				return await Task.Run(() =>
 				{
-					Aes256.FileEncrypt(Path.GetFullPath(path));
-					path += AES256.Extension;
+					Encrypter.FileEncrypt(Path.GetFullPath(path));
+					path += Encrypter.Extension;
 					return path;
 				});
 			}
@@ -59,7 +59,7 @@ namespace AsyncClientServer.Messages
 		{
 			try
 			{
-				return await Task.Run(() => FileEncrypter.Compress(new FileInfo(Path.GetFullPath(path))).FullName);
+				return await Task.Run(() => FileCompressor.Compress(new FileInfo(Path.GetFullPath(path))).FullName);
 			}
 			catch (Exception ex)
 			{
@@ -74,7 +74,7 @@ namespace AsyncClientServer.Messages
 			{
 				return await Task.Run(() =>
 				{
-					FolderEncrypter.Compress(Path.GetFullPath(path), Path.GetFullPath(tempPath));
+					FolderCompressor.Compress(Path.GetFullPath(path), Path.GetFullPath(tempPath));
 					return tempPath;
 				});
 			}
@@ -112,7 +112,7 @@ namespace AsyncClientServer.Messages
 			if (compressFile)
 			{
 				file = await CompressFileAsync(file);
-				remoteSaveLocation += FileEncrypter.Extension;
+				remoteSaveLocation += FileCompressor.Extension;
 			}
 
 			//Encrypts the file and deletes the compressed file
@@ -125,7 +125,7 @@ namespace AsyncClientServer.Messages
 					previousFile = file;
 
 				file = await EncryptFileAsync(file);
-				remoteSaveLocation += AES256.Extension;
+				remoteSaveLocation += Encrypter.Extension;
 
 				//Deletes the compressed file
 				if (previousFile != string.Empty)
@@ -165,16 +165,16 @@ namespace AsyncClientServer.Messages
 			File.Delete(tempPath);
 
 			//Add extension and compress.
-			tempPath += FolderEncrypter.Extension;
+			tempPath += FolderCompressor.Extension;
 			string folderToSend = await CompressFolderAsync(folderLocation, tempPath);
-			remoteFolderLocation += FolderEncrypter.Extension;
+			remoteFolderLocation += FolderCompressor.Extension;
 
 			//Check if folder needs to be encrypted.
 			if (encryptFolder)
 			{
 				//Encrypt and adjust file names.
 				folderToSend = await EncryptFileAsync(folderToSend);
-				remoteFolderLocation += AES256.Extension;
+				remoteFolderLocation += Encrypter.Extension;
 				File.Delete(tempPath);
 			}
 
@@ -229,7 +229,7 @@ namespace AsyncClientServer.Messages
 							if (encrypt)
 							{
 								byte[] prefix = Encoding.UTF8.GetBytes("ENCRYPTED_");
-								byte[] headerData = Aes256.EncryptStringToBytes_Aes(remoteSaveLocation);
+								byte[] headerData = Encrypter.EncryptStringToBytes(remoteSaveLocation);
 								header = new byte[prefix.Length + headerData.Length];
 								prefix.CopyTo(header, 0);
 								headerData.CopyTo(header, 10);
@@ -292,14 +292,14 @@ namespace AsyncClientServer.Messages
 				{
 					//Header
 					byte[] encryptedPrefix = Encoding.UTF8.GetBytes("ENCRYPTED_");
-					byte[] encryptedHeader = Aes256.EncryptStringToBytes_Aes(header);
+					byte[] encryptedHeader = Encrypter.EncryptStringToBytes(header);
 
 					headerArray = new byte[encryptedHeader.Length + encryptedPrefix.Length];
 
 					encryptedPrefix.CopyTo(headerArray, 0);
 					encryptedHeader.CopyTo(headerArray, 10);
 
-					messageArray = Aes256.EncryptStringToBytes_Aes(message);
+					messageArray = Encrypter.EncryptStringToBytes(message);
 				}
 				else
 				{
@@ -355,23 +355,23 @@ namespace AsyncClientServer.Messages
 
 				if (compressFile)
 				{
-					fileToSend = FileEncrypter.Compress(new FileInfo(fileLocation));
-					remoteSaveLocation += FileEncrypter.Extension;
+					fileToSend = FileCompressor.Compress(new FileInfo(fileLocation));
+					remoteSaveLocation += FileCompressor.Extension;
 				}
 
 				//Check if the file and header have to be encrypted.
 				if (encryptFile)
 				{
-					Aes256.FileEncrypt(fileToSend.FullName);
+					Encrypter.FileEncrypt(fileToSend.FullName);
 					//Delete compressed file
 					if (compressFile)
 						File.Delete(fileToSend.FullName);
 
-					fileToSend = new FileInfo(fileToSend.FullName + AES256.Extension);
-					remoteSaveLocation += AES256.Extension;
+					fileToSend = new FileInfo(fileToSend.FullName + Encrypter.Extension);
+					remoteSaveLocation += Encrypter.Extension;
 
 					byte[] encryptedPrefix = Encoding.UTF8.GetBytes("ENCRYPTED_");
-					byte[] encryptedHeader = Aes256.EncryptStringToBytes_Aes(remoteSaveLocation);
+					byte[] encryptedHeader = Encrypter.EncryptStringToBytes(remoteSaveLocation);
 
 					header = new byte[encryptedHeader.Length + encryptedPrefix.Length];
 
@@ -428,9 +428,9 @@ namespace AsyncClientServer.Messages
 
 				//If this particular temp file exists delete it. Then start compression.
 				File.Delete(tempPath);
-				tempPath += FolderEncrypter.Extension;
-				FolderEncrypter.Compress(folderLocation, tempPath);
-				remoteFolderLocation += FolderEncrypter.Extension;
+				tempPath += FolderCompressor.Extension;
+				FolderCompressor.Compress(folderLocation, tempPath);
+				remoteFolderLocation += FolderCompressor.Extension;
 
 				//The path to the folder with it current compression extension added.
 				string folderToSend = tempPath;
@@ -439,18 +439,18 @@ namespace AsyncClientServer.Messages
 				if (encryptFolder)
 				{
 					//Encrypt the file with AES256
-					Aes256.FileEncrypt(tempPath);
+					Encrypter.FileEncrypt(tempPath);
 
 					//Delete compressed file
 					File.Delete(tempPath);
 
 					//Change the path with encryption
-					folderToSend = tempPath + AES256.Extension;
-					remoteFolderLocation += AES256.Extension;
+					folderToSend = tempPath + Encrypter.Extension;
+					remoteFolderLocation += Encrypter.Extension;
 
 					//The encrypted header
 					byte[] encryptedPrefix = Encoding.UTF8.GetBytes("ENCRYPTED_");
-					byte[] encryptedHeader = Aes256.EncryptStringToBytes_Aes(remoteFolderLocation);
+					byte[] encryptedHeader = Encrypter.EncryptStringToBytes(remoteFolderLocation);
 
 					header = new byte[encryptedHeader.Length + encryptedPrefix.Length];
 
