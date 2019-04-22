@@ -87,7 +87,7 @@ namespace AsyncClientServer.StateObject.MessageHandlerState
 				newFileName = info.FullName.Remove(info.FullName.Length - info.Extension.Length);
 
 				//Decrypts the file and save at new location. Deletes the encrypted file after decrypting.
-				Aes265.FileDecrypt(_tempFilePath, newFileName);
+				Encrypter.FileDecrypt(_tempFilePath, newFileName);
 				File.Delete(_tempFilePath);
 			}
 

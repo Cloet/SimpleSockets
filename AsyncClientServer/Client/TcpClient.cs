@@ -148,9 +148,9 @@ namespace AsyncClientServer.Client
 			_keepAliveTimer.AutoReset = true;
 			_keepAliveTimer.Enabled = false;
 
-			Aes256 = new AES256();
-			FileEncrypter = new GZipCompression();
-			FolderEncrypter = new ZipCompression();
+			Encrypter = new Aes256();
+			FileCompressor = new GZipCompression();
+			FolderCompressor = new ZipCompression();
 		}
 
 		//Timer that tries reconnecting every x seconds

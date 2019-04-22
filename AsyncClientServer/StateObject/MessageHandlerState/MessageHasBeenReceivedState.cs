@@ -24,7 +24,7 @@ namespace AsyncClientServer.StateObject.MessageHandlerState
 
 			//Check if the bytes are encrypted or not.
 			if (State.Encrypted)
-				text = Aes265.DecryptStringFromBytes_Aes(receivedMessageBytes);
+				text = Encrypter.DecryptStringFromBytes(receivedMessageBytes);
 			else
 				text = Encoding.UTF8.GetString(receivedMessageBytes);
 

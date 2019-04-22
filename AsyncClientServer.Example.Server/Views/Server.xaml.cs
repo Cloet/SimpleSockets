@@ -132,16 +132,21 @@ namespace AsyncClientServer.Example.Server
 		//Start
 		private void Button_Click_1(object sender, RoutedEventArgs e)
 		{
-			_listener = new AsyncSocketListener();
-			_clientVM = new ClientInfoViewModel();
-			_clientVM.Listener = _listener;
-			ListViewClients.DataContext = _clientVM;
-			BindEvents();
-			new Thread(() =>
+			if (!_listener.IsServerRunning)
 			{
-				Thread.CurrentThread.IsBackground = true;
-				_listener.StartListening("127.0.0.1", 13000);
-			}).Start();
+				_listener = new AsyncSocketListener();
+				_clientVM = new ClientInfoViewModel();
+				_clientVM.Listener = _listener;
+				ListViewClients.DataContext = _clientVM;
+				BindEvents();
+				new Thread(() =>
+				{
+					Thread.CurrentThread.IsBackground = true;
+					_listener.StartListening("127.0.0.1", 13000);
+				}).Start();
+			}
+
+
 		}
 
 

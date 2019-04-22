@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace AsyncClientServer.Compression
 {
-	public abstract class FolderEncryption
+	public abstract class FolderCompression
 	{
 
 		public string Extension => ".FolderPART";

@@ -10,17 +10,16 @@ using System.Threading.Tasks;
 
 namespace AsyncClientServer.Cryptography
 {
-	public class AES256
+	public class Aes256: Encryption
 	{
 
-		public static string Extension => ".aes";
-
-		internal AES256()
+		public Aes256()
 		{
 			_key = Encoding.UTF8.GetBytes("AEJ46SDLZOEER467");
 			_IV = Encoding.UTF8.GetBytes("JFKZER82340qsdDF");
 
 		}
+
 
 		private byte[] _key;
 		private byte[] _IV;
@@ -33,7 +32,7 @@ namespace AsyncClientServer.Cryptography
 		/// </summary>
 		/// <param name="plainText"></param>
 		/// <returns></returns>
-		internal byte[] EncryptStringToBytes_Aes(string plainText)
+		public override byte[] EncryptStringToBytes(string plainText)
 		{
 			// Check arguments.
 			if (plainText == null || plainText.Length <= 0)
@@ -77,7 +76,7 @@ namespace AsyncClientServer.Cryptography
 		/// </summary>
 		/// <param name="cipherText"></param>
 		/// <returns></returns>
-		internal string DecryptStringFromBytes_Aes(byte[] cipherText)
+		public override string DecryptStringFromBytes(byte[] cipherText)
 		{
 
 			try
@@ -154,7 +153,7 @@ namespace AsyncClientServer.Cryptography
 		/// Encrypts a file from its path and a plain password.
 		/// </summary>
 		/// <param name="inputFile"></param>
-		internal void FileEncrypt(string inputFile)
+		public override void FileEncrypt(string inputFile)
 		{
 
 			//generate random salt
@@ -216,7 +215,7 @@ namespace AsyncClientServer.Cryptography
 		/// </summary>
 		/// <param name="inputFile"></param>
 		/// <param name="outputFile"></param>
-		internal void FileDecrypt(string inputFile, string outputFile)
+		public override void FileDecrypt(string inputFile, string outputFile)
 		{
 			byte[] passwordBytes = _key;
 			byte[] salt = new byte[32];

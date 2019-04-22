@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace AsyncClientServer.Compression
 {
-	public abstract class FileEncryption
+	public abstract class FileCompression
 	{
 
 		public string Extension => ".FilePART";
