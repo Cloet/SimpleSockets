@@ -51,5 +51,7 @@
 			</ListView.View>
 
 		</ListView>
+		<Button Height="100" Margin="957,425,10,10" Content="Stop" Click="Button_Click"/>
+		<Button Height="100" Margin="769,425,198,10" Content="Resume" Click="Button_Click_1"/>
 	</Grid>
 </Window>

@@ -57,17 +57,21 @@ namespace AsyncClientServer.Server
 			{
 				using (var listener = new Socket(endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp))
 				{
+					_listener = listener;
 					listener.Bind(endpoint);
 					listener.Listen(Limit);
 
 					ServerHasStartedInvoke();
-					while (true)
+					while (_Disposed == false)
 					{
 						_mre.Reset();
 						listener.BeginAccept(OnClientConnect, listener);
 						_mre.WaitOne();
 					}
 				}
+			}
+			catch (ObjectDisposedException)
+			{
 			}
 			catch (SocketException se)
 			{
@@ -77,6 +81,7 @@ namespace AsyncClientServer.Server
 
 		protected override void OnClientConnect(IAsyncResult result)
 		{
+
 			_mre.Set();
 			try
 			{
@@ -86,11 +91,15 @@ namespace AsyncClientServer.Server
 				{
 					var id = !_clients.Any() ? 1 : _clients.Keys.Max() + 1;
 
-					state = new StateObject.SocketState(((Socket)result.AsyncState).EndAccept(result), id);
+					state = new StateObject.SocketState(((Socket) result.AsyncState).EndAccept(result), id);
 					_clients.Add(id, state);
 					ClientConnectedInvoke(id, state);
 				}
+
 				StartReceiving(state);
+			}
+			catch (ObjectDisposedException)
+			{
 			}
 			catch (SocketException se)
 			{

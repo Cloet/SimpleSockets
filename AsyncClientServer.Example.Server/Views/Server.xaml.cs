@@ -41,12 +41,10 @@ namespace AsyncClientServer.Example.Server
 			_clientVM = (ClientInfoViewModel) ListViewClients.DataContext;
 			_clientVM.Listener = _listener;
 			BindEvents();
-			_listener.ChangeSocketBufferSize(500);
 
 			new Thread(() =>
 			{
 				Thread.CurrentThread.IsBackground = true;
-				/* run your code here */
 				_listener.StartListening("127.0.0.1", 13000);
 			}).Start();
 		}
@@ -121,6 +119,23 @@ namespace AsyncClientServer.Example.Server
 			Model.Client client = _clientVM.ClientList.First(x => x.Id == id);
 			client.Connected = false;
 			client.Read("Client has disconnected from the server.");
+		}
+
+		private void Button_Click(object sender, RoutedEventArgs e)
+		{
+			
+			_listener.Dispose();
+		}
+
+		private void Button_Click_1(object sender, RoutedEventArgs e)
+		{
+			_listener = new AsyncSocketListener();
+			BindEvents();
+			new Thread(() =>
+			{
+				Thread.CurrentThread.IsBackground = true;
+				_listener.StartListening("127.0.0.1", 13000);
+			}).Start();
 		}
 
 

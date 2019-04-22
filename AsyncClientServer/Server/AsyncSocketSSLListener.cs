@@ -75,11 +75,12 @@ namespace AsyncClientServer.Server
 			{
 				using (var listener = new Socket(endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp))
 				{
+					_listener = listener;
 					listener.Bind(endpoint);
 					listener.Listen(Limit);
 
 					ServerHasStartedInvoke();
-					while (true)
+					while (_Disposed == false)
 					{
 						_mre.Reset();
 						listener.BeginAccept(OnClientConnect, listener);

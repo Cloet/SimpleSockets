@@ -67,12 +67,23 @@ namespace AsyncClientServer.Server
 		string Ip { get; }
 
 		/// <summary>
+		/// True if the server is currently running
+		/// </summary>
+		bool ServerStarted { get;}
+
+		/// <summary>
 		/// Starts the server on a certain port
 		/// </summary>
 		/// <param name="ip"></param>
 		/// <param name="port"></param>
 		/// <param name="limit"></param>
 		void StartListening(string ip, int port, int limit = 500);
+
+		/// <summary>
+		/// Stops the server from listening
+		/// <para>The server can be resumed with StartListening</para>
+		/// </summary>
+		void StopListening();
 
 		/// <summary>
 		/// Checks if a client is connected

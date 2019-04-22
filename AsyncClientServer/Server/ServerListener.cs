@@ -84,9 +84,14 @@ namespace AsyncClientServer.Server
 	{
 
 		protected int Limit = 500;
+		protected ManualResetEvent _serverCanListen = new ManualResetEvent(false);
 		protected readonly ManualResetEvent _mre = new ManualResetEvent(false);
-		protected readonly IDictionary<int, ISocketState> _clients = new Dictionary<int, ISocketState>();
+		protected IDictionary<int, ISocketState> _clients = new Dictionary<int, ISocketState>();
 		private static System.Timers.Timer _keepAliveTimer;
+		protected Socket _listener { get; set; }
+		protected bool _Disposed { get; set; }
+
+
 
 		public bool ServerStarted { get; protected set; }
 
@@ -182,6 +187,12 @@ namespace AsyncClientServer.Server
 		/// <param name="limit"></param>
 		public abstract void StartListening(string ip, int port, int limit = 500);
 
+		public void StopListening()
+		{
+			_listener.Close();
+			_listener = null;
+		}
+
 		/* Gets a socket from the clients dictionary by his Id. */
 		protected ISocketState GetClient(int id)
 		{
@@ -253,6 +264,7 @@ namespace AsyncClientServer.Server
 
 		protected void ServerHasStartedInvoke()
 		{
+			ServerStarted = true;
 			ServerHasStarted?.Invoke();
 		}
 
@@ -382,13 +394,21 @@ namespace AsyncClientServer.Server
 		{
 			try
 			{
-				foreach (var id in _clients.Keys)
+				if (!_Disposed)
 				{
-					Close(id);
+					_listener.Dispose();
+					_mre.Dispose();
+
+					foreach (var id in _clients.Keys.ToList())
+					{
+						Close(id);
+					}
+
+					_clients = null;
+					_Disposed = true;
+					GC.SuppressFinalize(this);
 				}
 
-				_mre.Dispose();
-				GC.SuppressFinalize(this);
 			}
 			catch (Exception ex)
 			{
