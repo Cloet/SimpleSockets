@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
 using System.Windows.Forms;
+using AsyncClientServer.Compression;
 using AsyncClientServer.Cryptography;
 using AsyncClientServer.Server;
 using AsyncClientServer.StateObject;
@@ -148,6 +149,8 @@ namespace AsyncClientServer.Client
 			_keepAliveTimer.Enabled = false;
 
 			Aes256 = new AES256();
+			FileEncrypter = new GZipCompression();
+			FolderEncrypter = new ZipCompression();
 		}
 
 		//Timer that tries reconnecting every x seconds

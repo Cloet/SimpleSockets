@@ -33,6 +33,9 @@ namespace AsyncClientServer.Messages
 		/// </summary>
 		public AES256 Aes256 { get; protected set; }
 
+		public FileEncryption FileEncrypter { get; set; }
+		public FolderEncryption FolderEncrypter { get; set; }
+
 		//Encrypts a file and returns the new file path.
 		protected async Task<string> EncryptFileAsync(string path)
 		{
@@ -52,11 +55,11 @@ namespace AsyncClientServer.Messages
 		}
 
 		//Compresses a file and returns the new path
-		protected static async Task<string> CompressFileAsync(string path)
+		protected async Task<string> CompressFileAsync(string path)
 		{
 			try
 			{
-				return await Task.Run(() => GZipCompression.Compress(new FileInfo(Path.GetFullPath(path))).FullName);
+				return await Task.Run(() => FileEncrypter.Compress(new FileInfo(Path.GetFullPath(path))).FullName);
 			}
 			catch (Exception ex)
 			{
@@ -65,13 +68,13 @@ namespace AsyncClientServer.Messages
 		}
 
 		//Compresses a folder and returns the new path
-		protected static async Task<string> CompressFolderAsync(string path, string tempPath)
+		protected async Task<string> CompressFolderAsync(string path, string tempPath)
 		{
 			try
 			{
 				return await Task.Run(() =>
 				{
-					ZipCompression.Compress(Path.GetFullPath(path), Path.GetFullPath(tempPath));
+					FolderEncrypter.Compress(Path.GetFullPath(path), Path.GetFullPath(tempPath));
 					return tempPath;
 				});
 			}
@@ -109,7 +112,7 @@ namespace AsyncClientServer.Messages
 			if (compressFile)
 			{
 				file = await CompressFileAsync(file);
-				remoteSaveLocation += GZipCompression.Extension;
+				remoteSaveLocation += FileEncrypter.Extension;
 			}
 
 			//Encrypts the file and deletes the compressed file
@@ -162,9 +165,9 @@ namespace AsyncClientServer.Messages
 			File.Delete(tempPath);
 
 			//Add extension and compress.
-			tempPath += ZipCompression.Extension;
+			tempPath += FolderEncrypter.Extension;
 			string folderToSend = await CompressFolderAsync(folderLocation, tempPath);
-			remoteFolderLocation += ZipCompression.Extension;
+			remoteFolderLocation += FolderEncrypter.Extension;
 
 			//Check if folder needs to be encrypted.
 			if (encryptFolder)
@@ -352,8 +355,8 @@ namespace AsyncClientServer.Messages
 
 				if (compressFile)
 				{
-					fileToSend = GZipCompression.Compress(new FileInfo(fileLocation));
-					remoteSaveLocation += GZipCompression.Extension;
+					fileToSend = FileEncrypter.Compress(new FileInfo(fileLocation));
+					remoteSaveLocation += FileEncrypter.Extension;
 				}
 
 				//Check if the file and header have to be encrypted.
@@ -425,9 +428,9 @@ namespace AsyncClientServer.Messages
 
 				//If this particular temp file exists delete it. Then start compression.
 				File.Delete(tempPath);
-				tempPath += ZipCompression.Extension;
-				ZipCompression.Compress(folderLocation, tempPath);
-				remoteFolderLocation += ZipCompression.Extension;
+				tempPath += FolderEncrypter.Extension;
+				FolderEncrypter.Compress(folderLocation, tempPath);
+				remoteFolderLocation += FolderEncrypter.Extension;
 
 				//The path to the folder with it current compression extension added.
 				string folderToSend = tempPath;

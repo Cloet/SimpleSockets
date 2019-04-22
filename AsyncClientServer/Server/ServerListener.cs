@@ -138,6 +138,8 @@ namespace AsyncClientServer.Server
 			_keepAliveTimer.Enabled = true;
 
 			Aes256 = new AES256();
+			FileEncrypter = new GZipCompression();
+			FolderEncrypter = new ZipCompression();
 		}
 
 
