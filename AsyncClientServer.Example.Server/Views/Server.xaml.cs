@@ -121,15 +121,21 @@ namespace AsyncClientServer.Example.Server
 			client.Read("Client has disconnected from the server.");
 		}
 
+
+		//Stop
 		private void Button_Click(object sender, RoutedEventArgs e)
 		{
 			
 			_listener.Dispose();
 		}
 
+		//Start
 		private void Button_Click_1(object sender, RoutedEventArgs e)
 		{
 			_listener = new AsyncSocketListener();
+			_clientVM = new ClientInfoViewModel();
+			_clientVM.Listener = _listener;
+			ListViewClients.DataContext = _clientVM;
 			BindEvents();
 			new Thread(() =>
 			{
