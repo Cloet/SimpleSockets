@@ -48,6 +48,8 @@
     <Compile Include="Client\ITcpClient.cs" />
     <Compile Include="Client\TcpClient.cs" />
     <Compile Include="Compression\GZipCompression.cs" />
+    <Compile Include="Compression\FileEncryption.cs" />
+    <Compile Include="Compression\FolderEncryption.cs" />
     <Compile Include="Compression\ZipCompression.cs" />
     <Compile Include="Cryptography\AES256.cs" />
     <Compile Include="Server\AsyncSocketSslListener.cs" />

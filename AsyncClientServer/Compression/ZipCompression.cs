@@ -9,10 +9,10 @@ using System.Threading.Tasks;
 
 namespace AsyncClientServer.Compression
 {
-	public static class ZipCompression
+	public class ZipCompression: FolderEncryption
 	{
 
-		public static string Extension => ".CZip";
+		
 
 
 		/// <summary>
@@ -20,7 +20,7 @@ namespace AsyncClientServer.Compression
 		/// </summary>
 		/// <param name="sourceDirPath"></param>
 		/// <param name="targetZipPath"></param>
-		public static void Compress(string sourceDirPath, string targetZipPath)
+		public override void Compress(string sourceDirPath, string targetZipPath)
 		{
 			try
 			{
@@ -40,7 +40,7 @@ namespace AsyncClientServer.Compression
 		/// </summary>
 		/// <param name="sourceZipPath"></param>
 		/// <param name="targetDirPath"></param>
-		public static void Extract(string sourceZipPath, string targetDirPath)
+		public override void Extract(string sourceZipPath, string targetDirPath)
 		{
 			try
 			{
