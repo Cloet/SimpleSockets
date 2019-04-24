@@ -65,6 +65,8 @@ namespace AsyncClientServer.Client
 					_listener.BeginConnect(_endpoint, OnConnectCallback, _listener);
 					_connected.WaitOne();
 
+					
+
 					//If client is connected activate connected event
 					if (IsConnected())
 					{

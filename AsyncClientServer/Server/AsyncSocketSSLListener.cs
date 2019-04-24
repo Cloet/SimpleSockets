@@ -82,7 +82,7 @@ namespace AsyncClientServer.Server
 						listener.Listen(Limit);
 
 						ServerHasStartedInvoke();
-						while (_disposed == false)
+						while (!Token.IsCancellationRequested)
 						{
 							_mre.Reset();
 							listener.BeginAccept(OnClientConnect, listener);
