@@ -16,7 +16,7 @@ Files will be compressed before being sent. (This can be turned off)
 Folder will be compressed before being sent. (This cannot be turned off)  
 Files   use .Gcz Compression  
 Folders use .Zip Compression  
-###Using your own compression
+### Using your own compression
 You can change the FileCompression by changeing the "FileCompressor" property of the client and server with a class that has been extended with FileCompressor class.  
 You can change the FolderCompression by change the "FolderCompressor" property of the client and server with a class that has been extended with FolderCompressor class.  
 

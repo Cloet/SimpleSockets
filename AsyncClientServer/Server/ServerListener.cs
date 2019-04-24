@@ -10,7 +10,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
 using AsyncClientServer.Cryptography;
-using System.Windows.Forms;
 using AsyncClientServer.Compression;
 using AsyncClientServer.Messaging.Metadata;
 

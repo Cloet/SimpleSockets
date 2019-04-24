@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using AsyncClientServer.Messaging;
 
+
 namespace AsyncClientServer.Client
 {
 	/// <summary>
