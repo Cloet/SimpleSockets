@@ -15,8 +15,9 @@ using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using AsyncClientServer.Cryptography;
 using AsyncClientServer.Example.Server.ViewModel;
+using AsyncClientServer.Messaging;
+using AsyncClientServer.Messaging.Metadata;
 using AsyncClientServer.Server;
-using AsyncClientServer.StateObject;
 
 namespace AsyncClientServer.Example.Server
 {
@@ -42,7 +43,6 @@ namespace AsyncClientServer.Example.Server
 			_clientVM = (ClientInfoViewModel) ListViewClients.DataContext;
 			_clientVM.Listener = _listener;
 			BindEvents();
-
 			//new Thread(() =>
 			//{
 			//	Thread.CurrentThread.IsBackground = true;
@@ -67,10 +67,10 @@ namespace AsyncClientServer.Example.Server
 		//*****Begin Events************///
 
 
-		private void MessageReceived(int id, string header, string msg)
+		private void MessageReceived(int id, string msg)
 		{
 			Model.Client client = _clientVM.ClientList.First(x => x.Id == id);
-			client.Read(header + ": " + msg);
+			client.Read("MESSAGE" + ": " + msg);
 		}
 
 		private void MessageSubmitted(int id, bool close)
@@ -99,11 +99,11 @@ namespace AsyncClientServer.Example.Server
 
 		}
 
-		private void ClientConnected(int id, ISocketState clientState)
+		private void ClientConnected(int id, ISocketInfo clientState)
 		{
+
 			Model.Client c = new Model.Client(id, clientState.LocalIPv4,clientState.LocalIPv6,clientState.RemoteIPv4,clientState.RemoteIPv6);
 			c.Connected = true;
-
 
 			Application.Current.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, 
 				new Action(() =>

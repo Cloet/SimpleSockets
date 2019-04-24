@@ -10,9 +10,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
 using AsyncClientServer.Cryptography;
-using System.Windows.Forms;
 using AsyncClientServer.Compression;
-using AsyncClientServer.StateObject;
+using AsyncClientServer.Messaging.Metadata;
 
 namespace AsyncClientServer.Server
 {
@@ -22,7 +21,21 @@ namespace AsyncClientServer.Server
 	/// </summary>
 	/// <param name="id"></param>
 	/// <param name="msg"></param>
-	public delegate void MessageReceivedHandler(int id, string header, string msg);
+	public delegate void MessageReceivedHandler(int id, string msg);
+
+	/// <summary>
+	/// Event that is triggered when a command is received
+	/// </summary>
+	/// <param name="id"></param>
+	/// <param name="msg"></param>
+	public delegate void CommandReceivedHandler(int id, string msg);
+
+	/// <summary>
+	/// Event that is triggered when a serialized object is received.
+	/// </summary>
+	/// <param name="id"></param>
+	/// <param name="serializedObject"></param>
+	public delegate void ObjectReceivedHandler(int id, string serializedObject);
 
 	/// <summary>
 	/// Event that is triggered a message is sent to the server
@@ -41,7 +54,7 @@ namespace AsyncClientServer.Server
 	/// Event that is triggered when a client has connected;
 	/// </summary>
 	/// <param name="id"></param>
-	public delegate void ClientConnectedHandler(int id, ISocketState clientState);
+	public delegate void ClientConnectedHandler(int id, ISocketInfo clientInfo);
 
 	/// <summary>
 	/// Event that is triggered when the server receives a file
@@ -86,7 +99,7 @@ namespace AsyncClientServer.Server
 		protected int Limit = 500;
 		protected ManualResetEvent _serverCanListen = new ManualResetEvent(false);
 		protected readonly ManualResetEvent _mre = new ManualResetEvent(false);
-		protected IDictionary<int, ISocketState> _clients = new Dictionary<int, ISocketState>();
+		internal IDictionary<int, ISocketState> _clients = new Dictionary<int, ISocketState>();
 		private static System.Timers.Timer _keepAliveTimer;
 		protected Socket _listener { get; set; }
 		protected bool _disposed { get; set; }
@@ -101,6 +114,8 @@ namespace AsyncClientServer.Server
 
 		//Events
 		public event MessageReceivedHandler MessageReceived;
+		public event CommandReceivedHandler CommandReceived;
+		public event ObjectReceivedHandler ObjectReceived;
 		public event MessageSubmittedHandler MessageSubmitted;
 		public event ClientDisconnectedHandler ClientDisconnected;
 		public event ClientConnectedHandler ClientConnected;
@@ -114,9 +129,19 @@ namespace AsyncClientServer.Server
 		/// Get dictionary of clients
 		/// </summary>
 		/// <returns></returns>
-		public override IDictionary<int, ISocketState> GetClients()
+		internal override IDictionary<int, ISocketState> GetClients()
 		{
 			return _clients;
+		}
+
+		/// <inheritdoc />
+		/// <summary>
+		/// Returns all currently connected clients
+		/// </summary>
+		/// <returns></returns>
+		public IDictionary<int, ISocketInfo> GetConnectedClients()
+		{
+			return _clients.ToDictionary(x => x.Key, x => (ISocketInfo) x.Value);
 		}
 
 		/// <inheritdoc />
@@ -135,7 +160,6 @@ namespace AsyncClientServer.Server
 		/// </summary>
 		public Encryption MessageEncrypter
 		{
-			get => Encrypter;
 			set => Encrypter = value ?? throw new ArgumentNullException(nameof(value));
 		}
 
@@ -144,7 +168,6 @@ namespace AsyncClientServer.Server
 		/// </summary>
 		public FileCompression ServerFileCompressor
 		{
-			get => FileCompressor;
 			set => FileCompressor = value ?? throw new ArgumentNullException(nameof(value));
 		}
 
@@ -153,7 +176,6 @@ namespace AsyncClientServer.Server
 		/// </summary>
 		public FolderCompression ServerFolderCompressor
 		{
-			get => FolderCompressor;
 			set => FolderCompressor = value ?? throw new ArgumentNullException(nameof(value));
 		}
 
@@ -261,7 +283,7 @@ namespace AsyncClientServer.Server
 		}
 
 		/* Gets a socket from the clients dictionary by his Id. */
-		protected ISocketState GetClient(int id)
+		internal ISocketState GetClient(int id)
 		{
 			ISocketState state;
 
@@ -316,73 +338,6 @@ namespace AsyncClientServer.Server
 
 		//Start receiving
 		internal abstract void StartReceiving(ISocketState state, int offset = 0);
-
-		#region Invokes
-
-		protected void ClientDisconnectedInvoke(int id)
-		{
-			ClientDisconnected?.Invoke(id);
-		}
-
-		protected void ClientConnectedInvoke(int id, ISocketState clientState)
-		{
-			ClientConnected?.Invoke(id,clientState);
-		}
-
-		protected void ServerHasStartedInvoke()
-		{
-			IsServerRunning = true;
-			ServerHasStarted?.Invoke();
-		}
-
-		/// <summary>
-		/// Invokes FileReceived event
-		/// </summary>
-		/// <param name="id"></param>
-		/// <param name="filePath"></param>
-		internal void InvokeFileReceived(int id, string filePath)
-		{
-			FileReceived?.Invoke(id, filePath);
-		}
-
-		/// <summary>
-		/// Invokes ProgressReceived event
-		/// </summary>
-		/// <param name="id"></param>
-		/// <param name="bytesReceived"></param>
-		/// <param name="messageSize"></param>
-		internal void InvokeFileTransferProgress(int id, int bytesReceived, int messageSize)
-		{
-			ProgressFileReceived?.Invoke(id, bytesReceived, messageSize);
-		}
-
-		protected void InvokeMessageSubmitted(int id, bool close)
-		{
-			MessageSubmitted?.Invoke(id,close);
-		}
-
-		protected void InvokeErrorThrown(string exception)
-		{
-			ErrorThrown?.Invoke(exception);
-		}
-
-		protected void InvokeMessageFailed(int id, byte[] messageData, string exception)
-		{
-			MessageFailed?.Invoke(id, messageData, exception);
-		}
-
-		/// <summary>
-		/// Invokes MessageReceived event of the server.
-		/// </summary>
-		/// <param name="id"></param>
-		/// <param name="header"></param>
-		/// <param name="text"></param>
-		internal void InvokeMessageReceived(int id, string header, string text)
-		{
-			MessageReceived?.Invoke(id, header, text);
-		}
-
-		#endregion
 
 		//Handles messages
 		protected abstract void HandleMessage(IAsyncResult result);
@@ -476,7 +431,7 @@ namespace AsyncClientServer.Server
 
 					_clients = new Dictionary<int, ISocketState>();
 					_disposed = true;
-					//GC.SuppressFinalize(this);
+					GC.SuppressFinalize(this);
 				}
 
 			}
@@ -497,6 +452,66 @@ namespace AsyncClientServer.Server
 
 			SocketState.ChangeBufferSize(bufferSize);
 		}
+
+		#region Invokes
+
+		protected void ClientDisconnectedInvoke(int id)
+		{
+			ClientDisconnected?.Invoke(id);
+		}
+
+		protected void ClientConnectedInvoke(int id, ISocketInfo clientInfo)
+		{
+			ClientConnected?.Invoke(id, clientInfo);
+		}
+
+		protected void ServerHasStartedInvoke()
+		{
+			IsServerRunning = true;
+			ServerHasStarted?.Invoke();
+		}
+
+		internal void InvokeFileReceived(int id, string filePath)
+		{
+			FileReceived?.Invoke(id, filePath);
+		}
+
+		internal void InvokeFileTransferProgress(int id, int bytesReceived, int messageSize)
+		{
+			ProgressFileReceived?.Invoke(id, bytesReceived, messageSize);
+		}
+
+		protected void InvokeMessageSubmitted(int id, bool close)
+		{
+			MessageSubmitted?.Invoke(id, close);
+		}
+
+		protected void InvokeErrorThrown(string exception)
+		{
+			ErrorThrown?.Invoke(exception);
+		}
+
+		protected void InvokeMessageFailed(int id, byte[] messageData, string exception)
+		{
+			MessageFailed?.Invoke(id, messageData, exception);
+		}
+
+		internal void InvokeMessageReceived(int id, string text)
+		{
+			MessageReceived?.Invoke(id, text);
+		}
+
+		internal void InvokeCommandReceived(int id, string msg)
+		{
+			CommandReceived?.Invoke(id, msg);
+		}
+
+		internal void InvokeObjectReceived(int id, string serializedObject)
+		{
+			ObjectReceived?.Invoke(id, serializedObject);
+		}
+
+		#endregion
 
 	}
 }

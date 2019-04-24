@@ -2,9 +2,10 @@
 using System.Linq;
 using System.Text;
 using AsyncClientServer.Client;
+using AsyncClientServer.Messaging.Metadata;
 using AsyncClientServer.Server;
 
-namespace AsyncClientServer.StateObject.MessageHandlerState
+namespace AsyncClientServer.Messaging.Handlers
 {
 	internal class InitialHandlerState : SocketStateState
 	{
@@ -19,10 +20,10 @@ namespace AsyncClientServer.StateObject.MessageHandlerState
 
 		private void ReceiveMore(int receive)
 		{
-			State.UnhandledBytes = receive;
 			if (Server != null)
 			{
 				Server.StartReceiving(State, receive);
+				return;
 			}
 
 			if (Client != null)
@@ -43,9 +44,6 @@ namespace AsyncClientServer.StateObject.MessageHandlerState
 				return;
 			}
 
-			receive += State.UnhandledBytes;
-			State.UnhandledBytes = 0;
-
 
 			//First check
 			if (State.Flag == 0)
@@ -57,7 +55,7 @@ namespace AsyncClientServer.StateObject.MessageHandlerState
 				if(State.HeaderSize == 0)
 					State.HeaderSize = BitConverter.ToInt32(State.Buffer, 4);
 
-				if (State.Buffer.Length < State.HeaderSize)
+				if (State.Buffer.Length < (State.HeaderSize + 8))
 				{
 					ReceiveMore(receive);
 					return;

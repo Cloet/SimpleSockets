@@ -44,34 +44,34 @@ namespace AsyncClientServer.Client
 		/// <summary>
 		/// Sends an object to the server
 		/// </summary>
-		/// <param name="anyObj">The object that will be serialized and send.</param>
+		/// <param name="serializedObject">The object that will be serialized and send.</param>
 		/// <param name="encryptObject"></param>
 		/// <param name="close">True if the client should be closed after this message.</param>
-		void SendObject(object anyObj,bool encryptObject, bool close);
+		void SendObject(string serializedObject, bool encryptObject, bool close);
 
 		/// <summary>
 		/// Sends an object to the server
 		/// </summary>
-		/// <param name="anyObj">The object that will be serialized and send.</param>
+		/// <param name="serializedObject">The object that will be serialized and send.</param>
 		/// <param name="close">True if the client should be closed after this message.</param>
-		void SendObject(object anyObj, bool close);
+		void SendObject(string serializedObject, bool close);
 
 
 		/// <summary>
 		/// Sends an object to the server
 		/// </summary>
-		/// <param name="anyObj">The object that will be serialized and send.</param>
+		/// <param name="serializedObject">The object that will be serialized and send.</param>
 		/// <param name="encryptObject"></param>
 		/// <param name="close">True if the client should be closed after this message.</param>
-		Task SendObjectAsync(object anyObj, bool encryptObject, bool close);
+		Task SendObjectAsync(string serializedObject, bool encryptObject, bool close);
 
 		/// <summary>
 		/// Sends an object to the server
 		/// <para>This will encrypt the object</para>
 		/// </summary>
-		/// <param name="anyObj">The object that will be serialized and send.</param>
+		/// <param name="serializedObject">The object that will be serialized and send.</param>
 		/// <param name="close">True if the client should be closed after this message.</param>
-		Task SendObjectAsync(object anyObj, bool close);
+		Task SendObjectAsync(string serializedObject, bool close);
 
 
 

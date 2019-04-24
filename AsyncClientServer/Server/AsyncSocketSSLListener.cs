@@ -10,8 +10,8 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using AsyncClientServer.StateObject;
-using AsyncClientServer.StateObject.MessageHandlerState;
+using AsyncClientServer.Messaging.Handlers;
+using AsyncClientServer.Messaging.Metadata;
 
 namespace AsyncClientServer.Server
 {
@@ -82,7 +82,7 @@ namespace AsyncClientServer.Server
 						listener.Listen(Limit);
 
 						ServerHasStartedInvoke();
-						while (_disposed == false)
+						while (!Token.IsCancellationRequested)
 						{
 							_mre.Reset();
 							listener.BeginAccept(OnClientConnect, listener);
@@ -118,7 +118,7 @@ namespace AsyncClientServer.Server
 				{
 					id = !_clients.Any() ? 1 : _clients.Keys.Max() + 1;
 					
-					state = new StateObject.SocketState(((Socket)result.AsyncState).EndAccept(result), id);
+					state = new SocketState(((Socket)result.AsyncState).EndAccept(result), id);
 				}
 
 				var stream = new NetworkStream(state.Listener);
@@ -216,9 +216,16 @@ namespace AsyncClientServer.Server
 		{
 			try
 			{
-				if (state.Buffer.Length < state.BufferSize && offset == 0)
+				if (offset > 0)
+				{
+					state.UnhandledBytes = state.Buffer;
+				}
+
+				if (state.Buffer.Length < state.BufferSize)
 				{
 					state.ChangeBuffer(new byte[state.BufferSize]);
+					if (offset > 0)
+						Array.Copy(state.UnhandledBytes, 0, state.Buffer, 0, state.UnhandledBytes.Length);
 				}
 
 				SslStream sslStream = state.SslStream;
@@ -238,7 +245,7 @@ namespace AsyncClientServer.Server
 		protected override void HandleMessage(IAsyncResult result)
 		{
 
-			var state = (StateObject.SocketState)result.AsyncState;
+			var state = (SocketState)result.AsyncState;
 			try
 			{
 

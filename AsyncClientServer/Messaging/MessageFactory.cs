@@ -1,17 +1,11 @@
 ﻿using System;
-using System.Data;
 using System.IO;
-using System.Net.Sockets;
-using System.Runtime.Remoting.Messaging;
-using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
-using AsyncClientServer.Client;
 using AsyncClientServer.Compression;
 using AsyncClientServer.Cryptography;
-using AsyncClientServer.StateObject;
 
-namespace AsyncClientServer.Messages
+namespace AsyncClientServer.Messaging
 {
 
 	/// <summary>
@@ -28,13 +22,22 @@ namespace AsyncClientServer.Messages
 	public abstract class MessageFactory
 	{
 		/// <summary>
-		/// Used for encryption.
+		/// Used for encryption and decryption of data.
 		/// Created in ServerListener and TcpClient
 		/// </summary>
 		public Encryption Encrypter { get; protected set; }
 
+		/// <summary>
+		/// Used to compress and decompress files.
+		/// </summary>
 		public FileCompression FileCompressor { get; set; }
+
+		/// <summary>
+		/// Class used to compress and extract folders.
+		/// </summary>
 		public FolderCompression FolderCompressor { get; set; }
+
+
 
 		//Encrypts a file and returns the new file path.
 		protected async Task<string> EncryptFileAsync(string path)
@@ -516,17 +519,15 @@ namespace AsyncClientServer.Messages
 
 		/// <summary>
 		/// Creates an array of bytes
-		/// <para>This method serializes an object of type "SerializableObject" and converts it to xml.
+		/// <para>You will first have to serialize you object to a string using xml, json... and then send the object.
 		/// This xml string will be converted to bytes and send using sockets and deserialized when it arrives.</para>
 		/// </summary>
-		/// <param name="serObj"></param>
+		/// <param name="serializedObject"></param>
 		/// <param name="encryptObject"></param>
 		/// <returns>Byte[]</returns>
-		protected byte[] CreateByteObject(object serObj, bool encryptObject)
+		protected byte[] CreateByteObject(string serializedObject, bool encryptObject)
 		{
-			throw new NotSupportedException("This option is not yet supported.");
-			//var message = XmlSerialization.XmlSerialization.SerializeToXml(serObj);
-			//return CreateByteArray(message, "OBJECT", encryptObject);
+			return CreateByteArray(serializedObject, "OBJECT", encryptObject);
 		}
 
 	}

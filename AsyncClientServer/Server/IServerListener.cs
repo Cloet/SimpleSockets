@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using AsyncClientServer.Compression;
 using AsyncClientServer.Cryptography;
-using AsyncClientServer.StateObject;
+using AsyncClientServer.Messaging.Metadata;
 
 namespace AsyncClientServer.Server
 {
@@ -71,17 +71,17 @@ namespace AsyncClientServer.Server
 		/// <summary>
 		/// Used to encrypt files/folders
 		/// </summary>
-		Encryption MessageEncrypter { get; set; }
+		Encryption MessageEncrypter { set; }
 
 		/// <summary>
 		/// Used to compress files before sending
 		/// </summary>
-		FileCompression ServerFileCompressor { get; set; }
+		FileCompression ServerFileCompressor { set; }
 
 		/// <summary>
 		/// Used to compress folder before sending
 		/// </summary>
-		FolderCompression ServerFolderCompressor { get; set; }
+		FolderCompression ServerFolderCompressor { set; }
 
 		/// <summary>
 		/// True if the server is currently running
@@ -107,13 +107,11 @@ namespace AsyncClientServer.Server
 		/// <returns></returns>
 		bool IsConnected(int id);
 
-		//void StartReceiving(IStateObject state, int offset = 0);
-
 		/// <summary>
-		/// Gets all connected clients
+		/// Gets all currently connected clients
 		/// </summary>
 		/// <returns></returns>
-		IDictionary<int, ISocketState> GetClients();
+		IDictionary<int, ISocketInfo> GetConnectedClients();
 
 		/// <summary>
 		/// Check a single client if he's still active

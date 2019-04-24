@@ -4,11 +4,9 @@ using System.Linq;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
-using System.Security.Cryptography;
-using System.Text;
-using AsyncClientServer.StateObject.MessageHandlerState;
+using AsyncClientServer.Messaging.Handlers;
 
-namespace AsyncClientServer.StateObject
+namespace AsyncClientServer.Messaging.Metadata
 {
 
 	/// <summary>
@@ -18,7 +16,7 @@ namespace AsyncClientServer.StateObject
 	///<seealso cref="ISocketState"/>
 	/// </para>
 	/// </summary>
-	internal class SocketState: ISocketState
+	internal class SocketState: ISocketState, ISocketInfo
 	{
 
 		/* Contains the state information. */
@@ -85,7 +83,7 @@ namespace AsyncClientServer.StateObject
 		/// <summary>
 		/// Bytes that have been read but are not yet handled
 		/// </summary>
-		public int UnhandledBytes { get; set; }
+		public byte[] UnhandledBytes { get; set; }
 
 		/// <summary>
 		/// The flag of the state

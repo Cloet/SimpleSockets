@@ -4,7 +4,8 @@ using System.IO;
 using System.Runtime.Remoting.Messaging;
 using System.Text;
 using System.Threading.Tasks;
-using AsyncClientServer.Messages;
+using AsyncClientServer.Messaging;
+
 
 namespace AsyncClientServer.Client
 {
@@ -92,12 +93,12 @@ namespace AsyncClientServer.Client
 		/// Send an object to server
 		/// <para>This object will be serialized using xml</para>
 		/// </summary>
-		/// <param name="anyObj"></param>
+		/// <param name="serializedObject"></param>
 		/// <param name="encryptObject"></param>
 		/// <param name="close"></param>
-		public void SendObject(object anyObj, bool encryptObject, bool close)
+		public void SendObject(string serializedObject, bool encryptObject, bool close)
 		{
-			byte[] data = CreateByteObject(anyObj, encryptObject);
+			byte[] data = CreateByteObject(serializedObject, encryptObject);
 			SendBytes(data, close);
 		}
 
@@ -107,11 +108,11 @@ namespace AsyncClientServer.Client
 		/// <para/>The close parameter indicates if the client should close after sending or not.
 		/// <para>This object will be serialized using xml</para>
 		/// </summary>
-		/// <param name="anyObj"></param>
+		/// <param name="serializedObject"></param>
 		/// <param name="close"></param>
-		public void SendObject(object anyObj, bool close)
+		public void SendObject(string serializedObject, bool close)
 		{
-			SendObject(anyObj, false, close);
+			SendObject(serializedObject, false, close);
 		}
 
 		/// <inheritdoc />
@@ -120,26 +121,26 @@ namespace AsyncClientServer.Client
 		/// <para/>The close parameter indicates if the client should close after sending or not.
 		/// <para>This object will be serialized using xml</para>
 		/// </summary>
-		/// <param name="anyObj"></param>
+		/// <param name="serializedObject"></param>
 		/// <param name="encryptObject"></param>
 		/// <param name="close"></param>
-		public async Task SendObjectAsync(object anyObj, bool encryptObject, bool close)
+		public async Task SendObjectAsync(string serializedObject, bool encryptObject, bool close)
 		{
-			await Task.Run(() => SendObject(anyObj, encryptObject, close));
+			await Task.Run(() => SendObject(serializedObject, encryptObject, close));
 		}
 
 		/// <inheritdoc />
 		/// <summary>
 		/// Send an object to server asynchronous.
 		/// <para/>The close parameter indicates if the client should close after sending or not.
-		/// <para>The object will be encrypted before sending.</para>
+		/// <para>The object won't be encrypted before sending.</para>
 		/// <para>This object will be serialized using xml</para>
 		/// </summary>
 		/// <param name="anyObj"></param>
 		/// <param name="close"></param>
-		public async Task SendObjectAsync(object anyObj, bool close)
+		public async Task SendObjectAsync(string serializedObject, bool close)
 		{
-			await Task.Run(() => SendObject(anyObj, close));
+			await Task.Run(() => SendObject(serializedObject, close));
 		}
 
 

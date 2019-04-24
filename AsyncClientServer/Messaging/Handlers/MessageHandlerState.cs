@@ -1,8 +1,9 @@
 ﻿using System;
 using AsyncClientServer.Client;
+using AsyncClientServer.Messaging.Metadata;
 using AsyncClientServer.Server;
 
-namespace AsyncClientServer.StateObject.MessageHandlerState
+namespace AsyncClientServer.Messaging.Handlers
 {
 	internal class MessageHandlerState: SocketStateState
 	{
@@ -55,11 +56,6 @@ namespace AsyncClientServer.StateObject.MessageHandlerState
 
 			//Append the received bytes to the state object.
 			State.AppendBytes(bytes);
-
-			//DEPRECATED
-			//Convert from bytes to string and append to state stringBuilder.
-			//string msg = Encoding.UTF8.GetString(bytes, 0, bytes.Length);
-			//State.Append(msg);
 
 		}
 
