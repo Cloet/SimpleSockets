@@ -46,12 +46,12 @@ namespace AsyncClientServer.Client
 			ReconnectInSeconds = reconnectInSeconds;
 			_keepAliveTimer.Enabled = false;
 
-			TokenSource = new CancellationTokenSource();
-			Token = TokenSource.Token;
-
 			var host = Dns.GetHostEntry(ipServer);
 			var ip = host.AddressList[0];
 			_endpoint = new IPEndPoint(ip, port);
+
+			TokenSource = new CancellationTokenSource();
+			Token = TokenSource.Token;
 
 			Task.Run(() =>
 			{
@@ -64,8 +64,6 @@ namespace AsyncClientServer.Client
 					_listener = new Socket(_endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 					_listener.BeginConnect(_endpoint, OnConnectCallback, _listener);
 					_connected.WaitOne();
-
-					
 
 					//If client is connected activate connected event
 					if (IsConnected())
@@ -292,9 +290,6 @@ namespace AsyncClientServer.Client
 		}
 
 		#endregion
-
-
-
 
 	}
 }

@@ -83,6 +83,7 @@ namespace AsyncClientServer.Example.Client
 		{
 			AppendRichtTextBoxLog("The client has connected to the server.");
 			ChangeStatus("CONNECTED");
+			MessageBox.Show("Client has connected to the server on ip : " + a.IpServer);
 		}
 
 		private void ServerMessageReceived(ITcpClient a, string msg)
@@ -99,6 +100,7 @@ namespace AsyncClientServer.Example.Client
 		{
 			AppendRichtTextBoxLog("Client has disconnected from the server.");
 			ChangeStatus("DISCONNECTED");
+			MessageBox.Show("Client has disconnected to the server on ip : " + ip + " on port " + port);
 		}
 
 		void Progress(ITcpClient a, int bytes, int messageSize)
@@ -227,6 +229,16 @@ namespace AsyncClientServer.Example.Client
 				MessageBox.Show(ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
 			}
 
+		}
+
+		private void Button_Click(object sender, RoutedEventArgs e)
+		{
+			_client.StartClient(_client.IpServer, _client.Port);
+		}
+
+		private void Button1_Click(object sender, RoutedEventArgs e)
+		{
+			_client.Close();
 		}
 	}
 }

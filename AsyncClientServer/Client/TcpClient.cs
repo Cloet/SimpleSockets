@@ -93,6 +93,7 @@ namespace AsyncClientServer.Client
 		protected readonly ManualResetEvent _sent = new ManualResetEvent(false);
 		protected IPEndPoint _endpoint;
 		protected static System.Timers.Timer _keepAliveTimer;
+		private bool _disconnectedInvoked;
 
 		protected CancellationTokenSource TokenSource { get; set; }
 		protected CancellationToken Token { get; set; }
@@ -170,9 +171,14 @@ namespace AsyncClientServer.Client
 		//Timer that tries reconnecting every x seconds
 		private void KeepAlive(Object source, ElapsedEventArgs e)
 		{
+			if (Token.IsCancellationRequested)
+			{
+				Close();
+				_connected.Reset();
+			}
+
 			if (!IsConnected())
 			{
-				Disconnected?.Invoke(this, this.IpServer, this.Port);
 				Close();
 				_connected.Reset();
 				StartClient(IpServer, Port, ReconnectInSeconds);
@@ -306,6 +312,8 @@ namespace AsyncClientServer.Client
 
 				_listener.Shutdown(SocketShutdown.Both);
 				_listener.Close();
+				_listener = null;
+				InvokeDisconnected(this);
 			}
 			catch (SocketException se)
 			{
@@ -316,11 +324,14 @@ namespace AsyncClientServer.Client
 		/// <summary>
 		/// Safely close client and break all connections to server.
 		/// </summary>
-		public void Dispose()
+		public virtual void Dispose()
 		{
 			Close();
 			_connected.Dispose();
 			_sent.Dispose();
+			_keepAliveTimer.Enabled = false;
+			_keepAliveTimer.Dispose();
+			TokenSource.Dispose();
 
 			GC.SuppressFinalize(this);
 		}
@@ -373,11 +384,16 @@ namespace AsyncClientServer.Client
 		protected void InvokeConnected(ITcpClient a)
 		{
 			Connected?.Invoke(a);
+			_disconnectedInvoked = false;
 		}
 
 		protected void InvokeDisconnected(ITcpClient a)
 		{
-			Disconnected?.Invoke(a, a.IpServer, a.Port);
+			if (_disconnectedInvoked == false)
+			{
+				Disconnected?.Invoke(a, a.IpServer, a.Port);
+				_disconnectedInvoked = true;
+			}
 		}
 
 		protected void InvokeMessageFailed(byte[] messageData, string exception)
