@@ -54,6 +54,9 @@ namespace AsyncClientServer.Server
 			var ipServer = host.AddressList[0];
 			var endpoint = new IPEndPoint(ipServer, port);
 
+			TokenSource = new CancellationTokenSource();
+			Token = TokenSource.Token;
+
 			Task.Run(() =>
 			{
 				try

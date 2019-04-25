@@ -66,6 +66,8 @@
 						</Grid>
 					</GroupBox>
 					<TextBlock x:Name="TextBlockStatus" FontSize="28" Margin="553,10,37,0" TextWrapping="Wrap" Text="TextBlock" VerticalAlignment="Top" Height="33"/>
+					<Button Content="Stop" HorizontalAlignment="Left" Margin="446,23,0,0" VerticalAlignment="Top" Width="75" Click="Button1_Click"/>
+					<Button Content="Start" HorizontalAlignment="Left" Margin="352,23,0,0" VerticalAlignment="Top" Width="74" Click="Button_Click"/>
 
 				</Grid>
 			</TabItem>

@@ -31,22 +31,24 @@ namespace AsyncClientServer.Client
 		/// Constructor
 		/// </summary>
 		/// <param name="certificate"></param>
-		/// <param name="password"></param>
+		/// <param name="certificatePassword"></param>
+		/// <param name="tls"></param>
 		/// <param name="acceptInvalidCertificates"></param>
-		public AsyncSslClient(string certificate, string password,TlsProtocol tls = TlsProtocol.Tls12, bool acceptInvalidCertificates = true) : base()
+		public AsyncSslClient(string certificate, string certificatePassword,TlsProtocol tls = TlsProtocol.Tls12,bool acceptInvalidCertificates = true) : base()
 		{
 
 			if (string.IsNullOrEmpty(certificate))
 				throw new ArgumentNullException(nameof(certificate));
 
-			if (string.IsNullOrEmpty(password))
+			if (string.IsNullOrEmpty(certificatePassword))
 			{
 				_sslCertificate = new X509Certificate2(File.ReadAllBytes(Path.GetFullPath(certificate)));
 			}
 			else
 			{
-				_sslCertificate = new X509Certificate2(File.ReadAllBytes(Path.GetFullPath(certificate)), password);
+				_sslCertificate = new X509Certificate2(File.ReadAllBytes(Path.GetFullPath(certificate)), certificatePassword);
 			}
+
 
 			_tlsProtocol = tls;
 			AcceptInvalidCertificates = acceptInvalidCertificates;
@@ -419,6 +421,24 @@ namespace AsyncClientServer.Client
 				_sslStream.Dispose();
 				_sslStream = null;
 			}
+		}
+
+		/// <summary>
+		/// Disposes the AsyncSslClient class.
+		/// </summary>
+		public override void Dispose()
+		{
+			try
+			{
+				base.Dispose();
+				_mreRead.Dispose();
+				_mreWriting.Dispose();
+			}
+			catch (Exception ex)
+			{
+				throw new Exception("Error trying to dispose of " + nameof(AsyncSslClient) + " class.", ex);
+			}
+
 		}
 
 	}
