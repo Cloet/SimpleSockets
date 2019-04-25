@@ -71,6 +71,9 @@ namespace AsyncClientServer.Server
 			var ipServer = host.AddressList[0];
 			var endpoint = new IPEndPoint(ipServer, port);
 
+			TokenSource = new CancellationTokenSource();
+			Token = TokenSource.Token;
+
 			Task.Run(() =>
 			{
 				try
@@ -433,6 +436,22 @@ namespace AsyncClientServer.Server
 			}
 		}
 
+		/// <summary>
+		/// Disposes of the AsyncSocketSslListener.
+		/// </summary>
+		public override void Dispose()
+		{
+			try
+			{
+				base.Dispose();
+				_mreRead.Dispose();
+				_mreWriting.Dispose();
+			}
+			catch (Exception ex)
+			{
+				throw new Exception("Error trying to dispose of " + nameof(AsyncSocketSslListener) + " class.", ex);
+			}
 
+		}
 	}
 }

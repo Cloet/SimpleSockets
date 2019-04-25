@@ -192,9 +192,6 @@ namespace AsyncClientServer.Server
 
 			IsServerRunning = false;
 
-			TokenSource = new CancellationTokenSource();
-			Token = TokenSource.Token;
-
 			Encrypter = new Aes256();
 			FileCompressor = new GZipCompression();
 			FolderCompressor = new ZipCompression();
@@ -270,9 +267,6 @@ namespace AsyncClientServer.Server
 		{
 			if (IsServerRunning)
 				throw new Exception("The server is already running.");
-
-			TokenSource = new CancellationTokenSource();
-			Token = TokenSource.Token;
 
 			if (string.IsNullOrEmpty(Ip))
 				throw new ArgumentException("This method should only be used after using 'StopListening()'");
@@ -412,7 +406,7 @@ namespace AsyncClientServer.Server
 		/// <summary>
 		/// Properly dispose the class.
 		/// </summary>
-		public void Dispose()
+		public virtual void Dispose()
 		{
 			try
 			{
@@ -423,6 +417,8 @@ namespace AsyncClientServer.Server
 					IsServerRunning = false;
 					_listener.Dispose();
 					_mre.Dispose();
+					_keepAliveTimer.Enabled = false;
+					_keepAliveTimer.Dispose();
 
 					foreach (var id in _clients.Keys.ToList())
 					{
@@ -430,8 +426,13 @@ namespace AsyncClientServer.Server
 					}
 
 					_clients = new Dictionary<int, ISocketState>();
+					TokenSource.Dispose();
 					_disposed = true;
 					GC.SuppressFinalize(this);
+				}
+				else
+				{
+					throw new ObjectDisposedException(nameof(ServerListener), "This object is already disposed.");
 				}
 
 			}
