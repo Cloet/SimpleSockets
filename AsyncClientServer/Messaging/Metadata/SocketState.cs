@@ -16,7 +16,7 @@ namespace AsyncClientServer.Messaging.Metadata
 	///<seealso cref="ISocketState"/>
 	/// </para>
 	/// </summary>
-	internal class SocketState: ISocketState, ISocketInfo
+	internal class SocketState: ISocketState
 	{
 
 		/* Contains the state information. */
