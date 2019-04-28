@@ -192,6 +192,23 @@ namespace AsyncClientServer.Client
 		/// </summary>
 		public abstract void StartClient(string ipServer, int port, int reconnectInSeconds = 5);
 
+		//Convert string to IPAddress
+		protected IPAddress GetIp(string ip)
+		{
+			try
+			{
+				return Dns.GetHostAddresses(ip).First();				
+			}
+			catch (SocketException se)
+			{
+				throw new Exception("Invalid server IP", se);
+			}
+			catch (Exception ex)
+			{
+				throw new Exception("Error trying to get IPAddress from string : " + ip, ex);
+			}
+		}
+
 		/// <inheritdoc />
 		/// <summary>
 		/// Check if client is connected to server

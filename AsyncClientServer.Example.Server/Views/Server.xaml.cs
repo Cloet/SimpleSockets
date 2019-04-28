@@ -46,7 +46,8 @@ namespace AsyncClientServer.Example.Server
 			//new Thread(() =>
 			//{
 			//	Thread.CurrentThread.IsBackground = true;
-				_listener.StartListening("127.0.0.1", 13000);
+				//_listener.StartListening("127.0.0.1", 13000);
+				_listener.StartListening("192.168.1.106", 13000);
 			//}).Start();
 		}
 
