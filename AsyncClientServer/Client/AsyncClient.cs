@@ -47,6 +47,10 @@ namespace AsyncClientServer.Client
 			_keepAliveTimer.Enabled = false;
 
 			var host = Dns.GetHostEntry(ipServer);
+
+			if (host.AddressList.Length == 0)
+				throw new ArgumentException("Invalid ip entered.", nameof(ipServer));
+
 			var ip = host.AddressList[0];
 			_endpoint = new IPEndPoint(ip, port);
 
