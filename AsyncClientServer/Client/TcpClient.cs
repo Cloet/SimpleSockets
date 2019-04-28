@@ -203,6 +203,10 @@ namespace AsyncClientServer.Client
 			{
 				throw new Exception("Invalid server IP", se);
 			}
+			catch (Exception ex)
+			{
+				throw new Exception("Error trying to get IPAddress from string : " + ip, ex);
+			}
 		}
 
 		/// <inheritdoc />
