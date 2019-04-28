@@ -48,16 +48,10 @@ namespace AsyncClientServer.Server
 			Port = port;
 			Ip = ip;
 
-
-			IPAddress ipServer;
-			var host = Dns.GetHostEntry(ip);
-
-			if (host.AddressList.Length == 0)
-				ipServer = IPAddress.Any;
-			else
-				ipServer = host.AddressList[0];
-
-			var endpoint = new IPEndPoint(ipServer, port);
+			//var ipServer = Dns.GetHostAddresses(ip).First();
+			//if (ipServer == null)
+			//	throw new ArgumentException("Invalid server IP.");
+			var endpoint = new IPEndPoint(GetIp(ip), port);
 
 			TokenSource = new CancellationTokenSource();
 			Token = TokenSource.Token;

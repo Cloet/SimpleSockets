@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -46,13 +47,8 @@ namespace AsyncClientServer.Client
 			ReconnectInSeconds = reconnectInSeconds;
 			_keepAliveTimer.Enabled = false;
 
-			var host = Dns.GetHostEntry(ipServer);
 
-			if (host.AddressList.Length == 0)
-				throw new ArgumentException("Invalid ip entered.", nameof(ipServer));
-
-			var ip = host.AddressList[0];
-			_endpoint = new IPEndPoint(ip, port);
+			_endpoint = new IPEndPoint(GetIp(ipServer), port);
 
 			TokenSource = new CancellationTokenSource();
 			Token = TokenSource.Token;
