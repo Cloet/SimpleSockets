@@ -402,6 +402,19 @@ namespace AsyncClientServer.Server
 			}
 		}
 
+		//Converts string to IPAddress
+		protected IPAddress GetIp(string ip)
+		{
+			try
+			{
+				return Dns.GetHostAddresses(ip).First();
+			}
+			catch (SocketException se)
+			{
+				throw new Exception("Invalid server IP", se);
+			}
+		}
+
 		/// <inheritdoc />
 		/// <summary>
 		/// Properly dispose the class.
