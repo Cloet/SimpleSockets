@@ -54,8 +54,6 @@ namespace AsyncClientServer.Server
 		public override void StartListening(string ip, int port, int limit = 500)
 		{
 
-			if (string.IsNullOrEmpty(ip))
-				throw new ArgumentNullException(nameof(ip));
 			if (port < 1)
 				throw new ArgumentOutOfRangeException(nameof(port));
 			if (limit < 0)
@@ -67,8 +65,14 @@ namespace AsyncClientServer.Server
 			Port = port;
 			Ip = ip;
 
+			IPAddress ipServer;
 			var host = Dns.GetHostEntry(ip);
-			var ipServer = host.AddressList[0];
+
+			if (host.AddressList.Length == 0)
+				ipServer = IPAddress.Any;
+			else
+				ipServer = host.AddressList[0];
+
 			var endpoint = new IPEndPoint(ipServer, port);
 
 			TokenSource = new CancellationTokenSource();

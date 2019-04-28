@@ -38,7 +38,8 @@ namespace AsyncClientServer.Example.Client
 
 		private void StartClient()
 		{
-			_client.StartClient("127.0.0.1", 13000);
+			//_client.StartClient("127.0.0.1", 13000);
+			_client.StartClient("178.118.182.101", 13000);
 		}
 
 		private void BindEvents()
