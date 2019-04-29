@@ -181,7 +181,41 @@ namespace AsyncClientServer.Client
 		Task SendCommandAsync(string command, bool close);
 
 
+		/// <summary>
+		/// Sends a message to the server with a custom header.
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="close"></param>
+		void SendCustomHeaderMessage(string message, string header, bool close);
 
+		/// <summary>
+		/// Sends a message to the server with a custom header.
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="encrypt"></param>
+		/// <param name="close"></param>
+		void SendCustomHeaderMessage(string message, string header, bool encrypt, bool close);
+
+		/// <summary>
+		/// Sends a message to the server with a custom header
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="close"></param>
+		/// <returns></returns>
+		Task SendCustomHeaderMessageAsync(string message, string header, bool close);
+
+		/// <summary>
+		/// Sends a message to the server with a custom header
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="encrypt"></param>
+		/// <param name="close"></param>
+		/// <returns></returns>
+		Task SendCustomHeaderMessageAsync(string message, string header, bool encrypt, bool close);
 
 
 	}

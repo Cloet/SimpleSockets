@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using AsyncClientServer.Client;
 using AsyncClientServer.Messaging.Metadata;
 using AsyncClientServer.Server;
@@ -29,6 +30,7 @@ namespace AsyncClientServer.Messaging.Handlers
 			if (Client != null)
 			{
 				Client.StartReceiving(State, receive);
+				return;
 			}
 		}
 
@@ -74,7 +76,7 @@ namespace AsyncClientServer.Messaging.Handlers
 			}
 
 			//If it is a message set state to new MessageHandlerState.
-			if (_messageTypes.Contains(State.Header))
+			if (_messageTypes.Contains(State.Header) || (State.Header.EndsWith("</h>") && State.Header.StartsWith("<h>")))
 			{
 				State.CurrentState = new MessageHandlerState(State, Client,Server);
 				State.CurrentState.Receive(receive - 8 - State.HeaderSize);

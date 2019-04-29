@@ -530,5 +530,18 @@ namespace AsyncClientServer.Messaging
 			return CreateByteArray(serializedObject, "OBJECT", encryptObject);
 		}
 
+		/// <summary>
+		/// Creates an array of bytes
+		/// <para>You can use your own custom header for this message.</para>
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="encrypt"></param>
+		/// <returns></returns>
+		protected byte[] CreateByteCustomHeader(string message, string header, bool encrypt)
+		{
+			return CreateByteArray(message, "<h>" + header + "</h>", encrypt);
+		}
+
 	}
 }

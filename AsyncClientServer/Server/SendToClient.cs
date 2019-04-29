@@ -390,6 +390,60 @@ namespace AsyncClientServer.Server
 			await Task.Run(() => SendCommand(id, command, close));
 		}
 
+
+		/// <summary>
+		/// Sends a message to the client with a custom header.
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="close"></param>
+		public void SendCustomHeaderMessage(int id, string message, string header, bool close)
+		{
+			SendCustomHeaderMessage(id, message, header, false, close);
+		}
+
+		/// <summary>
+		/// Sends a message to the client with a custom header.
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="encrypt"></param>
+		/// <param name="close"></param>
+		public void SendCustomHeaderMessage(int id, string message, string header, bool encrypt, bool close)
+		{
+			byte[] data = CreateByteCustomHeader(message, header, encrypt);
+			SendBytes(id, data, close);
+		}
+
+		/// <summary>
+		/// Sends a message to the client with a custom header
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="close"></param>
+		/// <returns></returns>
+		public async Task SendCustomHeaderMessageAsync(int id, string message, string header, bool close)
+		{
+			await Task.Run(() => SendCustomHeaderMessage(id, message, header, false, close));
+		}
+
+		/// <summary>
+		/// Sends a message to the client with a custom header
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="encrypt"></param>
+		/// <param name="close"></param>
+		/// <returns></returns>
+		public async Task SendCustomHeaderMessageAsync(int id, string message, string header, bool encrypt, bool close)
+		{
+			await Task.Run(() => SendCustomHeaderMessage(id, message, header, encrypt, close));
+		}
+
 		///////////////
 		//Broadcasts//
 		//////////////

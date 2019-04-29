@@ -104,8 +104,8 @@ namespace AsyncClientServer.Client
 			catch (SocketException)
 			{
 				Thread.Sleep(ReconnectInSeconds * 1000);
-				if (!IsConnected())
-					Task.Run(() => _listener.BeginConnect(_endpoint, OnConnectCallback, _listener), Token);
+				if (!Token.IsCancellationRequested)
+					_listener.BeginConnect(_endpoint, OnConnectCallback, _listener);
 			}
 			catch (Exception ex)
 			{
@@ -125,11 +125,10 @@ namespace AsyncClientServer.Client
 
 			try
 			{
-
 				if (!IsConnected())
 				{
 					Close();
-					throw new Exception("Destination socket is not connected.");
+					InvokeMessageFailed(bytes, "Server socket is not connected.");
 				}
 				else
 				{
@@ -185,7 +184,7 @@ namespace AsyncClientServer.Client
 				if (!IsConnected())
 				{
 					Close();
-					throw new Exception("Destination socket is not connected.");
+					InvokeMessageFailed(bytes, "Server socket is not connected.");
 				}
 				else
 				{
@@ -219,9 +218,6 @@ namespace AsyncClientServer.Client
 		}
 
 		#endregion
-
-
-
 
 		#region Receiving
 

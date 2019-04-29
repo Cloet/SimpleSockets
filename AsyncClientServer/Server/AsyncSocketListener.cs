@@ -219,7 +219,8 @@ namespace AsyncClientServer.Server
 			{
 				//Sets client with id to disconnected
 				ClientDisconnectedInvoke(state.Id);
-				throw new Exception("Destination socket is not connected.");
+				InvokeMessageFailed(id, bytes, "Message failed to send because the destination socket is not connected.");
+				return;
 			}
 
 			try
@@ -280,7 +281,8 @@ namespace AsyncClientServer.Server
 				//Sets client with id to disconnected
 				ClientDisconnectedInvoke(state.Id);
 				Close(state.Id);
-				throw new Exception("Client is not connected.");
+				InvokeMessageFailed(id, bytes, "Message failed to send because the destination socket is not connected.");
+				return;
 			}
 
 			try

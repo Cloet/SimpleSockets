@@ -38,6 +38,8 @@ namespace AsyncClientServer.Messaging.Handlers
 					Server.InvokeCommandReceived(State.Id, text);
 				else if (State.Header == "OBJECT")
 					Server.InvokeObjectReceived(State.Id, text);
+				else if (State.Header.EndsWith("</h>") && State.Header.StartsWith("<h>"))
+					Server.InvokeCustomHeaderReceived(State.Id, text, ReplaceHeader(State.Header));
 				else
 					throw new Exception("Incorrect header received.");
 
@@ -53,6 +55,8 @@ namespace AsyncClientServer.Messaging.Handlers
 					Client.InvokeCommand(text);
 				else if (State.Header == "OBJECT")
 					Client.InvokeObject(text);
+				else if (State.Header.EndsWith("</h>") && State.Header.StartsWith("<h>"))
+					Client.InvokeCustomHeaderReceived(text, ReplaceHeader(State.Header));
 				else
 					throw new Exception("Incorrect header received.");
 
@@ -61,6 +65,34 @@ namespace AsyncClientServer.Messaging.Handlers
 			}
 
 
+		}
+
+
+		private string ReplaceHeader(string txt)
+		{
+			string header = ReplaceFirst(txt, "<h>", "");
+			header = ReplaceLast(header, "</h>", "");
+			return header;
+		}
+
+		private string ReplaceLast(string text, string search, string replace)
+		{
+			int pos = text.LastIndexOf(search, StringComparison.Ordinal);
+			if (pos < 0)
+			{
+				throw new Exception("Search value does not exist.");
+			}
+			return text.Substring(0, pos) + replace + text.Substring(pos + search.Length);
+		}
+
+		public string ReplaceFirst(string text, string search, string replace)
+		{
+			int pos = text.IndexOf(search, StringComparison.Ordinal);
+			if (pos < 0)
+			{
+				throw new Exception("Search value does not exist.");
+			}
+			return text.Substring(0, pos) + replace + text.Substring(pos + search.Length);
 		}
 	}
 }
