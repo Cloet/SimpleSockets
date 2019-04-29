@@ -355,5 +355,55 @@ namespace AsyncClientServer.Client
 		{
 			await Task.Run(() => SendCommandAsync(command, close));
 		}
+
+		/// <summary>
+		/// Sends a message to the server with a custom header.
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="close"></param>
+		public void SendCustomHeaderMessage(string message, string header, bool close)
+		{
+			SendCustomHeaderMessage(message, header, false, close);
+		}
+
+		/// <summary>
+		/// Sends a message to the server with a custom header.
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="encrypt"></param>
+		/// <param name="close"></param>
+		public void SendCustomHeaderMessage(string message, string header, bool encrypt, bool close)
+		{
+			byte[] data = CreateByteCustomHeader(message, header, encrypt);
+			SendBytes(data, close);
+		}
+
+		/// <summary>
+		/// Sends a message to the server with a custom header
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="close"></param>
+		/// <returns></returns>
+		public async Task SendCustomHeaderMessageAsync(string message, string header, bool close)
+		{
+			await Task.Run(() => SendCustomHeaderMessage(message, header, false, close));
+		}
+
+		/// <summary>
+		/// Sends a message to the server with a custom header
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="encrypt"></param>
+		/// <param name="close"></param>
+		/// <returns></returns>
+		public async Task SendCustomHeaderMessageAsync(string message, string header, bool encrypt, bool close)
+		{
+			await Task.Run(() => SendCustomHeaderMessage(message, header, encrypt, close));
+		}
+
 	}
 }

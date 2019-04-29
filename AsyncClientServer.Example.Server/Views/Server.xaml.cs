@@ -114,6 +114,8 @@ namespace AsyncClientServer.Example.Server
 					_clientVM.ClientList.Add(c);
 				}));
 
+			//_listener.SendCustomHeaderMessage(1, "TestMsg", "CustomHeadah", false, false);
+
 		}
 
 		private void ClientDisconnected(int id)

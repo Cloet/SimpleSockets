@@ -198,6 +198,49 @@ namespace AsyncClientServer.Server
 		/// <param name="close">true if the client should be closed after this message</param>
 		Task SendCommandAsync(int id, string command, bool close);
 
+
+		//Custom Header//
+
+		/// <summary>
+		/// Sends a message to the client with a custom header.
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="close"></param>
+		void SendCustomHeaderMessage(int id, string message, string header, bool close);
+
+		/// <summary>
+		/// Sends a message to the client with a custom header.
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="encrypt"></param>
+		/// <param name="close"></param>
+		void SendCustomHeaderMessage(int id, string message, string header, bool encrypt, bool close);
+
+		/// <summary>
+		/// Sends a message to the client with a custom header
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="close"></param>
+		/// <returns></returns>
+		Task SendCustomHeaderMessageAsync(int id, string message, string header, bool close);
+
+		/// <summary>
+		/// Sends a message to the client with a custom header
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="encrypt"></param>
+		/// <param name="close"></param>
+		/// <returns></returns>
+		Task SendCustomHeaderMessageAsync(int id, string message, string header, bool encrypt, bool close);
+
 		//////////////
 		//Broadcasts//
 		//////////////

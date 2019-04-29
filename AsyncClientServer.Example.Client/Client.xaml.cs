@@ -51,6 +51,7 @@ namespace AsyncClientServer.Example.Client
 			_client.FileReceived += new FileFromServerReceivedHandler(FileReceived);
 			_client.Disconnected += new DisconnectedFromServerHandler(Disconnected);
 			_client.MessageFailed += new DataTransferFailedHandler(MessageFailed);
+			_client.CustomHeaderReceived += new ClientCustomHeaderReceivedHandler(CustomHeader);
 		}
 
 		//Converts DateTime to a string according to cultureInfo. (uses CurrentCulture.)
@@ -78,6 +79,11 @@ namespace AsyncClientServer.Example.Client
 		{
 			Application.Current.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background,
 				new Action(() => { TextBlockStatus.Text = text; }));
+		}
+
+		private void CustomHeader(ITcpClient a, string msg, string header)
+		{
+			MessageBox.Show(msg + Environment.NewLine + header);
 		}
 
 		private void ConnectedToServer(ITcpClient a)

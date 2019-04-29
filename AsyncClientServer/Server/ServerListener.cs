@@ -24,6 +24,13 @@ namespace AsyncClientServer.Server
 	public delegate void MessageReceivedHandler(int id, string msg);
 
 	/// <summary>
+	/// Event that is triggered when a custom header message is received
+	/// </summary>
+	/// <param name="id"></param>
+	/// <param name="msg"></param>
+	public delegate void CustomHeaderMessageReceivedHandler(int id, string msg, string header);
+
+	/// <summary>
 	/// Event that is triggered when a command is received
 	/// </summary>
 	/// <param name="id"></param>
@@ -114,6 +121,7 @@ namespace AsyncClientServer.Server
 
 		//Events
 		public event MessageReceivedHandler MessageReceived;
+		public event CustomHeaderMessageReceivedHandler CustomHeaderReceived;
 		public event CommandReceivedHandler CommandReceived;
 		public event ObjectReceivedHandler ObjectReceived;
 		public event MessageSubmittedHandler MessageSubmitted;
@@ -512,6 +520,11 @@ namespace AsyncClientServer.Server
 		protected void InvokeMessageFailed(int id, byte[] messageData, string exception)
 		{
 			MessageFailed?.Invoke(id, messageData, exception);
+		}
+
+		internal void InvokeCustomHeaderReceived(int id, string msg, string header)
+		{
+			CustomHeaderReceived?.Invoke(id, msg, header);
 		}
 
 		internal void InvokeMessageReceived(int id, string text)

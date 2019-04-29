@@ -35,6 +35,13 @@ namespace AsyncClientServer.Client
 	public delegate void ClientMessageReceivedHandler(ITcpClient tcpClient, string msg);
 
 	/// <summary>
+	/// Event that is triggered when client receives a custom header message.
+	/// </summary>
+	/// <param name="tcpClient"></param>
+	/// <param name="msg"></param>
+	public delegate void ClientCustomHeaderReceivedHandler(ITcpClient tcpClient, string msg, string header);
+
+	/// <summary>
 	/// Event that is triggered when the client receives a serialized object.
 	/// </summary>
 	/// <param name="tcpClient"></param>
@@ -143,6 +150,7 @@ namespace AsyncClientServer.Client
 
 		public event ConnectedHandler Connected;
 		public event ClientMessageReceivedHandler MessageReceived;
+		public event ClientCustomHeaderReceivedHandler CustomHeaderReceived;
 		public event ClientObjectReceivedHandler ObjectReceived;
 		public event ClientCommandReceivedHandler CommandReceived;
 		public event ClientMessageSubmittedHandler MessageSubmitted;
@@ -396,6 +404,11 @@ namespace AsyncClientServer.Client
 		internal void InvokeFileTransferProgress(int bytesReceived, int messageSize)
 		{
 			ProgressFileReceived?.Invoke(this, bytesReceived, messageSize);
+		}
+
+		internal void InvokeCustomHeaderReceived(string msg, string header)
+		{
+			CustomHeaderReceived?.Invoke(this, msg, header);
 		}
 
 		protected void InvokeConnected(ITcpClient a)

@@ -23,6 +23,11 @@ namespace AsyncClientServer.Client
 		event ClientMessageReceivedHandler MessageReceived;
 
 		/// <summary>
+		/// This event is invoked when the client receives a custom header message from the server.
+		/// </summary>
+		event ClientCustomHeaderReceivedHandler CustomHeaderReceived;
+
+		/// <summary>
 		/// This event is invoked when the client has submitted a message to the server
 		/// </summary>
 		event ClientMessageSubmittedHandler MessageSubmitted;
