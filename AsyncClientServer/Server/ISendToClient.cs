@@ -291,6 +291,48 @@ namespace AsyncClientServer.Server
 		/// <param name="close">true if the client should be closed after this message</param>
 		Task SendMessageToAllClientsAsync(string message, bool close);
 
+		//Custom Header//
+
+		/// <summary>
+		/// Sends a Message to all clients
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="encryptMessage"></param>
+		/// <param name="close"></param>
+		void SendCustomHeaderToAllClients(string message, string header, bool encryptMessage, bool close);
+
+		/// <summary>
+		/// Sends a Message to all clients
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
+		/// <para>Will encrypt the message before it is sent.</para>
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="close"></param>
+		void SendCustomHeaderToAllClients(string message, string header, bool close);
+
+		/// <summary>
+		/// Sends a Message to all clients asynchronous.
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="encryptMessage"></param>
+		/// <param name="close"></param>
+		Task SendCustomHeaderToAllClientsAsync(string message, string header, bool encryptMessage,bool close);
+
+		/// <summary>
+		/// Sends a Message to all clients
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
+		/// <para>Will encrypt the message before it is sent.</para>
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="close"></param>
+		Task SendCustomHeaderToAllClientsAsync(string message, string header, bool close);
+
 
 	}
 }
