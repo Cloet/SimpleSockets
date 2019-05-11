@@ -39,16 +39,12 @@ namespace AsyncClientServer.Example.Server
 
 		public void StartServer()
 		{
-			_listener = new AsyncSocketListener();
+			_listener = new AsyncSocketSslListener(@"C:\Users\CloetOMEN\Desktop\cert.pfx", "Password");
+			//_listener = new AsyncSocketListener();
 			_clientVM = (ClientInfoViewModel) ListViewClients.DataContext;
 			_clientVM.Listener = _listener;
 			BindEvents();
-			//new Thread(() =>
-			//{
-			//	Thread.CurrentThread.IsBackground = true;
-				//_listener.StartListening("127.0.0.1", 13000);
-				_listener.StartListening("127.0.0.1", 13000);
-			//}).Start();
+			_listener.StartListening("127.0.0.1", 13000);
 		}
 
 		public void BindEvents()
@@ -103,7 +99,8 @@ namespace AsyncClientServer.Example.Server
 
 		private void MessageFailed(int id, byte[] messageData, string exceptionMessage)
 		{
-
+			Model.Client client = _clientVM.ClientList.First(x => x.Id == id);
+			client.Read("Message has failed to send." + Environment.NewLine + exceptionMessage);
 		}
 
 		private void ClientConnected(int id, ISocketInfo clientState)
@@ -120,8 +117,6 @@ namespace AsyncClientServer.Example.Server
 					_clientVM.ClientList.Add(c);
 				}));
 
-			//_listener.SendCustomHeaderMessage(1, "TestMsg", "CustomHeadah", false, false);
-
 		}
 
 		private void ClientDisconnected(int id)
@@ -136,7 +131,6 @@ namespace AsyncClientServer.Example.Server
 		private void Button_Click(object sender, RoutedEventArgs e)
 		{
 			_listener.StopListening();
-			//_listener.Dispose();
 		}
 
 		//Start
@@ -146,21 +140,6 @@ namespace AsyncClientServer.Example.Server
 			_clientVM.Listener = _listener;
 			ListViewClients.DataContext = _clientVM;
 			_listener.ResumeListening();
-
-			//if (!_listener.IsServerRunning)
-			//{
-			//	_listener = new AsyncSocketListener();
-			//	_clientVM = new ClientInfoViewModel();
-			//	_clientVM.Listener = _listener;
-			//	ListViewClients.DataContext = _clientVM;
-			//	BindEvents();
-			//	//new Thread(() =>
-			//	//{
-			//	//	Thread.CurrentThread.IsBackground = true;
-			//		_listener.StartListening("127.0.0.1", 13000);
-			//	//}).Start();
-			//}
-
 
 		}
 
