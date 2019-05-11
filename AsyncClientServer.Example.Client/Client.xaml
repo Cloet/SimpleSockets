@@ -28,7 +28,7 @@
 							<Button x:Name="ButtonMessage" Content="Send" Margin="663,10,10,10" Click="ButtonMessage_Click"/>
 						</Grid>
 					</GroupBox>
-					<GroupBox Header="Command" Height="76" Margin="10,194,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="766">
+					<GroupBox Header="Custom Header" Height="76" Margin="10,194,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="766">
 						<Grid>
 							<Grid.ColumnDefinitions>
 								<ColumnDefinition Width="2*"/>
