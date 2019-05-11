@@ -75,18 +75,19 @@ namespace AsyncClientServer.Client
 
 	public abstract class TcpClient : SendToServer, ITcpClient
 	{
-
-		protected Socket _listener;
-		protected bool _close;
-		protected readonly ManualResetEvent _connected = new ManualResetEvent(false);
-		protected readonly ManualResetEvent _sent = new ManualResetEvent(false);
-		protected readonly ManualResetEvent _hasMessage = new ManualResetEvent(false);
-		protected IPEndPoint _endpoint;
-		protected static System.Timers.Timer _keepAliveTimer;
+		//Protected variabeles
+		protected Socket Listener;
+		protected bool CloseClient;
+		protected readonly ManualResetEvent ConnectedMre = new ManualResetEvent(false);
+		protected readonly ManualResetEvent SentMre = new ManualResetEvent(false);
+		protected IPEndPoint Endpoint;
+		protected static System.Timers.Timer KeepAliveTimer;
 		private bool _disconnectedInvoked;
 
+		//Contains messages
 		protected BlockingQueue<Message> BlockingMessageQueue = new BlockingQueue<Message>();
 
+		//Tokensource to cancel running tasks
 		protected CancellationTokenSource TokenSource { get; set; }
 		protected CancellationToken Token { get; set; }
 
@@ -132,7 +133,7 @@ namespace AsyncClientServer.Client
 		/// </summary>
 		public int ReconnectInSeconds { get; protected set; }
 
-
+		//Events
 		public event ConnectedHandler Connected;
 		public event ClientMessageReceivedHandler MessageReceived;
 		public event ClientCustomHeaderReceivedHandler CustomHeaderReceived;
@@ -149,10 +150,10 @@ namespace AsyncClientServer.Client
 		/// </summary>
 		protected TcpClient()
 		{
-			_keepAliveTimer = new System.Timers.Timer(15000);
-			_keepAliveTimer.Elapsed += KeepAlive;
-			_keepAliveTimer.AutoReset = true;
-			_keepAliveTimer.Enabled = false;
+			KeepAliveTimer = new System.Timers.Timer(15000);
+			KeepAliveTimer.Elapsed += KeepAlive;
+			KeepAliveTimer.AutoReset = true;
+			KeepAliveTimer.Enabled = false;
 
 			Encrypter = new Aes256();
 			FileCompressor = new GZipCompression();
@@ -160,18 +161,16 @@ namespace AsyncClientServer.Client
 		}
 
 		//Timer that tries reconnecting every x seconds
-		private void KeepAlive(Object source, ElapsedEventArgs e)
+		private void KeepAlive(object source, ElapsedEventArgs e)
 		{
 			if (Token.IsCancellationRequested)
 			{
 				Close();
-				_connected.Reset();
-			}
-
-			if (!IsConnected())
+				ConnectedMre.Reset();
+			} else if (!IsConnected())
 			{
 				Close();
-				_connected.Reset();
+				ConnectedMre.Reset();
 				StartClient(IpServer, Port, ReconnectInSeconds);
 			}
 		}
@@ -209,7 +208,7 @@ namespace AsyncClientServer.Client
 		{
 			try
 			{
-				return !((_listener.Poll(1000, SelectMode.SelectRead) && (_listener.Available == 0)) || !_listener.Connected);
+				return !((Listener.Poll(1000, SelectMode.SelectRead) && (Listener.Available == 0)) || !Listener.Connected);
 			}
 			catch (Exception)
 			{
@@ -217,21 +216,78 @@ namespace AsyncClientServer.Client
 			}
 		}
 
+
+		/// <summary>
+		/// Closes the client.
+		/// </summary>
+		public void Close()
+		{
+			try
+			{
+				ConnectedMre.Reset();
+				TokenSource.Cancel();
+
+				if (!IsConnected())
+				{
+					return;
+				}
+
+				Listener.Shutdown(SocketShutdown.Both);
+				Listener.Close();
+				Listener = null;
+				InvokeDisconnected(this);
+			}
+			catch (SocketException se)
+			{
+				throw new Exception(se.ToString());
+			}
+		}
+
+		/// <summary>
+		/// Safely close client and break all connections to server.
+		/// </summary>
+		public virtual void Dispose()
+		{
+			Close();
+			ConnectedMre.Dispose();
+			SentMre.Dispose();
+			KeepAliveTimer.Enabled = false;
+			KeepAliveTimer.Dispose();
+			TokenSource.Dispose();
+
+			GC.SuppressFinalize(this);
+		}
+
+		/// <summary>
+		/// Change the buffer size of the server
+		/// </summary>
+		/// <param name="bufferSize"></param>
+		public void ChangeSocketBufferSize(int bufferSize)
+		{
+			if (bufferSize < 1024)
+				throw new ArgumentException("The buffer size should be more then 1024 bytes.");
+
+			SocketState.ChangeBufferSize(bufferSize);
+		}
+
+
 		//When client connects.
 		protected abstract void OnConnectCallback(IAsyncResult result);
 
-		//*******Receiving Data**************////
+
+		#region Receiving Data
+
+
 
 		/// <summary>
 		/// Start receiving data from server.
 		/// </summary>
-		protected  void Receive()
+		protected void Receive()
 		{
 			//Start receiving data
-			var state = new SocketState(_listener);
+			var state = new SocketState(Listener);
 			StartReceiving(state);
 		}
-
 
 		//When client receives message
 		protected void ReceiveCallback(IAsyncResult result)
@@ -249,7 +305,6 @@ namespace AsyncClientServer.Client
 			}
 		}
 
-
 		/// <summary>
 		/// Start receiving bytes from server
 		/// </summary>
@@ -260,22 +315,17 @@ namespace AsyncClientServer.Client
 		//Handle a message
 		protected abstract void HandleMessage(IAsyncResult result);
 
-		//******************************************///
+		#endregion
 
-		//*****Message Sending****///
+		#region Sending data
 
-		//Send message and invokes MessageSubmitted.
+		//Gets called when a message has been sent to the server.
 		protected abstract void SendCallback(IAsyncResult result);
-
-		//************************///
-
-
-		//***File Transfer***///
-
 
 		//Gets called when file is done sending
 		protected abstract void SendCallbackPartial(IAsyncResult result);
 
+		//Gets called when Filetransfer is completed.
 		protected override void FileTransferCompleted(bool close, int id)
 		{
 			try
@@ -298,21 +348,21 @@ namespace AsyncClientServer.Client
 			finally
 			{
 				MessageSubmitted?.Invoke(this, close);
-				_sent.Set();
+				SentMre.Set();
 			}
 
 		}
 
-		//*****************///
-
+		//Sends message from queue
 		protected abstract void BeginSendFromQueue(Message message);
 
+		//Loops the queue for messages that have to be sent.
 		protected void SendFromQueue()
 		{
 			while (!Token.IsCancellationRequested)
 			{
 
-				_connected.WaitOne();
+				ConnectedMre.WaitOne();
 
 				if (IsConnected())
 				{
@@ -322,62 +372,15 @@ namespace AsyncClientServer.Client
 				else
 				{
 					Close();
-					_connected.Reset();
+					ConnectedMre.Reset();
 				}
 
 			}
 		}
 
-		//Closes client
-		public void Close()
-		{
-			try
-			{
-				_connected.Reset();
-				TokenSource.Cancel();
+		#endregion
 
-				if (!IsConnected())
-				{
-					return;
-				}
 
-				_listener.Shutdown(SocketShutdown.Both);
-				_listener.Close();
-				_listener = null;
-				InvokeDisconnected(this);
-			}
-			catch (SocketException se)
-			{
-				throw new Exception(se.ToString());
-			}
-		}
-
-		/// <summary>
-		/// Safely close client and break all connections to server.
-		/// </summary>
-		public virtual void Dispose()
-		{
-			Close();
-			_connected.Dispose();
-			_sent.Dispose();
-			_keepAliveTimer.Enabled = false;
-			_keepAliveTimer.Dispose();
-			TokenSource.Dispose();
-
-			GC.SuppressFinalize(this);
-		}
-
-		/// <summary>
-		/// Change the buffer size of the server
-		/// </summary>
-		/// <param name="bufferSize"></param>
-		public void ChangeSocketBufferSize(int bufferSize)
-		{
-			if (bufferSize < 1024)
-				throw new ArgumentException("The buffer size should be more then 1024 bytes.");
-
-			SocketState.ChangeBufferSize(bufferSize);
-		}
 
 		#region Invokes
 

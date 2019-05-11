@@ -14,7 +14,6 @@ namespace AsyncClientServer.Server
 {
 
 
-
 	/// <summary>
 	/// This class is the server, singleton class
 	/// <para>Handles sending and receiving data to/from clients</para>
@@ -65,16 +64,16 @@ namespace AsyncClientServer.Server
 				{
 					using (var listener = new Socket(endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp))
 					{
-						_listener = listener;
+						Listener = listener;
 						listener.Bind(endpoint);
 						listener.Listen(Limit);
 
 						ServerHasStartedInvoke();
 						while (!Token.IsCancellationRequested)
 						{
-							_mre.Reset();
+							CanAcceptConnections.Reset();
 							listener.BeginAccept(OnClientConnect, listener);
-							_mre.WaitOne();
+							CanAcceptConnections.WaitOne();
 						}
 
 					}
@@ -96,30 +95,30 @@ namespace AsyncClientServer.Server
 			if (Token.IsCancellationRequested)
 				return;
 
-			_mre.Set();
+			CanAcceptConnections.Set();
 			try
 			{
 				ISocketState state;
 
-				lock (_clients)
+				lock (ConnectedClients)
 				{
-					var id = !_clients.Any() ? 1 : _clients.Keys.Max() + 1;
+					var id = !ConnectedClients.Any() ? 1 : ConnectedClients.Keys.Max() + 1;
 
 					
 
 					state = new SocketState(((Socket) result.AsyncState).EndAccept(result), id);
 
-					var client = _clients.FirstOrDefault(x => x.Value == state);
+					var client = ConnectedClients.FirstOrDefault(x => x.Value == state);
 
 					if (client.Value == state)
 					{
 						id = client.Key;
-						_clients.Remove(id);
-						_clients.Add(id, state);
+						ConnectedClients.Remove(id);
+						ConnectedClients.Add(id, state);
 					}
 					else
 					{
-						_clients.Add(id, state);
+						ConnectedClients.Add(id, state);
 					}
 
 					ClientConnectedInvoke(id, state);
@@ -136,6 +135,8 @@ namespace AsyncClientServer.Server
 			}
 
 		}
+
+		#region Receiving
 
 		//Start receiving
 		internal override void StartReceiving(ISocketState state, int offset = 0)
@@ -170,9 +171,9 @@ namespace AsyncClientServer.Server
 				if (!IsConnected(state.Id))
 				{
 					ClientDisconnectedInvoke(state.Id);
-					lock (_clients)
+					lock (ConnectedClients)
 					{
-						_clients.Remove(state.Id);
+						ConnectedClients.Remove(state.Id);
 					}
 				}
 				//Else start receiving and handle the message.
@@ -215,6 +216,10 @@ namespace AsyncClientServer.Server
 				InvokeErrorThrown(ex.Message);
 			}
 		}
+
+		#endregion
+
+		#region Message Sending
 
 		/// <inheritdoc />
 		/// <summary>
@@ -281,6 +286,24 @@ namespace AsyncClientServer.Server
 			}
 		}
 
+		protected override void BeginSendFromQueue(Message message)
+		{
+			try
+			{
+				if (message.MessageType == MessageType.Partial)
+					message.SocketState.Listener.BeginSend(message.MessageBytes, 0, message.MessageBytes.Length, SocketFlags.None, SendCallbackPartial, message.SocketState);
+				if (message.MessageType == MessageType.Complete)
+					message.SocketState.Listener.BeginSend(message.MessageBytes, 0, message.MessageBytes.Length, SocketFlags.None, SendCallbackPartial, message.SocketState);
+			}
+			catch (Exception ex)
+			{
+				InvokeMessageFailed(message.SocketState.Id, message.MessageBytes, ex.Message);
+			}
+		}
+
+		#endregion
+
+		#region Callbacks
 
 		//Sends part of a message
 		protected override void SendBytesPartial(byte[] bytes, int id)
@@ -333,19 +356,7 @@ namespace AsyncClientServer.Server
 			}
 		}
 
-		protected override void BeginSendFromQueue(Message message)
-		{
-			try
-			{
-				if (message.MessageType == MessageType.Partial)
-					message.SocketState.Listener.BeginSend(message.MessageBytes, 0, message.MessageBytes.Length,SocketFlags.None, SendCallbackPartial, message.SocketState);
-				if (message.MessageType == MessageType.Complete)
-					message.SocketState.Listener.BeginSend(message.MessageBytes, 0, message.MessageBytes.Length, SocketFlags.None, SendCallbackPartial, message.SocketState);
-			}
-			catch (Exception ex)
-			{
-				InvokeMessageFailed(message.SocketState.Id, message.MessageBytes, ex.Message);
-			}
-		}
+		#endregion
+
 	}
 }
