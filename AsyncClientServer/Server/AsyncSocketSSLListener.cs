@@ -10,6 +10,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using AsyncClientServer.Messaging;
 using AsyncClientServer.Messaging.Handlers;
 using AsyncClientServer.Messaging.Metadata;
 
@@ -72,6 +73,8 @@ namespace AsyncClientServer.Server
 
 			TokenSource = new CancellationTokenSource();
 			Token = TokenSource.Token;
+
+			Task.Run(() => SendFromQueue(), Token);
 
 			Task.Run(() =>
 			{
@@ -319,30 +322,25 @@ namespace AsyncClientServer.Server
 		{
 			var state = GetClient(id);
 
-			if (state == null)
-			{
-				throw new Exception("Client does not exist.");
-			}
-
-			if (!IsConnected(state.Id))
-			{
-				//Sets client with id to disconnected
-				ClientDisconnectedInvoke(state.Id);
-				Close(state.Id);
-				InvokeMessageFailed(id, bytes,"Message failed to send because the destination socket is not connected.");
-				return;
-			}
-
 			try
 			{
+				if (state == null)
+				{
+					throw new Exception("Client does not exist.");
+				}
+
+				if (!IsConnected(state.Id))
+				{
+					//Sets client with id to disconnected
+					ClientDisconnectedInvoke(state.Id);
+					Close(state.Id);
+					throw new Exception("Message failed to send because the destination socket is not connected.");
+				}
+
 				var send = bytes;
 
 				state.Close = close;
-
-				_mreWriting.WaitOne();
-
-				_mreWriting.Reset();
-				state.SslStream.BeginWrite(send, 0, send.Length, SendCallback, state);
+				BlockingMessageQueue.Enqueue(new Message(bytes, MessageType.Complete, state));
 			}
 			catch (Exception ex)
 			{
@@ -385,27 +383,23 @@ namespace AsyncClientServer.Server
 		{
 			var state = GetClient(id);
 
-			if (state == null)
-			{
-				throw new Exception("Client does not exist.");
-			}
-
-			if (!IsConnected(state.Id))
-			{
-				//Sets client with id to disconnected
-				ClientDisconnectedInvoke(state.Id);
-				Close(state.Id);
-				InvokeMessageFailed(id, bytes, "Message failed to send because the destination socket is not connected.");
-				return;
-			}
-
 			try
 			{
-				var send = bytes;
-				_mreWriting.WaitOne();
+				if (state == null)
+				{
+					throw new Exception("Client does not exist.");
+				}
 
-				_mreWriting.Reset();
-				state.SslStream.BeginWrite(send, 0, send.Length, SendCallbackPartial, state);
+				if (!IsConnected(state.Id))
+				{
+					//Sets client with id to disconnected
+					ClientDisconnectedInvoke(state.Id);
+					Close(state.Id);
+					InvokeMessageFailed(id, bytes, "Message failed to send because the destination socket is not connected.");
+				}
+
+				BlockingMessageQueue.Enqueue(new Message(bytes, MessageType.Partial, state));
+				
 			}
 			catch (Exception ex)
 			{
@@ -455,5 +449,25 @@ namespace AsyncClientServer.Server
 			}
 
 		}
+
+
+		protected override void BeginSendFromQueue(Message message)
+		{
+			try
+			{
+				_mreWriting.WaitOne();
+				_mreWriting.Reset();
+
+				if (message.MessageType == MessageType.Partial)
+					message.SocketState.SslStream.BeginWrite(message.MessageBytes, 0, message.MessageBytes.Length, SendCallbackPartial, message.SocketState);
+				if (message.MessageType == MessageType.Complete)
+					message.SocketState.SslStream.BeginWrite(message.MessageBytes, 0, message.MessageBytes.Length, SendCallback, message.SocketState);
+			}
+			catch (Exception ex)
+			{
+				InvokeMessageFailed(message.SocketState.Id, message.MessageBytes, ex.Message);
+			}
+		}
+
 	}
 }

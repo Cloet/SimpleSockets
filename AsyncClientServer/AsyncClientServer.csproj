@@ -46,6 +46,9 @@
     <Compile Include="Compression\ZipCompression.cs" />
     <Compile Include="Cryptography\AES256.cs" />
     <Compile Include="Cryptography\Encryption.cs" />
+    <Compile Include="Messaging\BlockingQueue.cs" />
+    <Compile Include="Messaging\Message.cs" />
+    <Compile Include="Messaging\MessageType.cs" />
     <Compile Include="Server\AsyncSocketSslListener.cs" />
     <Compile Include="Server\IServerListener.cs" />
     <Compile Include="Server\ISendToClient.cs" />

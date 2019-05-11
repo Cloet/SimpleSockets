@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using System.Timers;
 using AsyncClientServer.Cryptography;
 using AsyncClientServer.Compression;
+using AsyncClientServer.Messaging;
 using AsyncClientServer.Messaging.Metadata;
 
 namespace AsyncClientServer.Server
@@ -29,20 +30,6 @@ namespace AsyncClientServer.Server
 	/// <param name="id"></param>
 	/// <param name="msg"></param>
 	public delegate void CustomHeaderMessageReceivedHandler(int id, string msg, string header);
-
-	/// <summary>
-	/// Event that is triggered when a command is received
-	/// </summary>
-	/// <param name="id"></param>
-	/// <param name="msg"></param>
-	public delegate void CommandReceivedHandler(int id, string msg);
-
-	/// <summary>
-	/// Event that is triggered when a serialized object is received.
-	/// </summary>
-	/// <param name="id"></param>
-	/// <param name="serializedObject"></param>
-	public delegate void ObjectReceivedHandler(int id, string serializedObject);
 
 	/// <summary>
 	/// Event that is triggered a message is sent to the server
@@ -110,6 +97,7 @@ namespace AsyncClientServer.Server
 		private static System.Timers.Timer _keepAliveTimer;
 		protected Socket _listener { get; set; }
 		protected bool _disposed { get; set; }
+		protected BlockingQueue<Message> BlockingMessageQueue = new BlockingQueue<Message>();
 
 		protected CancellationTokenSource TokenSource { get; set; }
 		protected CancellationToken Token { get; set; }
@@ -122,8 +110,6 @@ namespace AsyncClientServer.Server
 		//Events
 		public event MessageReceivedHandler MessageReceived;
 		public event CustomHeaderMessageReceivedHandler CustomHeaderReceived;
-		public event CommandReceivedHandler CommandReceived;
-		public event ObjectReceivedHandler ObjectReceived;
 		public event MessageSubmittedHandler MessageSubmitted;
 		public event ClientDisconnectedHandler ClientDisconnected;
 		public event ClientConnectedHandler ClientConnected;
@@ -479,6 +465,28 @@ namespace AsyncClientServer.Server
 			SocketState.ChangeBufferSize(bufferSize);
 		}
 
+		protected abstract void BeginSendFromQueue(Message message);
+
+		protected void SendFromQueue()
+		{
+			
+			while (!Token.IsCancellationRequested)
+			{
+				BlockingMessageQueue.TryPeek(out var message);
+
+				if (IsConnected(message.SocketState.Id))
+				{
+					BlockingMessageQueue.TryDequeue(out message);
+					BeginSendFromQueue(message);
+				}
+				else
+				{
+					Close(message.SocketState.Id);
+				}
+
+			}
+		}
+
 		#region Invokes
 
 		protected void ClientDisconnectedInvoke(int id)
@@ -530,16 +538,6 @@ namespace AsyncClientServer.Server
 		internal void InvokeMessageReceived(int id, string text)
 		{
 			MessageReceived?.Invoke(id, text);
-		}
-
-		internal void InvokeCommandReceived(int id, string msg)
-		{
-			CommandReceived?.Invoke(id, msg);
-		}
-
-		internal void InvokeObjectReceived(int id, string serializedObject)
-		{
-			ObjectReceived?.Invoke(id, serializedObject);
 		}
 
 		#endregion

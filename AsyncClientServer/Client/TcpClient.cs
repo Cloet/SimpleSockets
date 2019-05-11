@@ -1,17 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using AsyncClientServer.Compression;
+using AsyncClientServer.Cryptography;
+using AsyncClientServer.Messaging;
+using AsyncClientServer.Messaging.Metadata;
+using System;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Timers;
-using AsyncClientServer.Compression;
-using AsyncClientServer.Cryptography;
-using AsyncClientServer.Messaging.Metadata;
-using AsyncClientServer.Server;
 
 namespace AsyncClientServer.Client
 {
@@ -40,20 +36,6 @@ namespace AsyncClientServer.Client
 	/// <param name="tcpClient"></param>
 	/// <param name="msg"></param>
 	public delegate void ClientCustomHeaderReceivedHandler(ITcpClient tcpClient, string msg, string header);
-
-	/// <summary>
-	/// Event that is triggered when the client receives a serialized object.
-	/// </summary>
-	/// <param name="tcpClient"></param>
-	/// <param name="serializedObject"></param>
-	public delegate void ClientObjectReceivedHandler(ITcpClient tcpClient, string serializedObject);
-
-	/// <summary>
-	/// Event that is triggered when the client receives a command.
-	/// </summary>
-	/// <param name="tcpClient"></param>
-	/// <param name="command"></param>
-	public delegate void ClientCommandReceivedHandler(ITcpClient tcpClient, string command);
 
 	/// <summary>
 	/// Event that triggers when client sends a message
@@ -98,9 +80,12 @@ namespace AsyncClientServer.Client
 		protected bool _close;
 		protected readonly ManualResetEvent _connected = new ManualResetEvent(false);
 		protected readonly ManualResetEvent _sent = new ManualResetEvent(false);
+		protected readonly ManualResetEvent _hasMessage = new ManualResetEvent(false);
 		protected IPEndPoint _endpoint;
 		protected static System.Timers.Timer _keepAliveTimer;
 		private bool _disconnectedInvoked;
+
+		protected BlockingQueue<Message> BlockingMessageQueue = new BlockingQueue<Message>();
 
 		protected CancellationTokenSource TokenSource { get; set; }
 		protected CancellationToken Token { get; set; }
@@ -151,8 +136,6 @@ namespace AsyncClientServer.Client
 		public event ConnectedHandler Connected;
 		public event ClientMessageReceivedHandler MessageReceived;
 		public event ClientCustomHeaderReceivedHandler CustomHeaderReceived;
-		public event ClientObjectReceivedHandler ObjectReceived;
-		public event ClientCommandReceivedHandler CommandReceived;
 		public event ClientMessageSubmittedHandler MessageSubmitted;
 		public event FileFromServerReceivedHandler FileReceived;
 		public event ProgressFileTransferHandler ProgressFileReceived;
@@ -322,6 +305,29 @@ namespace AsyncClientServer.Client
 
 		//*****************///
 
+		protected abstract void BeginSendFromQueue(Message message);
+
+		protected void SendFromQueue()
+		{
+			while (!Token.IsCancellationRequested)
+			{
+
+				_connected.WaitOne();
+
+				if (IsConnected())
+				{
+					BlockingMessageQueue.TryDequeue(out var message);
+					BeginSendFromQueue(message);
+				}
+				else
+				{
+					Close();
+					_connected.Reset();
+				}
+
+			}
+		}
+
 		//Closes client
 		public void Close()
 		{
@@ -379,16 +385,6 @@ namespace AsyncClientServer.Client
 		internal void InvokeMessage(string text)
 		{
 			MessageReceived?.Invoke(this,  text);
-		}
-
-		internal void InvokeObject(string serializedObject)
-		{
-			ObjectReceived?.Invoke(this, serializedObject);
-		}
-
-		internal void InvokeCommand(string command)
-		{
-			CommandReceived?.Invoke(this, command);
 		}
 
 		protected void InvokeMessageSubmitted(bool close)

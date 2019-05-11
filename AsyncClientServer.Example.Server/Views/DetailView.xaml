@@ -28,9 +28,16 @@
 							<Button x:Name="ButtonMessage" Content="Send" Margin="663,10,10,10" Click="ButtonMessage_Click"/>
 						</Grid>
 					</GroupBox>
-					<GroupBox Header="Command" Height="76" Margin="10,194,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="766">
+					<GroupBox Header="Custom Header" Height="88" Margin="10,194,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="766">
 						<Grid>
-							<RichTextBox x:Name="RichTextBoxCommand" Margin="6,9,98,6">
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="2*"/>
+								<ColumnDefinition Width="9*"/>
+								<ColumnDefinition Width="1.5*"/>
+							</Grid.ColumnDefinitions>
+
+							<TextBox Grid.Column="0" x:Name="TextBoxCustomHeaderHeader" Margin="10,10,0,6"></TextBox>
+							<RichTextBox x:Name="RichTextBoxCustomHeaderMessage" Margin="10,10,10,6" Grid.Column="1">
 								<RichTextBox.Resources>
 									<Style TargetType="{x:Type Paragraph}">
 										<Setter Property="Margin" Value="0"/>
@@ -42,7 +49,7 @@
 									</Paragraph>
 								</FlowDocument>
 							</RichTextBox>
-							<Button x:Name="ButtonCommand" Content="Send" Margin="663,10,10,10" Click="ButtonCommand_Click"/>
+							<Button x:Name="ButtonCommand" Grid.Column="2" Content="Send" Margin="0,10,10,10" Click="ButtonCommand_Click"/>
 						</Grid>
 					</GroupBox>
 					<GroupBox Header="Folder" Height="99" Margin="10,282,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Width="766">

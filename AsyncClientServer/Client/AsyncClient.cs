@@ -1,10 +1,14 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
+using AsyncClientServer.Messaging;
 using AsyncClientServer.Messaging.Handlers;
 using AsyncClientServer.Messaging.Metadata;
 
@@ -46,12 +50,14 @@ namespace AsyncClientServer.Client
 			Port = port;
 			ReconnectInSeconds = reconnectInSeconds;
 			_keepAliveTimer.Enabled = false;
-
+			
 
 			_endpoint = new IPEndPoint(GetIp(ipServer), port);
 
 			TokenSource = new CancellationTokenSource();
 			Token = TokenSource.Token;
+
+			Task.Run(() => SendFromQueue(), Token);
 
 			Task.Run(() =>
 			{
@@ -125,18 +131,8 @@ namespace AsyncClientServer.Client
 
 			try
 			{
-				if (!IsConnected())
-				{
-					Close();
-					InvokeMessageFailed(bytes, "Server socket is not connected.");
-				}
-				else
-				{
-					var send = bytes;
-
-					_close = close;
-					_listener.BeginSend(send, 0, send.Length, SocketFlags.None, SendCallback, _listener);
-				}
+				_close = close;
+				BlockingMessageQueue.Enqueue(new Message(bytes, MessageType.Complete));
 			}
 			catch (Exception ex)
 			{
@@ -180,18 +176,7 @@ namespace AsyncClientServer.Client
 		{
 			try
 			{
-
-				if (!IsConnected())
-				{
-					Close();
-					InvokeMessageFailed(bytes, "Server socket is not connected.");
-				}
-				else
-				{
-					var send = bytes;
-
-					_listener.BeginSend(send, 0, send.Length, SocketFlags.None, SendCallbackPartial, _listener);
-				}
+				BlockingMessageQueue.Enqueue(new Message(bytes, MessageType.Partial));
 			}
 			catch (Exception ex)
 			{
@@ -217,6 +202,23 @@ namespace AsyncClientServer.Client
 			}
 		}
 
+		protected override void BeginSendFromQueue(Message message)
+		{
+
+			try
+			{
+				if (message.MessageType == MessageType.Partial)
+					_listener.BeginSend(message.MessageBytes, 0, message.MessageBytes.Length, SocketFlags.None, SendCallbackPartial, _listener);
+				if (message.MessageType == MessageType.Complete)
+					_listener.BeginSend(message.MessageBytes, 0, message.MessageBytes.Length, SocketFlags.None, SendCallback, _listener);
+			}
+			catch (Exception ex)
+			{
+				InvokeMessageFailed(message.MessageBytes, ex.Message);
+			}
+
+		}
+
 		#endregion
 
 		#region Receiving
@@ -236,8 +238,7 @@ namespace AsyncClientServer.Client
 					Array.Copy(state.UnhandledBytes, 0, state.Buffer, 0, state.UnhandledBytes.Length);
 			}
 
-			state.Listener.BeginReceive(state.Buffer, offset, state.BufferSize - offset, SocketFlags.None,
-				this.ReceiveCallback, state);
+			state.Listener.BeginReceive(state.Buffer, offset, state.BufferSize - offset, SocketFlags.None,this.ReceiveCallback, state);
 		}
 
 		//Handle a message

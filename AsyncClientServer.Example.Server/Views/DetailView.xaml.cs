@@ -79,8 +79,9 @@ namespace AsyncClientServer.Example.Server.Views
 		{
 			try
 			{
-				string command = new TextRange(RichTextBoxCommand.Document.ContentStart, RichTextBoxCommand.Document.ContentEnd).Text;
-				_listener.SendCommand(_client.Id, command, false);
+				string msg = new TextRange(RichTextBoxCustomHeaderMessage.Document.ContentStart, RichTextBoxCustomHeaderMessage.Document.ContentEnd).Text;
+				string header = TextBoxCustomHeaderHeader.Text;
+				_listener.SendCustomHeaderMessage(_client.Id, msg, header, false);
 			}
 			catch (Exception ex)
 			{
