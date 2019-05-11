@@ -39,8 +39,8 @@ namespace AsyncClientServer.Example.Server
 
 		public void StartServer()
 		{
-			_listener = new AsyncSocketSslListener(@"C:\Users\CloetOMEN\Desktop\cert.pfx", "Password");
-			//_listener = new AsyncSocketListener();
+			//_listener = new AsyncSocketSslListener(@"", "");
+			_listener = new AsyncSocketListener();
 			_clientVM = (ClientInfoViewModel) ListViewClients.DataContext;
 			_clientVM.Listener = _listener;
 			BindEvents();

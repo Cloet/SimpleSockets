@@ -257,7 +257,7 @@ namespace AsyncClientServer.Client
 				}
 				else { 
 					CloseClient = close;
-					
+					BlockingMessageQueue.Enqueue(new Message(bytes, MessageType.Complete));
 				}
 			}
 			catch (Exception ex)
