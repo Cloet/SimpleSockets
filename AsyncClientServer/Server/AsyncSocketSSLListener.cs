@@ -347,8 +347,6 @@ namespace AsyncClientServer.Server
 					throw new Exception("Message failed to send because the destination socket is not connected.");
 				}
 
-				var send = bytes;
-
 				state.Close = close;
 				BlockingMessageQueue.Enqueue(new Message(bytes, MessageType.Complete, state));
 			}

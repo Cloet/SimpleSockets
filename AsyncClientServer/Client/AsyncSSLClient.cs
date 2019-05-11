@@ -130,6 +130,7 @@ namespace AsyncClientServer.Client
 				var stream = new NetworkStream(Listener);
 				_sslStream = new SslStream(stream, false, new RemoteCertificateValidationCallback(ValidateCertificate), null);
 
+				Task.Run(() => SendFromQueue(), Token);
 
 				Task.Run(() =>
 				{
@@ -297,15 +298,9 @@ namespace AsyncClientServer.Client
 				_mreWriting.Reset();
 
 				if (message.MessageType == MessageType.Partial)
-				{
 					_sslStream.BeginWrite(message.MessageBytes, 0, message.MessageBytes.Length, SendCallbackPartial, _sslStream);
-				}
-
 				if (message.MessageType == MessageType.Complete)
-				{
 					_sslStream.BeginWrite(message.MessageBytes, 0, message.MessageBytes.Length, SendCallback, _sslStream);
-				}
-
 			}
 			catch (Exception ex)
 			{

@@ -31,14 +31,14 @@ namespace AsyncClientServer.Example.Client
 		{
 			InitializeComponent();
 
-			_client = new AsyncClient();
+			_client = new AsyncSslClient(@"C:\Users\CloetOMEN\Desktop\cert.pfx", "Password");
+			//_client = new AsyncClient();
 			BindEvents();
 			Task.Run(() => StartClient());
 		}
 
 		private void StartClient()
 		{
-			//_client.StartClient("127.0.0.1", 13000);
 			_client.StartClient("127.0.0.1", 13000);
 		}
 
