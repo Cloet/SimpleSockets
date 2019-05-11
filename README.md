@@ -85,6 +85,7 @@ listener.ClientConnected += new ClientConnectedHandler(ClientConnected);
 listener.FileReceived += new FileFromClientReceivedHandler(FileReceived);
 listener.ServerHasStarted += new ServerHasStartedHandler(ServerHasStarted);
 listener.MessageFailed += new DataTransferToClientFailedHandler(MessageFailed);
+listener.CustomHeaderReceived += new CustomHeaderMessageReceivedHandler(CustomHeaderReceived);
 ```
 ```C#
 //Methods
@@ -96,6 +97,7 @@ void ServerHasStarted();
 void ClientConnected(int id);
 void ClientDisconnected(int id);
 void MessageFailed(int id, byte[] messageData, string exceptionMessage);
+void CustomHeaderReceived(int id, string msg, string header);
 ```
 
 Methods used to send messages to server
@@ -105,11 +107,6 @@ public void SendMessage(int id, string message, bool encryptMessage, bool close)
 public void SendMessage(int id, string message, bool close);
 public async Task SendMessageAsync(int id, string message, bool encryptMessage, bool close);
 public async Task SendMessageAsync(int id, string message, bool close);
-
-public void SendObject(int id, object anyObj, bool encryptObject, bool close);
-public void SendObject(int id, object anyObj, bool close);
-public async Task SendObjectAsync(int id, object anyObj, bool encryptObject, bool close);
-public async Task SendObjectAsync(int id, object anyObj, bool close);
 
 public void SendFile(int id, string fileLocation, string remoteSaveLocation, bool encryptFile, bool compressFile, bool close);
 public void SendFile(int id, string fileLocation, string remoteSaveLocation, bool close);
@@ -121,10 +118,11 @@ public void SendFolder(int id, string folderLocation, string remoteFolderLocatio
 public async Task SendFolderAsync(int id, string folderLocation, string remoteFolderLocation, bool encryptFolder, bool close);
 public async Task SendFolderAsync(int id, string folderLocation, string remoteFolderLocation, bool close);
 
-public void SendCommand(int id, string command, bool encryptCommand, bool close);
-public void SendCommand(int id, string command, bool close);
-public async Task SendCommandAsync(int id, string command, bool encryptCommand, bool close);
-public async Task SendCommandAsync(int id, string command, bool close);
+public void SendCustomHeaderMessage(int id, string message, string header, bool close);
+public void SendCustomHeaderMessage(int id, string message, string header, bool encrypt, bool close);
+public async Task SendCustomHeaderMessageAsync(int id, string message, string header, bool close);
+public async Task SendCustomHeaderMessageAsync(int id, string message, string header, bool encrypt, bool close);
+
 ```
 
 
@@ -186,11 +184,6 @@ public void SendMessage(string message, bool close);
 public async Task SendMessageAsync(string message, bool encryptMessage, bool close);
 public async Task SendMessageAsync(string message, bool close);
 
-public void SendObject(object anyObj, bool encryptObject, bool close);
-public void SendObject(object anyObj, bool close);
-public async Task SendObjectAsync(object anyObj, bool encryptObject, bool close);
-public async Task SendObjectAsync(object anyObj, bool close);
-
 public void SendFile(string fileLocation, string remoteSaveLocation, bool encryptFile, bool compressFile, bool close);
 public void SendFile(string fileLocation, string remoteSaveLocation, bool close);
 public async Task SendFileAsync(string fileLocation, string remoteFileLocation, bool encryptFile, bool compressFile, bool close);
@@ -201,10 +194,11 @@ public void SendFolder(string folderLocation, string remoteFolderLocation, bool 
 public async Task SendFolderAsync(string folderLocation, string remoteFolderLocation, bool encryptFolder, bool close);
 public async Task SendFolderAsync(string folderLocation, string remoteFolderLocation, bool close);
 
-public void SendCommand(string command, bool encryptCommand, bool close);
-public void SendCommand(string command, bool close);
-public async Task SendCommandAsync(string command, bool encryptCommand, bool close);
-public async Task SendCommandAsync(string command, bool close);
+public void SendCustomHeaderMessage(string message, string header, bool close):
+public void SendCustomHeaderMessage(string message, string header, bool encrypt, bool close);
+public async Task SendCustomHeaderMessageAsync(string message, string header, bool close):
+public async Task SendCustomHeaderMessageAsync(string message, string header, bool encrypt, bool close);
+
 ```
 
 Broadcast messages for server
@@ -224,14 +218,10 @@ public void SendMessageToAllClients(string message, bool close);
 public async Task SendMessageToAllClientsAsync(string message, bool encryptMessage, bool close);
 public async Task SendMessageToAllClientsAsync(string message, bool close);
 
-public void SendObjectToAllClients(object obj, bool encryptObject, bool close);
-public void SendObjectToAllClients(object obj, bool close);
-public async Task SendObjectToAllClientsAsync(object obj, bool encryptObject, bool close);
-public async Task SendObjectToAllClientsAsync(object obj, bool close);
+public void SendCustomHeaderToAllClients(string message, string header, bool encryptMessage, bool close);
+public void SendCustomHeaderToAllClients(string message, string header, bool close);
+public async Task SendCustomHeaderToAllClientsAsync(string message, string header, bool encryptMessage,bool close);
+public async Task SendCustomHeaderToAllClientsAsync(string message, string header, bool close);
 
-public void SendCommandToAllClients(string command, bool encryptCommand, bool close);
-public void SendCommandToAllClients(string command, bool close);
-public async Task SendCommandToAllClientsAsync(string command, bool encryptCommand, bool close);
-public async Task SendCommandToAllClientsAsync(string command, bool close);
 ```
 
