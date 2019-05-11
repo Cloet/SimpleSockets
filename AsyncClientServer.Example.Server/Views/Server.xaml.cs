@@ -39,16 +39,12 @@ namespace AsyncClientServer.Example.Server
 
 		public void StartServer()
 		{
+			//_listener = new AsyncSocketSslListener(@"", "");
 			_listener = new AsyncSocketListener();
 			_clientVM = (ClientInfoViewModel) ListViewClients.DataContext;
 			_clientVM.Listener = _listener;
 			BindEvents();
-			//new Thread(() =>
-			//{
-			//	Thread.CurrentThread.IsBackground = true;
-				//_listener.StartListening("127.0.0.1", 13000);
-				_listener.StartListening("192.168.1.106", 13000);
-			//}).Start();
+			_listener.StartListening("127.0.0.1", 13000);
 		}
 
 		public void BindEvents()
@@ -57,6 +53,7 @@ namespace AsyncClientServer.Example.Server
 			_listener.ProgressFileReceived += new FileTransferProgressHandler(Progress);
 			_listener.MessageReceived += new MessageReceivedHandler(MessageReceived);
 			_listener.MessageSubmitted += new MessageSubmittedHandler(MessageSubmitted);
+			_listener.CustomHeaderReceived += new CustomHeaderMessageReceivedHandler(CustomHeaderReceived);
 			_listener.ClientDisconnected += new ClientDisconnectedHandler(ClientDisconnected);
 			_listener.ClientConnected += new ClientConnectedHandler(ClientConnected);
 			_listener.FileReceived += new FileFromClientReceivedHandler(FileReceived);
@@ -67,6 +64,11 @@ namespace AsyncClientServer.Example.Server
 
 		//*****Begin Events************///
 
+		private void CustomHeaderReceived(int id, string msg, string header)
+		{
+			Model.Client client = _clientVM.ClientList.First(x => x.Id == id);
+			client.Read(header + ": " + msg);
+		}
 
 		private void MessageReceived(int id, string msg)
 		{
@@ -97,7 +99,8 @@ namespace AsyncClientServer.Example.Server
 
 		private void MessageFailed(int id, byte[] messageData, string exceptionMessage)
 		{
-
+			Model.Client client = _clientVM.ClientList.First(x => x.Id == id);
+			client.Read("Message has failed to send." + Environment.NewLine + exceptionMessage);
 		}
 
 		private void ClientConnected(int id, ISocketInfo clientState)
@@ -128,7 +131,6 @@ namespace AsyncClientServer.Example.Server
 		private void Button_Click(object sender, RoutedEventArgs e)
 		{
 			_listener.StopListening();
-			//_listener.Dispose();
 		}
 
 		//Start
@@ -138,21 +140,6 @@ namespace AsyncClientServer.Example.Server
 			_clientVM.Listener = _listener;
 			ListViewClients.DataContext = _clientVM;
 			_listener.ResumeListening();
-
-			//if (!_listener.IsServerRunning)
-			//{
-			//	_listener = new AsyncSocketListener();
-			//	_clientVM = new ClientInfoViewModel();
-			//	_clientVM.Listener = _listener;
-			//	ListViewClients.DataContext = _clientVM;
-			//	BindEvents();
-			//	//new Thread(() =>
-			//	//{
-			//	//	Thread.CurrentThread.IsBackground = true;
-			//		_listener.StartListening("127.0.0.1", 13000);
-			//	//}).Start();
-			//}
-
 
 		}
 

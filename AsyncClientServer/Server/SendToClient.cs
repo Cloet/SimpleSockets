@@ -27,6 +27,7 @@ namespace AsyncClientServer.Server
 		/// <param name="id"></param>
 		/// <param name="data"></param>
 		/// <param name="close"></param>
+		/// <returns>Boolean, True when the message was sent successfully, False when an Error Occurred. (Errors will be invoked to MessageFailed.)</returns>
 		protected abstract void SendBytes(int id, byte[] data, bool close);
 
 		internal abstract IDictionary<int, ISocketState> GetClients();
@@ -47,6 +48,7 @@ namespace AsyncClientServer.Server
 		/// <param name="message"></param>
 		/// <param name="encryptMessage"></param>
 		/// <param name="close"></param>
+		/// <returns>Boolean, True when the message was sent successfully, False when an Error Occurred. (Errors will be invoked to MessageFailed.)</returns>
 		public void SendMessage(int id, string message, bool encryptMessage, bool close)
 		{
 			byte[] data = CreateByteMessage(message, encryptMessage);
@@ -62,6 +64,7 @@ namespace AsyncClientServer.Server
 		/// <param name="id"></param>
 		/// <param name="message"></param>
 		/// <param name="close"></param>
+		/// <returns>Boolean, True when the message was sent successfully, False when an Error Occurred. (Errors will be invoked to MessageFailed.)</returns>
 		public void SendMessage(int id, string message, bool close)
 		{
 			SendMessage(id, message, true, close);
@@ -77,6 +80,7 @@ namespace AsyncClientServer.Server
 		/// <param name="message"></param>
 		/// <param name="encryptMessage"></param>
 		/// <param name="close"></param>
+		/// <returns>Boolean, True when the message was sent successfully, False when an Error Occurred. (Errors will be invoked to MessageFailed.)</returns>
 		public async Task SendMessageAsync(int id, string message, bool encryptMessage, bool close)
 		{
 			await Task.Run(() => SendMessage(id, message, encryptMessage, close));
@@ -91,74 +95,10 @@ namespace AsyncClientServer.Server
 		/// <param name="id"></param>
 		/// <param name="message"></param>
 		/// <param name="close"></param>
+		/// <returns>Boolean, True when the message was sent successfully, False when an Error Occurred. (Errors will be invoked to MessageFailed.)</returns>
 		public async Task SendMessageAsync(int id, string message, bool close)
 		{
 			await Task.Run(() => SendMessage(id, message, close));
-		}
-
-		/*=============================================
-		*
-		*	OBJECT
-		*
-		*===========================================*/
-
-		/// <inheritdoc />
-		/// <summary>
-		/// Sends an object to corresponding client.
-		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
-		/// <para>The id is not zero-based!</para>
-		/// </summary>
-		/// <param name="id"></param>
-		/// <param name="serializedObject"></param>
-		/// <param name="encryptObject"></param>
-		/// <param name="close"></param>
-		public void SendObject(int id, string serializedObject, bool encryptObject, bool close)
-		{
-			byte[] data = CreateByteObject(serializedObject, encryptObject);
-			SendBytes(id, data, close);
-		}
-
-		/// <inheritdoc />
-		/// <summary>
-		/// Sends an object to corresponding client.
-		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
-		/// <para>The id is not zero-based!</para>
-		/// </summary>
-		/// <param name="id"></param>
-		/// <param name="serializedObject"></param>
-		/// <param name="close"></param>
-		public void SendObject(int id, string serializedObject, bool close)
-		{
-			SendObject(id, serializedObject, false, close);
-		}
-
-		/// <inheritdoc />
-		/// <summary>
-		/// Sends an object to corresponding client asynchronous.
-		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
-		/// <para>The id is not zero-based!</para>
-		/// </summary>
-		/// <param name="id"></param>
-		/// <param name="serializedObject"></param>
-		/// <param name="encryptObject"></param>
-		/// <param name="close"></param>
-		public async Task SendObjectAsync(int id, string serializedObject, bool encryptObject, bool close)
-		{
-			await Task.Run(() => SendObject(id, serializedObject, encryptObject, close));
-		}
-
-		/// <inheritdoc />
-		/// <summary>
-		/// Sends an object to corresponding client asynchronous.
-		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
-		/// <para>The id is not zero-based!</para>
-		/// </summary>
-		/// <param name="id"></param>
-		/// <param name="serializedObject"></param>
-		/// <param name="close"></param>
-		public async Task SendObjectAsync(int id, string serializedObject, bool close)
-		{
-			await Task.Run(() => SendObject(id, serializedObject, close));
 		}
 
 		/*================================
@@ -179,11 +119,12 @@ namespace AsyncClientServer.Server
 		/// <param name="encryptFile"></param>
 		/// <param name="compressFile"></param>
 		/// <param name="close"></param>
+		/// <returns>Boolean, True when the message was sent successfully, False when an Error Occurred. (Errors will be invoked to MessageFailed.)</returns>
 		public void SendFile(int id, string fileLocation, string remoteSaveLocation, bool encryptFile, bool compressFile, bool close)
 		{
 			try
 			{
-				Task.Run(() => SendFileAsync(id, fileLocation, remoteSaveLocation, encryptFile, compressFile, close));
+				Task.Run(() => SendFileAsync(id, fileLocation, remoteSaveLocation, encryptFile, compressFile, close));				
 			}
 			catch (Exception ex)
 			{
@@ -318,76 +259,61 @@ namespace AsyncClientServer.Server
 		/// <param name="folderLocation"></param>
 		/// <param name="remoteFolderLocation"></param>
 		/// <param name="close"></param>
+		/// <returns>Boolean, True when the message was sent successfully, False when an Error Occurred. (Errors will be invoked to MessageFailed.)</returns>
 		public async Task SendFolderAsync(int id, string folderLocation, string remoteFolderLocation, bool close)
 		{
 			await SendFolderAsync(id, folderLocation, remoteFolderLocation, false, close);
 		}
 
-		/*=================================
-		*
-		*	COMMAND
-		*
-		*===========================================*/
-
-		/// <inheritdoc />
 		/// <summary>
-		/// Sends a command to the corresponding client and waits for an answer.
-		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
-		/// <para>The id is not zero-based!</para>
+		/// Sends a message to the client with a custom header.
 		/// </summary>
-		/// <param name="id">client id</param>
-		/// <param name="command"></param>
-		/// <param name="encryptCommand"></param>
+		/// <param name="id"></param>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
 		/// <param name="close"></param>
-		public void SendCommand(int id, string command, bool encryptCommand, bool close)
+		public void SendCustomHeaderMessage(int id, string message, string header, bool close)
 		{
-			byte[] data = CreateByteCommand(command, encryptCommand);
+			SendCustomHeaderMessage(id, message, header, false, close);
+		}
+
+		/// <summary>
+		/// Sends a message to the client with a custom header.
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="encrypt"></param>
+		/// <param name="close"></param>
+		public void SendCustomHeaderMessage(int id, string message, string header, bool encrypt, bool close)
+		{
+			byte[] data = CreateByteCustomHeader(message, header, encrypt);
 			SendBytes(id, data, close);
 		}
 
-		/// <inheritdoc />
 		/// <summary>
-		/// Sends a command to the corresponding client and waits for an answer.
-		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
-		/// <para>Will encrypt the command before sending.</para>
-		/// <para>The id is not zero-based!</para>
+		/// Sends a message to the client with a custom header
 		/// </summary>
-		/// <param name="id">client id</param>
-		/// <param name="command"></param>
+		/// <param name="id"></param>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
 		/// <param name="close"></param>
-		public void SendCommand(int id, string command, bool close)
+		public async Task SendCustomHeaderMessageAsync(int id, string message, string header, bool close)
 		{
-			SendCommand(id, command, false, close);
+			await Task.Run(() => SendCustomHeaderMessage(id, message, header, false, close));
 		}
 
-		/// <inheritdoc />
 		/// <summary>
-		/// Sends a command to the corresponding client asynchronous.
-		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
-		/// <para>The id is not zero-based!</para>
+		/// Sends a message to the client with a custom header
 		/// </summary>
-		/// <param name="id">client id</param>
-		/// <param name="command"></param>
-		/// <param name="encryptCommand"></param>
+		/// <param name="id"></param>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="encrypt"></param>
 		/// <param name="close"></param>
-		public async Task SendCommandAsync(int id, string command, bool encryptCommand, bool close)
+		public async Task SendCustomHeaderMessageAsync(int id, string message, string header, bool encrypt, bool close)
 		{
-			await Task.Run(() => SendCommand(id, command, encryptCommand, close));
-		}
-
-		/// <inheritdoc />
-		/// <summary>
-		/// Sends a command to the corresponding client asynchronous.
-		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
-		/// <para>Will encrypt the command before sending.</para>
-		/// <para>The id is not zero-based!</para>
-		/// </summary>
-		/// <param name="id">client id</param>
-		/// <param name="command"></param>
-		/// <param name="close"></param>
-		public async Task SendCommandAsync(int id, string command, bool close)
-		{
-			await Task.Run(() => SendCommand(id, command, close));
+			await Task.Run(() => SendCustomHeaderMessage(id, message, header, encrypt, close));
 		}
 
 		///////////////
@@ -410,6 +336,7 @@ namespace AsyncClientServer.Server
 		/// <param name="encryptFile"></param>
 		/// <param name="compressFile"></param>
 		/// <param name="close"></param>
+		/// <returns>Boolean, True when the message was sent successfully, False when an Error Occurred. (Errors will be invoked to MessageFailed.)</returns>
 		public void SendFileToAllClients(string fileLocation, string remoteSaveLocation, bool encryptFile,
 			bool compressFile, bool close)
 		{
@@ -592,130 +519,6 @@ namespace AsyncClientServer.Server
 		public async Task SendMessageToAllClientsAsync(string message, bool close)
 		{
 			await Task.Run(() => SendMessageToAllClients(message, close));
-		}
-
-		/*=================================
-		*
-		*	OBJECT
-		*
-		*===========================================*/
-
-		/// <inheritdoc />
-		/// <summary>
-		/// Sends an object to all clients
-		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
-		/// </summary>
-		/// <param name="serializedObject"></param>
-		/// <param name="encryptObject"></param>
-		/// <param name="close"></param>
-		public void SendObjectToAllClients(string serializedObject, bool encryptObject, bool close)
-		{
-			var data = CreateByteObject(serializedObject, encryptObject);
-			foreach (var c in GetClients())
-			{
-				SendBytes(c.Value.Id, data, close);
-			}
-
-		}
-
-		/// <inheritdoc />
-		/// <summary>
-		/// Sends an object to all clients
-		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
-		/// <para>Will encrypt the object before sending.</para>
-		/// </summary>
-		/// <param name="serializedObject"></param>
-		/// <param name="close"></param>
-		public void SendObjectToAllClients(string serializedObject, bool close)
-		{
-			SendObjectToAllClients(serializedObject, false, close);
-		}
-
-		/// <inheritdoc />
-		/// <summary>
-		/// Sends an object to all clients asynchronous.
-		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
-		/// </summary>
-		/// <param name="serializedObject"></param>
-		/// <param name="encryptObject"></param>
-		/// <param name="close"></param>
-		public async Task SendObjectToAllClientsAsync(string serializedObject, bool encryptObject, bool close)
-		{
-			await Task.Run(() => SendObjectToAllClients(serializedObject, encryptObject, close));
-		}
-
-		/// <inheritdoc />
-		/// <summary>
-		/// Sends an object to all clients asynchronous.
-		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
-		/// <para>Will encrypt the object before sending.</para>
-		/// </summary>
-		/// <param name="obj"></param>
-		/// <param name="close"></param>
-		public async Task SendObjectToAllClientsAsync(string serializedObject, bool close)
-		{
-			await Task.Run(() => SendObjectToAllClients(serializedObject, close));
-		}
-
-
-		/*=================================
-		*
-		*	COMMAND
-		*
-		*===========================================*/
-
-		/// <inheritdoc />
-		/// <summary>
-		/// Sends a command to all connected clients
-		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
-		/// </summary>
-		/// <param name="command"></param>
-		/// <param name="encryptCommand"></param>
-		/// <param name="close"></param>
-		public void SendCommandToAllClients(string command, bool encryptCommand, bool close)
-		{
-			var data = CreateByteCommand(command, encryptCommand);
-			foreach (var c in GetClients())
-			{
-				SendBytes(c.Value.Id, data, close);
-			}
-		}
-
-		/// <inheritdoc />
-		/// <summary>
-		/// Sends a command to all connected clients
-		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
-		/// </summary>
-		/// <param name="command"></param>
-		/// <param name="close"></param>
-		public void SendCommandToAllClients(string command, bool close)
-		{
-			SendCommandToAllClients(command, false, close);
-		}
-
-		/// <inheritdoc />
-		/// <summary>
-		/// Sends a command to all connected clients asynchronous.
-		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
-		/// </summary>
-		/// <param name="command"></param>
-		/// <param name="encryptCommand"></param>
-		/// <param name="close"></param>
-		public async Task SendCommandToAllClientsAsync(string command, bool encryptCommand, bool close)
-		{
-			await Task.Run(() => SendCommandToAllClients(command, encryptCommand, close));
-		}
-
-		/// <inheritdoc />
-		/// <summary>
-		/// Sends a command to all connected clients asynchronous.
-		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
-		/// </summary>
-		/// <param name="command"></param>
-		/// <param name="close"></param>
-		public async Task SendCommandToAllClientsAsync(string command, bool close)
-		{
-			await Task.Run(() => SendCommandToAllClients(command, close));
 		}
 
 

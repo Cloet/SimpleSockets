@@ -31,6 +31,7 @@ namespace AsyncClientServer.Example.Client
 		{
 			InitializeComponent();
 
+			//_client = new AsyncSslClient("", "");
 			_client = new AsyncClient();
 			BindEvents();
 			Task.Run(() => StartClient());
@@ -38,8 +39,7 @@ namespace AsyncClientServer.Example.Client
 
 		private void StartClient()
 		{
-			//_client.StartClient("127.0.0.1", 13000);
-			_client.StartClient("192.168.1.106", 13000);
+			_client.StartClient("127.0.0.1", 13000);
 		}
 
 		private void BindEvents()
@@ -51,6 +51,7 @@ namespace AsyncClientServer.Example.Client
 			_client.FileReceived += new FileFromServerReceivedHandler(FileReceived);
 			_client.Disconnected += new DisconnectedFromServerHandler(Disconnected);
 			_client.MessageFailed += new DataTransferFailedHandler(MessageFailed);
+			_client.CustomHeaderReceived += new ClientCustomHeaderReceivedHandler(CustomHeader);
 		}
 
 		//Converts DateTime to a string according to cultureInfo. (uses CurrentCulture.)
@@ -78,6 +79,11 @@ namespace AsyncClientServer.Example.Client
 		{
 			Application.Current.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background,
 				new Action(() => { TextBlockStatus.Text = text; }));
+		}
+
+		private void CustomHeader(ITcpClient a, string msg, string header)
+		{
+			AppendRichtTextBoxLog(header + ": " + msg);
 		}
 
 		private void ConnectedToServer(ITcpClient a)
@@ -144,8 +150,9 @@ namespace AsyncClientServer.Example.Client
 		{
 			try
 			{
-				string command = new TextRange(RichTextBoxCommand.Document.ContentStart, RichTextBoxCommand.Document.ContentEnd).Text;
-				_client.SendCommand(command, false);
+				string msg = new TextRange(RichTextBoxCommand.Document.ContentStart, RichTextBoxCommand.Document.ContentEnd).Text;
+				string header = TextBoxCustomHeaderHeader.Text;
+				_client.SendCustomHeaderMessage(msg, header, false);
 			}
 			catch (Exception ex)
 			{

@@ -16,6 +16,7 @@ namespace AsyncClientServer.Server
 		/// <param name="message">The message you want to send</param>
 		/// <param name="encryptMessage"></param>
 		/// <param name="close">true if the client should be closed after this message</param>
+		/// <returns>Boolean, True when the message was sent successfully, False when an Error Occurred. (Errors will be invoked to MessageFailed.)</returns>
 		void SendMessage(int id,string message,bool encryptMessage, bool close);
 
 		/// <summary>
@@ -24,6 +25,7 @@ namespace AsyncClientServer.Server
 		/// <param name="id">The client id</param>
 		/// <param name="message">The message you want to send</param>
 		/// <param name="close">true if the client should be closed after this message</param>
+		/// <returns>Boolean, True when the message was sent successfully, False when an Error Occurred. (Errors will be invoked to MessageFailed.)</returns>
 		void SendMessage(int id, string message, bool close);
 
 		/// <summary>
@@ -33,6 +35,7 @@ namespace AsyncClientServer.Server
 		/// <param name="message">The message you want to send</param>
 		/// <param name="encryptMessage"></param>
 		/// <param name="close">true if the client should be closed after this message</param>
+		/// <returns>Boolean, True when the message was sent successfully, False when an Error Occurred. (Errors will be invoked to MessageFailed.)</returns>
 		Task SendMessageAsync(int id, string message, bool encryptMessage, bool close);
 
 		/// <summary>
@@ -41,44 +44,8 @@ namespace AsyncClientServer.Server
 		/// <param name="id">The client id</param>
 		/// <param name="message">The message you want to send</param>
 		/// <param name="close">true if the client should be closed after this message</param>
+		/// <returns>Boolean, True when the message was sent successfully, False when an Error Occurred. (Errors will be invoked to MessageFailed.)</returns>
 		Task SendMessageAsync(int id, string message, bool close);
-
-
-		//Object
-
-		/// <summary>
-		/// Used to send an object to a certain client.
-		/// </summary>
-		/// <param name="id"></param>
-		/// <param name="serializedObject"></param>
-		/// <param name="encryptObject"></param>
-		/// <param name="close">true if the client should be closed after this message</param>
-		void SendObject(int id, string serializedObject, bool encryptObject, bool close);
-
-		/// <summary>
-		/// Used to send an object to a certain client.
-		/// </summary>
-		/// <param name="id"></param>
-		/// <param name="serializedObject"></param>
-		/// <param name="close">true if the client should be closed after this message</param>
-		void SendObject(int id,string serializedObject, bool close);
-
-		/// <summary>
-		/// Used to send an object to a certain client asynchronous.
-		/// </summary>
-		/// <param name="id"></param>
-		/// <param name="serializedObject"></param>
-		/// <param name="encryptObject"></param>
-		/// <param name="close">true if the client should be closed after this message</param>
-		Task SendObjectAsync(int id, string serializedObject, bool encryptObject, bool close);
-
-		/// <summary>
-		/// Used to send an object to a certain client asynchronous.
-		/// </summary>
-		/// <param name="id"></param>
-		/// <param name="serializedObject"></param>
-		/// <param name="close">true if the client should be closed after this message</param>
-		Task SendObjectAsync(int id, string serializedObject, bool close);
 
 		//File
 
@@ -91,6 +58,7 @@ namespace AsyncClientServer.Server
 		/// <param name="encryptFile"></param>
 		/// <param name="compressFile"></param>
 		/// <param name="close">true if the client should be closed after this message</param>
+		/// <returns>Boolean, True when the message was sent successfully, False when an Error Occurred. (Errors will be invoked to MessageFailed.)</returns>
 		void SendFile(int id, string fileLocation, string remoteFileLocation,bool encryptFile,bool compressFile, bool close);
 
 		/// <summary>
@@ -100,6 +68,7 @@ namespace AsyncClientServer.Server
 		/// <param name="fileLocation">The path of the file which you want to send.</param>
 		/// <param name="remoteFileLocation">The path where it should be saved on the client</param>
 		/// <param name="close">true if the client should be closed after this message</param>
+		/// <returns>Boolean, True when the message was sent successfully, False when an Error Occurred. (Errors will be invoked to MessageFailed.)</returns>
 		void SendFile(int id,string fileLocation, string remoteFileLocation, bool close);
 
 		/// <summary>
@@ -111,6 +80,7 @@ namespace AsyncClientServer.Server
 		/// <param name="encryptFile"></param>
 		/// <param name="compressFile"></param>
 		/// <param name="close">true if the client should be closed after this message</param>
+		/// <returns>Boolean, True when the message was sent successfully, False when an Error Occurred. (Errors will be invoked to MessageFailed.)</returns>
 		Task SendFileAsync(int id, string fileLocation, string remoteFileLocation, bool encryptFile, bool compressFile, bool close);
 
 		/// <summary>
@@ -120,6 +90,7 @@ namespace AsyncClientServer.Server
 		/// <param name="fileLocation">The path of the file which you want to send.</param>
 		/// <param name="remoteFileLocation">The path where it should be saved on the client</param>
 		/// <param name="close">true if the client should be closed after this message</param>
+		/// <returns>Boolean, True when the message was sent successfully, False when an Error Occurred. (Errors will be invoked to MessageFailed.)</returns>
 		Task SendFileAsync(int id, string fileLocation, string remoteFileLocation, bool close);
 
 		//Folder
@@ -132,6 +103,7 @@ namespace AsyncClientServer.Server
 		/// <param name="remoteFolderLocation">The path where it should be saved on the client.</param>
 		/// <param name="encryptFolder"></param>
 		/// <param name="close">True if the client should be closed after this message.</param>
+		/// <returns>Boolean, True when the message was sent successfully, False when an Error Occurred. (Errors will be invoked to MessageFailed.)</returns>
 		void SendFolder(int id, string folderLocation, string remoteFolderLocation,bool encryptFolder, bool close);
 
 		/// <summary>
@@ -141,16 +113,18 @@ namespace AsyncClientServer.Server
 		/// <param name="folderLocation">The path of the folder that you want to send.</param>
 		/// <param name="remoteFolderLocation">The path where it should be saved on the client.</param>
 		/// <param name="close">True if the client should be closed after this message.</param>
+		/// <returns>Boolean, True when the message was sent successfully, False when an Error Occurred. (Errors will be invoked to MessageFailed.)</returns>
 		void SendFolder(int id, string folderLocation, string remoteFolderLocation, bool close);
 
 		/// <summary>
-		/// Sends a folder to the corresponding client asnychronous.
+		/// Sends a folder to the corresponding client asynchronous.
 		/// </summary>
 		/// <param name="id">Client id</param>
 		/// <param name="folderLocation">The path of the folder that you want to send.</param>
 		/// <param name="remoteFolderLocation">The path where it should be saved on the client.</param>
 		/// <param name="encryptFolder"></param>
 		/// <param name="close">True if the client should be closed after this message.</param>
+		/// <returns>Boolean, True when the message was sent successfully, False when an Error Occurred. (Errors will be invoked to MessageFailed.)</returns>
 		Task SendFolderAsync(int id, string folderLocation, string remoteFolderLocation, bool encryptFolder, bool close);
 
 		/// <summary>
@@ -160,43 +134,52 @@ namespace AsyncClientServer.Server
 		/// <param name="folderLocation">The path of the folder that you want to send.</param>
 		/// <param name="remoteFolderLocation">The path where it should be saved on the client.</param>
 		/// <param name="close">True if the client should be closed after this message.</param>
+		/// <returns>Boolean, True when the message was sent successfully, False when an Error Occurred. (Errors will be invoked to MessageFailed.)</returns>
 		Task SendFolderAsync(int id, string folderLocation, string remoteFolderLocation, bool close);
 
-		//Command
+		//Custom Header//
 
 		/// <summary>
-		/// Sends a command to the corresponding client.
+		/// Sends a message to the client with a custom header.
 		/// </summary>
-		/// <param name="id">Client id</param>
-		/// <param name="command">The command you want to execute</param>
-		/// <param name="encryptCommand"></param>
-		/// <param name="close">true if the client should be closed after this message</param>
-		void SendCommand(int id, string command,bool encryptCommand, bool close);
+		/// <param name="id"></param>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="close"></param>
+		/// <returns>Boolean, True when the message was sent successfully, False when an Error Occurred. (Errors will be invoked to MessageFailed.)</returns>
+		void SendCustomHeaderMessage(int id, string message, string header, bool close);
 
 		/// <summary>
-		/// Sends a command to the corresponding client.
+		/// Sends a message to the client with a custom header.
 		/// </summary>
-		/// <param name="id">Client id</param>
-		/// <param name="command">The command you want to execute</param>
-		/// <param name="close">true if the client should be closed after this message</param>
-		void SendCommand(int id, string command, bool close);
+		/// <param name="id"></param>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="encrypt"></param>
+		/// <param name="close"></param>
+		/// <returns>Boolean, True when the message was sent successfully, False when an Error Occurred. (Errors will be invoked to MessageFailed.)</returns>
+		void SendCustomHeaderMessage(int id, string message, string header, bool encrypt, bool close);
 
 		/// <summary>
-		/// Sends a command to the corresponding client asynchronous.
+		/// Sends a message to the client with a custom header
 		/// </summary>
-		/// <param name="id">Client id</param>
-		/// <param name="command">The command you want to execute</param>
-		/// <param name="encryptCommand"></param>
-		/// <param name="close">true if the client should be closed after this message</param>
-		Task SendCommandAsync(int id, string command, bool encryptCommand, bool close);
+		/// <param name="id"></param>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="close"></param>
+		/// <returns>Boolean, True when the message was sent successfully, False when an Error Occurred. (Errors will be invoked to MessageFailed.)</returns>
+		Task SendCustomHeaderMessageAsync(int id, string message, string header, bool close);
 
 		/// <summary>
-		/// Sends a command to the corresponding client asynchronous.
+		/// Sends a message to the client with a custom header
 		/// </summary>
-		/// <param name="id">Client id</param>
-		/// <param name="command">The command you want to execute</param>
-		/// <param name="close">true if the client should be closed after this message</param>
-		Task SendCommandAsync(int id, string command, bool close);
+		/// <param name="id"></param>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="encrypt"></param>
+		/// <param name="close"></param>
+		/// <returns>Boolean, True when the message was sent successfully, False when an Error Occurred. (Errors will be invoked to MessageFailed.)</returns>
+		Task SendCustomHeaderMessageAsync(int id, string message, string header, bool encrypt, bool close);
 
 		//////////////
 		//Broadcasts//
@@ -308,69 +291,6 @@ namespace AsyncClientServer.Server
 		/// <param name="close">true if the client should be closed after this message</param>
 		Task SendMessageToAllClientsAsync(string message, bool close);
 
-		//Object//
-
-		/// <summary>
-		/// Sends objects to all clients
-		/// </summary>
-		/// <param name="serializedObject">The object you want to send</param>
-		/// <param name="encryptObject"></param>
-		/// <param name="close">true if the client should be closed after this message</param>
-		void SendObjectToAllClients(string serializedObject, bool encryptObject, bool close);
-
-		/// <summary>
-		/// Sends objects to all clients
-		/// </summary>
-		/// <param name="serializedObject">The object you want to send</param>
-		/// <param name="close">true if the client should be closed after this message</param>
-		void SendObjectToAllClients(string serializedObject, bool close);
-
-		/// <summary>
-		/// Sends objects to all clients asynchronous.
-		/// </summary>
-		/// <param name="serializedObject">The object you want to send</param>
-		/// <param name="encryptObject"></param>
-		/// <param name="close">true if the client should be closed after this message</param>
-		Task SendObjectToAllClientsAsync(string serializedObject, bool encryptObject, bool close);
-
-		/// <summary>
-		/// Sends objects to all clients asynchronous.
-		/// </summary>
-		/// <param name="serializedObject">The object you want to send</param>
-		/// <param name="close">true if the client should be closed after this message</param>
-		Task SendObjectToAllClientsAsync(string serializedObject, bool close);
-
-		//Command//
-
-		/// <summary>
-		/// Sends a command to all clients.
-		/// </summary>
-		/// <param name="command">The command you want to send</param>
-		/// <param name="encryptCommand"></param>
-		/// <param name="close">true if the client should be closed after this message</param>
-		void SendCommandToAllClients(string command, bool encryptCommand, bool close);
-
-		/// <summary>
-		/// Sends a command to all clients.
-		/// </summary>
-		/// <param name="command">The command you want to send</param>
-		/// <param name="close">true if the client should be closed after this message</param>
-		void SendCommandToAllClients(string command, bool close);
-
-		/// <summary>
-		/// Sends a command to all clients asynchronous.
-		/// </summary>
-		/// <param name="command">The command you want to send</param>
-		/// <param name="encryptCommand"></param>
-		/// <param name="close">true if the client should be closed after this message</param>
-		Task SendCommandToAllClientsAsync(string command,bool encryptCommand, bool close);
-
-		/// <summary>
-		/// Sends a command to all clients asynchronous.
-		/// </summary>
-		/// <param name="command">The command you want to send</param>
-		/// <param name="close">true if the client should be closed after this message</param>
-		Task SendCommandToAllClientsAsync(string command, bool close);
 
 	}
 }

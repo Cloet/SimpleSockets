@@ -6,12 +6,12 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
+using AsyncClientServer.Messaging;
 using AsyncClientServer.Messaging.Handlers;
 using AsyncClientServer.Messaging.Metadata;
 
 namespace AsyncClientServer.Server
 {
-
 
 
 	/// <summary>
@@ -56,22 +56,24 @@ namespace AsyncClientServer.Server
 			TokenSource = new CancellationTokenSource();
 			Token = TokenSource.Token;
 
+			Task.Run(() => SendFromQueue(), Token);
+
 			Task.Run(() =>
 			{
 				try
 				{
 					using (var listener = new Socket(endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp))
 					{
-						_listener = listener;
+						Listener = listener;
 						listener.Bind(endpoint);
 						listener.Listen(Limit);
 
 						ServerHasStartedInvoke();
 						while (!Token.IsCancellationRequested)
 						{
-							_mre.Reset();
+							CanAcceptConnections.Reset();
 							listener.BeginAccept(OnClientConnect, listener);
-							_mre.WaitOne();
+							CanAcceptConnections.WaitOne();
 						}
 
 					}
@@ -93,17 +95,32 @@ namespace AsyncClientServer.Server
 			if (Token.IsCancellationRequested)
 				return;
 
-			_mre.Set();
+			CanAcceptConnections.Set();
 			try
 			{
 				ISocketState state;
 
-				lock (_clients)
+				lock (ConnectedClients)
 				{
-					var id = !_clients.Any() ? 1 : _clients.Keys.Max() + 1;
+					var id = !ConnectedClients.Any() ? 1 : ConnectedClients.Keys.Max() + 1;
+
+					
 
 					state = new SocketState(((Socket) result.AsyncState).EndAccept(result), id);
-					_clients.Add(id, state);
+
+					var client = ConnectedClients.FirstOrDefault(x => x.Value == state);
+
+					if (client.Value == state)
+					{
+						id = client.Key;
+						ConnectedClients.Remove(id);
+						ConnectedClients.Add(id, state);
+					}
+					else
+					{
+						ConnectedClients.Add(id, state);
+					}
+
 					ClientConnectedInvoke(id, state);
 				}
 
@@ -118,6 +135,8 @@ namespace AsyncClientServer.Server
 			}
 
 		}
+
+		#region Receiving
 
 		//Start receiving
 		internal override void StartReceiving(ISocketState state, int offset = 0)
@@ -152,9 +171,9 @@ namespace AsyncClientServer.Server
 				if (!IsConnected(state.Id))
 				{
 					ClientDisconnectedInvoke(state.Id);
-					lock (_clients)
+					lock (ConnectedClients)
 					{
-						_clients.Remove(state.Id);
+						ConnectedClients.Remove(state.Id);
 					}
 				}
 				//Else start receiving and handle the message.
@@ -198,6 +217,10 @@ namespace AsyncClientServer.Server
 			}
 		}
 
+		#endregion
+
+		#region Message Sending
+
 		/// <inheritdoc />
 		/// <summary>
 		/// Send data to client
@@ -210,28 +233,27 @@ namespace AsyncClientServer.Server
 		{
 			var state = GetClient(id);
 
-			if (state == null)
-			{
-				throw new Exception("Client does not exist.");
-			}
-
-			if (!IsConnected(state.Id))
-			{
-				//Sets client with id to disconnected
-				ClientDisconnectedInvoke(state.Id);
-				throw new Exception("Destination socket is not connected.");
-			}
-
 			try
 			{
-				var send = bytes;
+
+				if (state == null)
+				{
+					throw new Exception("Client does not exist.");
+				}
+
+				if (!IsConnected(state.Id))
+				{
+					//Sets client with id to disconnected
+					ClientDisconnectedInvoke(state.Id);
+					throw new Exception("Message failed to send because the destination socket is not connected.");
+				}
 
 				state.Close = close;
-				state.Listener.BeginSend(send, 0, send.Length, SocketFlags.None, SendCallback, state);
+				BlockingMessageQueue.Enqueue(new Message(bytes, MessageType.Complete, state));
 			}
 			catch (Exception ex)
 			{
-				InvokeMessageFailed(id,bytes,ex.Message);
+				InvokeMessageFailed(id, bytes, ex.Message);
 			}
 		}
 
@@ -264,30 +286,46 @@ namespace AsyncClientServer.Server
 			}
 		}
 
+		protected override void BeginSendFromQueue(Message message)
+		{
+			try
+			{
+				if (message.MessageType == MessageType.Partial)
+					message.SocketState.Listener.BeginSend(message.MessageBytes, 0, message.MessageBytes.Length, SocketFlags.None, SendCallbackPartial, message.SocketState);
+				if (message.MessageType == MessageType.Complete)
+					message.SocketState.Listener.BeginSend(message.MessageBytes, 0, message.MessageBytes.Length, SocketFlags.None, SendCallbackPartial, message.SocketState);
+			}
+			catch (Exception ex)
+			{
+				InvokeMessageFailed(message.SocketState.Id, message.MessageBytes, ex.Message);
+			}
+		}
+
+		#endregion
+
+		#region Callbacks
 
 		//Sends part of a message
 		protected override void SendBytesPartial(byte[] bytes, int id)
 		{
 			var state = GetClient(id);
 
-			if (state == null)
-			{
-				throw new Exception("Client does not exist.");
-			}
-
-			if (!IsConnected(state.Id))
-			{
-				//Sets client with id to disconnected
-				ClientDisconnectedInvoke(state.Id);
-				Close(state.Id);
-				throw new Exception("Client is not connected.");
-			}
-
 			try
 			{
-				var send = bytes;
+				if (state == null)
+				{
+					throw new Exception("Client does not exist.");
+				}
 
-				state.Listener.BeginSend(send, 0, send.Length, SocketFlags.None, SendCallbackPartial, state);
+				if (!IsConnected(state.Id))
+				{
+					//Sets client with id to disconnected
+					ClientDisconnectedInvoke(state.Id);
+					Close(state.Id);
+					InvokeMessageFailed(id, bytes, "Message failed to send because the destination socket is not connected.");
+				}
+
+				BlockingMessageQueue.Enqueue(new Message(bytes, MessageType.Partial, state));
 			}
 			catch (Exception ex)
 			{
@@ -317,5 +355,8 @@ namespace AsyncClientServer.Server
 				throw new Exception(ex.Message, ex);
 			}
 		}
+
+		#endregion
+
 	}
 }
