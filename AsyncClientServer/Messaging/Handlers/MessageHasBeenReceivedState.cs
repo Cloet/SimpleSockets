@@ -34,10 +34,6 @@ namespace AsyncClientServer.Messaging.Handlers
 			{
 				if (State.Header == "MESSAGE")
 					Server.InvokeMessageReceived(State.Id, text);
-				else if (State.Header == "COMMAND")
-					Server.InvokeCommandReceived(State.Id, text);
-				else if (State.Header == "OBJECT")
-					Server.InvokeObjectReceived(State.Id, text);
 				else if (State.Header.EndsWith("</h>") && State.Header.StartsWith("<h>"))
 					Server.InvokeCustomHeaderReceived(State.Id, text, ReplaceHeader(State.Header));
 				else
@@ -51,10 +47,6 @@ namespace AsyncClientServer.Messaging.Handlers
 			{
 				if (State.Header == "MESSAGE")
 					Client.InvokeMessage(text);
-				else if (State.Header == "COMMAND")
-					Client.InvokeCommand(text);
-				else if (State.Header == "OBJECT")
-					Client.InvokeObject(text);
 				else if (State.Header.EndsWith("</h>") && State.Header.StartsWith("<h>"))
 					Client.InvokeCustomHeaderReceived(text, ReplaceHeader(State.Header));
 				else

@@ -39,7 +39,7 @@ namespace AsyncClientServer.Example.Client
 		private void StartClient()
 		{
 			//_client.StartClient("127.0.0.1", 13000);
-			_client.StartClient("192.168.1.106", 13000);
+			_client.StartClient("127.0.0.1", 13000);
 		}
 
 		private void BindEvents()
@@ -83,7 +83,7 @@ namespace AsyncClientServer.Example.Client
 
 		private void CustomHeader(ITcpClient a, string msg, string header)
 		{
-			MessageBox.Show(msg + Environment.NewLine + header);
+			AppendRichtTextBoxLog(header + ": " + msg);
 		}
 
 		private void ConnectedToServer(ITcpClient a)
@@ -150,8 +150,9 @@ namespace AsyncClientServer.Example.Client
 		{
 			try
 			{
-				string command = new TextRange(RichTextBoxCommand.Document.ContentStart, RichTextBoxCommand.Document.ContentEnd).Text;
-				_client.SendCommand(command, false);
+				string msg = new TextRange(RichTextBoxCommand.Document.ContentStart, RichTextBoxCommand.Document.ContentEnd).Text;
+				string header = TextBoxCustomHeaderHeader.Text;
+				_client.SendCustomHeaderMessage(msg, header, false);
 			}
 			catch (Exception ex)
 			{

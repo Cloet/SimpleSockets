@@ -11,6 +11,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using AsyncClientServer.Messaging;
 using AsyncClientServer.Messaging.Handlers;
 using AsyncClientServer.Messaging.Metadata;
 
@@ -82,6 +83,7 @@ namespace AsyncClientServer.Client
 			TokenSource = new CancellationTokenSource();
 			Token = TokenSource.Token;
 
+			Task.Run(() => SendFromQueue(), Token);
 
 			Task.Run(() =>
 			{
@@ -239,16 +241,8 @@ namespace AsyncClientServer.Client
 					InvokeMessageFailed(bytes, "Server socket is not connected.");
 				}
 				else { 
-
-					var send = bytes;
-
 					_close = close;
-
-					//Waits tille one write is complete before starting another one.
-					_mreWriting.WaitOne();
-					_mreWriting.Reset();
-
-					_sslStream.BeginWrite(send, 0, send.Length, SendCallback, _sslStream);
+					
 				}
 			}
 			catch (Exception ex)
@@ -379,11 +373,7 @@ namespace AsyncClientServer.Client
 				}
 				else
 				{
-					var send = bytes;
-
-					_mreWriting.WaitOne();
-					_mreWriting.Reset();
-					_sslStream.BeginWrite(send, 0, send.Length, SendCallbackPartial, _sslStream);
+					BlockingMessageQueue.Enqueue(new Message(bytes, MessageType.Partial));
 				}
 			}
 			catch (Exception ex)
@@ -409,6 +399,32 @@ namespace AsyncClientServer.Client
 			{
 				throw new Exception(se.ToString());
 			}
+		}
+
+		protected override void BeginSendFromQueue(Message message)
+		{
+
+			try
+			{
+				_mreWriting.WaitOne();
+				_mreWriting.Reset();
+
+				if (message.MessageType == MessageType.Partial)
+				{
+					_sslStream.BeginWrite(message.MessageBytes, 0, message.MessageBytes.Length, SendCallbackPartial, _sslStream);
+				}
+
+				if (message.MessageType == MessageType.Complete)
+				{
+					_sslStream.BeginWrite(message.MessageBytes, 0, message.MessageBytes.Length, SendCallback, _sslStream);
+				}
+
+			}
+			catch (Exception ex)
+			{
+				InvokeMessageFailed(message.MessageBytes, ex.Message);
+			}
+
 		}
 
 		private void DisposeSslStream()

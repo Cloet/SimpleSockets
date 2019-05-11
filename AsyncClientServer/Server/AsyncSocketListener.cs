@@ -6,6 +6,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
+using AsyncClientServer.Messaging;
 using AsyncClientServer.Messaging.Handlers;
 using AsyncClientServer.Messaging.Metadata;
 
@@ -56,6 +57,8 @@ namespace AsyncClientServer.Server
 			TokenSource = new CancellationTokenSource();
 			Token = TokenSource.Token;
 
+			Task.Run(() => SendFromQueue(), Token);
+
 			Task.Run(() =>
 			{
 				try
@@ -102,8 +105,23 @@ namespace AsyncClientServer.Server
 				{
 					var id = !_clients.Any() ? 1 : _clients.Keys.Max() + 1;
 
+					
+
 					state = new SocketState(((Socket) result.AsyncState).EndAccept(result), id);
-					_clients.Add(id, state);
+
+					var client = _clients.FirstOrDefault(x => x.Value == state);
+
+					if (client.Value == state)
+					{
+						id = client.Key;
+						_clients.Remove(id);
+						_clients.Add(id, state);
+					}
+					else
+					{
+						_clients.Add(id, state);
+					}
+
 					ClientConnectedInvoke(id, state);
 				}
 
@@ -210,29 +228,27 @@ namespace AsyncClientServer.Server
 		{
 			var state = GetClient(id);
 
-			if (state == null)
-			{
-				throw new Exception("Client does not exist.");
-			}
-
-			if (!IsConnected(state.Id))
-			{
-				//Sets client with id to disconnected
-				ClientDisconnectedInvoke(state.Id);
-				InvokeMessageFailed(id, bytes, "Message failed to send because the destination socket is not connected.");
-				return;
-			}
-
 			try
 			{
-				var send = bytes;
+
+				if (state == null)
+				{
+					throw new Exception("Client does not exist.");
+				}
+
+				if (!IsConnected(state.Id))
+				{
+					//Sets client with id to disconnected
+					ClientDisconnectedInvoke(state.Id);
+					throw new Exception("Message failed to send because the destination socket is not connected.");
+				}
 
 				state.Close = close;
-				state.Listener.BeginSend(send, 0, send.Length, SocketFlags.None, SendCallback, state);
+				BlockingMessageQueue.Enqueue(new Message(bytes, MessageType.Complete, state));
 			}
 			catch (Exception ex)
 			{
-				InvokeMessageFailed(id,bytes,ex.Message);
+				InvokeMessageFailed(id, bytes, ex.Message);
 			}
 		}
 
@@ -271,25 +287,22 @@ namespace AsyncClientServer.Server
 		{
 			var state = GetClient(id);
 
-			if (state == null)
-			{
-				throw new Exception("Client does not exist.");
-			}
-
-			if (!IsConnected(state.Id))
-			{
-				//Sets client with id to disconnected
-				ClientDisconnectedInvoke(state.Id);
-				Close(state.Id);
-				InvokeMessageFailed(id, bytes, "Message failed to send because the destination socket is not connected.");
-				return;
-			}
-
 			try
 			{
-				var send = bytes;
+				if (state == null)
+				{
+					throw new Exception("Client does not exist.");
+				}
 
-				state.Listener.BeginSend(send, 0, send.Length, SocketFlags.None, SendCallbackPartial, state);
+				if (!IsConnected(state.Id))
+				{
+					//Sets client with id to disconnected
+					ClientDisconnectedInvoke(state.Id);
+					Close(state.Id);
+					InvokeMessageFailed(id, bytes, "Message failed to send because the destination socket is not connected.");
+				}
+
+				BlockingMessageQueue.Enqueue(new Message(bytes, MessageType.Partial, state));
 			}
 			catch (Exception ex)
 			{
@@ -317,6 +330,21 @@ namespace AsyncClientServer.Server
 			catch (Exception ex)
 			{
 				throw new Exception(ex.Message, ex);
+			}
+		}
+
+		protected override void BeginSendFromQueue(Message message)
+		{
+			try
+			{
+				if (message.MessageType == MessageType.Partial)
+					message.SocketState.Listener.BeginSend(message.MessageBytes, 0, message.MessageBytes.Length,SocketFlags.None, SendCallbackPartial, message.SocketState);
+				if (message.MessageType == MessageType.Complete)
+					message.SocketState.Listener.BeginSend(message.MessageBytes, 0, message.MessageBytes.Length, SocketFlags.None, SendCallbackPartial, message.SocketState);
+			}
+			catch (Exception ex)
+			{
+				InvokeMessageFailed(message.SocketState.Id, message.MessageBytes, ex.Message);
 			}
 		}
 	}

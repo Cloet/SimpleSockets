@@ -47,7 +47,7 @@ namespace AsyncClientServer.Example.Server
 			//{
 			//	Thread.CurrentThread.IsBackground = true;
 				//_listener.StartListening("127.0.0.1", 13000);
-				_listener.StartListening("192.168.1.106", 13000);
+				_listener.StartListening("127.0.0.1", 13000);
 			//}).Start();
 		}
 
@@ -57,6 +57,7 @@ namespace AsyncClientServer.Example.Server
 			_listener.ProgressFileReceived += new FileTransferProgressHandler(Progress);
 			_listener.MessageReceived += new MessageReceivedHandler(MessageReceived);
 			_listener.MessageSubmitted += new MessageSubmittedHandler(MessageSubmitted);
+			_listener.CustomHeaderReceived += new CustomHeaderMessageReceivedHandler(CustomHeaderReceived);
 			_listener.ClientDisconnected += new ClientDisconnectedHandler(ClientDisconnected);
 			_listener.ClientConnected += new ClientConnectedHandler(ClientConnected);
 			_listener.FileReceived += new FileFromClientReceivedHandler(FileReceived);
@@ -67,6 +68,11 @@ namespace AsyncClientServer.Example.Server
 
 		//*****Begin Events************///
 
+		private void CustomHeaderReceived(int id, string msg, string header)
+		{
+			Model.Client client = _clientVM.ClientList.First(x => x.Id == id);
+			client.Read(header + ": " + msg);
+		}
 
 		private void MessageReceived(int id, string msg)
 		{

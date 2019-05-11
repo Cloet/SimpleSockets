@@ -109,42 +109,49 @@ namespace AsyncClientServer.Messaging
 		protected async Task CreateAndSendAsyncFileMessage(string fileLocation, string remoteSaveLocation,
 			bool compressFile, bool encryptFile, bool close, int id = -1)
 		{
-			var file = Path.GetFullPath(fileLocation);
 
-			//Compresses the file
-			if (compressFile)
+			try
 			{
-				file = await CompressFileAsync(file);
-				remoteSaveLocation += FileCompressor.Extension;
-			}
+				var file = Path.GetFullPath(fileLocation);
 
-			//Encrypts the file and deletes the compressed file
-			if (encryptFile)
-			{
-				//Gets the location before the encryption
-
-				string previousFile = string.Empty;
+				//Compresses the file
 				if (compressFile)
-					previousFile = file;
+				{
+					file = await CompressFileAsync(file);
+					remoteSaveLocation += FileCompressor.Extension;
+				}
 
-				file = await EncryptFileAsync(file);
-				remoteSaveLocation += Encrypter.Extension;
+				//Encrypts the file and deletes the compressed file
+				if (encryptFile)
+				{
+					//Gets the location before the encryption
 
-				//Deletes the compressed file
-				if (previousFile != string.Empty)
-					File.Delete(previousFile);
+					string previousFile = string.Empty;
+					if (compressFile)
+						previousFile = file;
 
+					file = await EncryptFileAsync(file);
+					remoteSaveLocation += Encrypter.Extension;
+
+					//Deletes the compressed file
+					if (previousFile != string.Empty)
+						File.Delete(previousFile);
+
+				}
+
+				//await SendFileAsynchronous(file, remoteSaveLocation, encryptFile, close, id);
+				await StreamFileAndSendBytesAsync(file, remoteSaveLocation, encryptFile, id);
+
+				//Deletes the compressed file if no encryption occured.
+				if (compressFile && !encryptFile)
+					File.Delete(file);
+
+				FileTransferCompleted(close, id);
 			}
-
-			//await SendFileAsynchronous(file, remoteSaveLocation, encryptFile, close, id);
-			await StreamFileAndSendBytesAsync(file, remoteSaveLocation, encryptFile, id);
-
-			//Deletes the compressed file if no encryption occured.
-			if (compressFile && !encryptFile)
-				File.Delete(file);
-
-			FileTransferCompleted(close, id);
-
+			catch (Exception ex)
+			{
+				throw new Exception("Unable to Send a file.", ex);
+			}
 		}
 
 		/// <summary>
@@ -161,36 +168,43 @@ namespace AsyncClientServer.Messaging
 		protected async Task CreateAndSendAsyncFolderMessage(string folderLocation, string remoteFolderLocation,
 			bool encryptFolder, bool close, int id = -1)
 		{
-			//Gets a temp path for the zip file.
-			string tempPath = Path.GetTempFileName();
 
-			//Check if the current temp file exists, if so delete it.
-			File.Delete(tempPath);
-
-			//Add extension and compress.
-			tempPath += FolderCompressor.Extension;
-			string folderToSend = await CompressFolderAsync(folderLocation, tempPath);
-			remoteFolderLocation += FolderCompressor.Extension;
-
-			//Check if folder needs to be encrypted.
-			if (encryptFolder)
+			try
 			{
-				//Encrypt and adjust file names.
-				folderToSend = await EncryptFileAsync(folderToSend);
-				remoteFolderLocation += Encrypter.Extension;
+				//Gets a temp path for the zip file.
+				string tempPath = Path.GetTempFileName();
+
+				//Check if the current temp file exists, if so delete it.
 				File.Delete(tempPath);
+
+				//Add extension and compress.
+				tempPath += FolderCompressor.Extension;
+				string folderToSend = await CompressFolderAsync(folderLocation, tempPath);
+				remoteFolderLocation += FolderCompressor.Extension;
+
+				//Check if folder needs to be encrypted.
+				if (encryptFolder)
+				{
+					//Encrypt and adjust file names.
+					folderToSend = await EncryptFileAsync(folderToSend);
+					remoteFolderLocation += Encrypter.Extension;
+					File.Delete(tempPath);
+				}
+
+
+				await StreamFileAndSendBytesAsync(folderToSend, remoteFolderLocation, encryptFolder, id);
+				//await SendFileAsynchronous(folderToSend, remoteFolderLocation, encryptFolder, close, id);
+
+				//Deletes the compressed folder if not encryption occured.
+				if (File.Exists(folderToSend))
+					File.Delete(folderToSend);
+
+				FileTransferCompleted(close, id);
 			}
-
-
-			await StreamFileAndSendBytesAsync(folderToSend, remoteFolderLocation, encryptFolder, id);
-			//await SendFileAsynchronous(folderToSend, remoteFolderLocation, encryptFolder, close, id);
-
-			//Deletes the compressed folder if not encryption occured.
-			if (File.Exists(folderToSend))
-				File.Delete(folderToSend);
-
-			FileTransferCompleted(close, id);
-
+			catch (Exception ex)
+			{
+				throw new Exception("Unable to Send folder async.", ex);
+			}
 		}
 
 
@@ -504,30 +518,6 @@ namespace AsyncClientServer.Messaging
 		protected byte[] CreateByteMessage(string message, bool encryptMessage)
 		{
 			return CreateByteArray(message, "MESSAGE", encryptMessage);
-		}
-
-		/// <summary>
-		/// Creates an array of bytes to send a command
-		/// </summary>
-		/// <param name="command"></param>
-		/// <param name="encryptCommand"></param>
-		/// <returns>Byte[]</returns>
-		protected byte[] CreateByteCommand(string command, bool encryptCommand)
-		{
-			return CreateByteArray(command, "COMMAND", encryptCommand);
-		}
-
-		/// <summary>
-		/// Creates an array of bytes
-		/// <para>You will first have to serialize you object to a string using xml, json... and then send the object.
-		/// This xml string will be converted to bytes and send using sockets and deserialized when it arrives.</para>
-		/// </summary>
-		/// <param name="serializedObject"></param>
-		/// <param name="encryptObject"></param>
-		/// <returns>Byte[]</returns>
-		protected byte[] CreateByteObject(string serializedObject, bool encryptObject)
-		{
-			return CreateByteArray(serializedObject, "OBJECT", encryptObject);
 		}
 
 		/// <summary>

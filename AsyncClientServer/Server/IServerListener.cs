@@ -24,6 +24,11 @@ namespace AsyncClientServer.Server
 		event MessageSubmittedHandler MessageSubmitted;
 
 		/// <summary>
+		/// Event that is triggered when a message with a custom header is received.
+		/// </summary>
+		event CustomHeaderMessageReceivedHandler CustomHeaderReceived;
+
+		/// <summary>
 		/// Event that is triggered when a client has disconnected from the server.
 		/// </summary>
 		event ClientDisconnectedHandler ClientDisconnected;
