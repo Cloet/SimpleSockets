@@ -84,24 +84,26 @@ namespace AsyncClientServer.Server
 	/// </summary>
 	public delegate void ServerHasStartedHandler();
 
-	//Calls the SendBytesAsync Method.
-	public delegate void AsyncCallerBroadcast(bool close);
-
+	/// <summary>
+	/// Base class for ServerListener.
+	/// <para>Use AsyncSocketListener or AsyncSocketSslListener.</para>
+	/// </summary>
 	public abstract class ServerListener : SendToClient, IServerListener
 	{
 
-		protected int Limit = 500;
-		protected ManualResetEvent _serverCanListen = new ManualResetEvent(false);
-		protected readonly ManualResetEvent _mre = new ManualResetEvent(false);
-		internal IDictionary<int, ISocketState> _clients = new Dictionary<int, ISocketState>();
 		private static System.Timers.Timer _keepAliveTimer;
-		protected Socket _listener { get; set; }
-		protected bool _disposed { get; set; }
+		internal IDictionary<int, ISocketState> ConnectedClients = new Dictionary<int, ISocketState>();
+
+		protected int Limit = 500;
+		protected readonly ManualResetEvent CanAcceptConnections = new ManualResetEvent(false);
+		protected Socket Listener { get; set; }
+		protected bool Disposed { get; set; }
 		protected BlockingQueue<Message> BlockingMessageQueue = new BlockingQueue<Message>();
 
 		protected CancellationTokenSource TokenSource { get; set; }
 		protected CancellationToken Token { get; set; }
 
+		/// <inheritdoc />
 		/// <summary>
 		/// Returns true when the server is running.
 		/// </summary>
@@ -125,7 +127,7 @@ namespace AsyncClientServer.Server
 		/// <returns></returns>
 		internal override IDictionary<int, ISocketState> GetClients()
 		{
-			return _clients;
+			return ConnectedClients;
 		}
 
 		/// <inheritdoc />
@@ -135,7 +137,7 @@ namespace AsyncClientServer.Server
 		/// <returns></returns>
 		public IDictionary<int, ISocketInfo> GetConnectedClients()
 		{
-			return _clients.ToDictionary(x => x.Key, x => (ISocketInfo) x.Value);
+			return ConnectedClients.ToDictionary(x => x.Key, x => (ISocketInfo) x.Value);
 		}
 
 		/// <inheritdoc />
@@ -191,7 +193,46 @@ namespace AsyncClientServer.Server
 			FolderCompressor = new ZipCompression();
 		}
 
+		/// <summary>
+		/// Add a socket to the clients dictionary.
+		/// Lock clients temporary to handle mulitple access.
+		/// ReceiveCallback raise an event, after the message receiving is complete.
+		/// </summary>
+		/// <param name="result"></param>
+		protected abstract void OnClientConnect(IAsyncResult result);
 
+		//Converts string to IPAddress
+		protected IPAddress GetIp(string ip)
+		{
+			try
+			{
+				return Dns.GetHostAddresses(ip).First();
+			}
+			catch (SocketException se)
+			{
+				throw new Exception("Invalid server IP", se);
+			}
+			catch (Exception ex)
+			{
+				throw new Exception("Error trying to get IPAddress from string : " + ip, ex);
+			}
+		}
+
+		//Timer that checks client every x seconds
+		private void KeepAlive(object source, ElapsedEventArgs e)
+		{
+			CheckAllClients();
+		}
+
+		/* Gets a socket from the clients dictionary by his Id. */
+		internal ISocketState GetClient(int id)
+		{
+			ISocketState state;
+
+			return ConnectedClients.TryGetValue(id, out state) ? state : null;
+		}
+
+		#region Public Methods
 
 		/// <inheritdoc />
 		/// <summary>
@@ -203,7 +244,7 @@ namespace AsyncClientServer.Server
 			if (!IsConnected(id))
 			{
 				ClientDisconnected?.Invoke(id);
-				_clients.Remove(id);
+				ConnectedClients.Remove(id);
 			}
 		}
 
@@ -212,22 +253,16 @@ namespace AsyncClientServer.Server
 		/// </summary>
 		public void CheckAllClients()
 		{
-			lock (_clients)
+			lock (ConnectedClients)
 			{
-				if (_clients.Keys.Count > 0)
+				if (ConnectedClients.Keys.Count > 0)
 				{
-					foreach (var id in _clients.Keys)
+					foreach (var id in ConnectedClients.Keys)
 					{
 						CheckClient(id);
 					}
 				}
 			}
-		}
-
-		//Timer that checks client every x seconds
-		private void KeepAlive(Object source, ElapsedEventArgs e)
-		{
-			CheckAllClients();
 		}
 
 		/// <summary>
@@ -246,12 +281,12 @@ namespace AsyncClientServer.Server
 			TokenSource.Cancel();
 			IsServerRunning = false;
 
-			foreach (var id in _clients.Keys.ToList())
+			foreach (var id in ConnectedClients.Keys.ToList())
 			{
 				Close(id);
 			}
 
-			_listener.Close();
+			Listener.Close();
 		}
 
 		/// <summary>
@@ -268,14 +303,6 @@ namespace AsyncClientServer.Server
 				throw new ArgumentException("This method should only be used after using 'StopListening()'");
 
 			StartListening(Ip, Port, Limit);
-		}
-
-		/* Gets a socket from the clients dictionary by his Id. */
-		internal ISocketState GetClient(int id)
-		{
-			ISocketState state;
-
-			return _clients.TryGetValue(id, out state) ? state : null;
 		}
 
 		/// <inheritdoc />
@@ -300,67 +327,56 @@ namespace AsyncClientServer.Server
 
 		}
 
-
+		/// <inheritdoc />
 		/// <summary>
-		/// Add a socket to the clients dictionary.
-		/// Lock clients temporary to handle mulitple access.
-		/// ReceiveCallback raise an event, after the message receiving is complete.
+		/// Properly dispose the class.
 		/// </summary>
-		/// <param name="result"></param>
-		protected abstract void OnClientConnect(IAsyncResult result);
-
-		//Handles messages the server receives
-		protected void ReceiveCallback(IAsyncResult result)
+		public virtual void Dispose()
 		{
 			try
 			{
-				HandleMessage(result);
-			}
-			catch (Exception ex)
-			{
-				throw new Exception(ex.ToString());
-			}
+				if (!Disposed)
+				{
+					TokenSource.Cancel();
+					TokenSource.Dispose();
+					IsServerRunning = false;
+					Listener.Dispose();
+					CanAcceptConnections.Dispose();
+					_keepAliveTimer.Enabled = false;
+					_keepAliveTimer.Dispose();
 
+					foreach (var id in ConnectedClients.Keys.ToList())
+					{
+						Close(id);
+					}
 
-		}
+					ConnectedClients = new Dictionary<int, ISocketState>();
+					TokenSource.Dispose();
+					Disposed = true;
+					GC.SuppressFinalize(this);
+				}
+				else
+				{
+					throw new ObjectDisposedException(nameof(ServerListener), "This object is already disposed.");
+				}
 
-		//Start receiving
-		internal abstract void StartReceiving(ISocketState state, int offset = 0);
-
-		//Handles messages
-		protected abstract void HandleMessage(IAsyncResult result);
-
-
-		//End the send and invoke MessageSubmitted event.
-		protected abstract void SendCallback(IAsyncResult result);
-
-		//End the send and invoke MessageSubmitted event.
-		protected abstract void SendCallbackPartial(IAsyncResult result);
-
-		protected override void FileTransferCompleted(bool close, int id)
-		{
-			try
-			{
-				if (close)
-					Close(id);
-			}
-			catch (SocketException se)
-			{
-				throw new SocketException(se.ErrorCode);
-			}
-			catch (ObjectDisposedException ode)
-			{
-				throw new ObjectDisposedException(ode.ObjectName, ode.Message);
 			}
 			catch (Exception ex)
 			{
 				throw new Exception(ex.Message, ex);
 			}
-			finally
-			{
-				MessageSubmitted?.Invoke(id, close);
-			}
+		}
 
+		/// <summary>
+		/// Change the buffer size of the server
+		/// </summary>
+		/// <param name="bufferSize"></param>
+		public void ChangeSocketBufferSize(int bufferSize)
+		{
+			if (bufferSize < 1024)
+				throw new ArgumentException("The buffer size should be more then 1024 bytes.");
+
+			SocketState.ChangeBufferSize(bufferSize);
 		}
 
 		/// <inheritdoc />
@@ -388,88 +404,23 @@ namespace AsyncClientServer.Server
 			}
 			finally
 			{
-				lock (_clients)
+				lock (ConnectedClients)
 				{
-					_clients.Remove(id);
+					ConnectedClients.Remove(id);
 					ClientDisconnected?.Invoke(state.Id);
 				}
 			}
 		}
 
-		//Converts string to IPAddress
-		protected IPAddress GetIp(string ip)
-		{
-			try
-			{
-				return Dns.GetHostAddresses(ip).First();
-			}
-			catch (SocketException se)
-			{
-				throw new Exception("Invalid server IP", se);
-			}
-			catch (Exception ex)
-			{
-				throw new Exception("Error trying to get IPAddress from string : " + ip, ex);
-			}
-		}
+		#endregion
 
-		/// <inheritdoc />
-		/// <summary>
-		/// Properly dispose the class.
-		/// </summary>
-		public virtual void Dispose()
-		{
-			try
-			{
-				if (!_disposed)
-				{
-					TokenSource.Cancel();
-					TokenSource.Dispose();
-					IsServerRunning = false;
-					_listener.Dispose();
-					_mre.Dispose();
-					_keepAliveTimer.Enabled = false;
-					_keepAliveTimer.Dispose();
-
-					foreach (var id in _clients.Keys.ToList())
-					{
-						Close(id);
-					}
-
-					_clients = new Dictionary<int, ISocketState>();
-					TokenSource.Dispose();
-					_disposed = true;
-					GC.SuppressFinalize(this);
-				}
-				else
-				{
-					throw new ObjectDisposedException(nameof(ServerListener), "This object is already disposed.");
-				}
-
-			}
-			catch (Exception ex)
-			{
-				throw new Exception(ex.Message, ex);
-			}
-		}
-
-		/// <summary>
-		/// Change the buffer size of the server
-		/// </summary>
-		/// <param name="bufferSize"></param>
-		public void ChangeSocketBufferSize(int bufferSize)
-		{
-			if (bufferSize < 1024)
-				throw new ArgumentException("The buffer size should be more then 1024 bytes.");
-
-			SocketState.ChangeBufferSize(bufferSize);
-		}
+		#region Message Sending
 
 		protected abstract void BeginSendFromQueue(Message message);
 
 		protected void SendFromQueue()
 		{
-			
+
 			while (!Token.IsCancellationRequested)
 			{
 				BlockingMessageQueue.TryPeek(out var message);
@@ -486,6 +437,70 @@ namespace AsyncClientServer.Server
 
 			}
 		}
+
+		#endregion
+
+		#region Receiving Data
+
+		//Handles messages the server receives
+		protected void ReceiveCallback(IAsyncResult result)
+		{
+			try
+			{
+				HandleMessage(result);
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.ToString());
+			}
+
+
+		}
+
+		//Start receiving
+		internal abstract void StartReceiving(ISocketState state, int offset = 0);
+
+		//Handles messages
+		protected abstract void HandleMessage(IAsyncResult result);
+
+		#endregion
+
+		#region Callbacks
+
+		//End the send and invoke MessageSubmitted event.
+		protected abstract void SendCallback(IAsyncResult result);
+
+		//End the send and invoke MessageSubmitted event.
+		protected abstract void SendCallbackPartial(IAsyncResult result);
+
+		//Called when a File or Folder has been transfered.
+		protected override void FileTransferCompleted(bool close, int id)
+		{
+			try
+			{
+				if (close)
+					Close(id);
+			}
+			catch (SocketException se)
+			{
+				throw new SocketException(se.ErrorCode);
+			}
+			catch (ObjectDisposedException ode)
+			{
+				throw new ObjectDisposedException(ode.ObjectName, ode.Message);
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message, ex);
+			}
+			finally
+			{
+				MessageSubmitted?.Invoke(id, close);
+			}
+
+		}
+
+		#endregion
 
 		#region Invokes
 

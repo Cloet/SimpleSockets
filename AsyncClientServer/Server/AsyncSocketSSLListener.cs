@@ -82,16 +82,16 @@ namespace AsyncClientServer.Server
 				{
 					using (var listener = new Socket(endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp))
 					{
-						_listener = listener;
+						Listener = listener;
 						listener.Bind(endpoint);
 						listener.Listen(Limit);
 
 						ServerHasStartedInvoke();
 						while (!Token.IsCancellationRequested)
 						{
-							_mre.Reset();
+							CanAcceptConnections.Reset();
 							listener.BeginAccept(OnClientConnect, listener);
-							_mre.WaitOne();
+							CanAcceptConnections.WaitOne();
 						}
 					}
 				}
@@ -103,26 +103,18 @@ namespace AsyncClientServer.Server
 
 		}
 
-		private bool AcceptCertificate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicy)
-		{
-			if (sslPolicy == SslPolicyErrors.None)
-				return true;
-
-			return AcceptInvalidCertificates;
-		}
-
 		protected override void OnClientConnect(IAsyncResult result)
 		{
-			_mre.Set();
+			CanAcceptConnections.Set();
 			try
 			{
 				ISocketState state;
 				int id;
 
-				lock (_clients)
+				lock (ConnectedClients)
 				{
-					id = !_clients.Any() ? 1 : _clients.Keys.Max() + 1;
-					
+					id = !ConnectedClients.Any() ? 1 : ConnectedClients.Keys.Max() + 1;
+
 					state = new SocketState(((Socket)result.AsyncState).EndAccept(result), id);
 				}
 
@@ -130,7 +122,7 @@ namespace AsyncClientServer.Server
 
 				if (_acceptInvalidCertificates)
 				{
-					state.SslStream = new SslStream(stream, false,new RemoteCertificateValidationCallback(AcceptCertificate));
+					state.SslStream = new SslStream(stream, false, new RemoteCertificateValidationCallback(AcceptCertificate));
 				}
 				else
 				{
@@ -144,7 +136,7 @@ namespace AsyncClientServer.Server
 
 					if (success)
 					{
-						_clients.Add(id, state);
+						ConnectedClients.Add(id, state);
 						ClientConnectedInvoke(id, state);
 						StartReceiving(state);
 					}
@@ -161,6 +153,16 @@ namespace AsyncClientServer.Server
 			{
 				throw new Exception(se.ToString());
 			}
+		}
+
+		#region SSL Auth
+
+		private bool AcceptCertificate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicy)
+		{
+			if (sslPolicy == SslPolicyErrors.None)
+				return true;
+
+			return AcceptInvalidCertificates;
 		}
 
 		private async Task<bool> Authenticate(ISocketState state)
@@ -216,6 +218,10 @@ namespace AsyncClientServer.Server
 			}
 		}
 
+		#endregion
+
+		#region Receiving
+
 		//Start receiving
 		internal override void StartReceiving(ISocketState state, int offset = 0)
 		{
@@ -261,9 +267,9 @@ namespace AsyncClientServer.Server
 				if (!IsConnected(state.Id))
 				{
 					ClientDisconnectedInvoke(state.Id);
-					lock (_clients)
+					lock (ConnectedClients)
 					{
-						_clients.Remove(state.Id);
+						ConnectedClients.Remove(state.Id);
 					}
 				}
 				//Else start receiving and handle the message.
@@ -310,6 +316,10 @@ namespace AsyncClientServer.Server
 			}
 		}
 
+		#endregion
+
+		#region Message Sending
+
 		/// <inheritdoc />
 		/// <summary>
 		/// Send data to client
@@ -348,6 +358,58 @@ namespace AsyncClientServer.Server
 			}
 		}
 
+		//Send partial message
+		protected override void SendBytesPartial(byte[] bytes, int id)
+		{
+			var state = GetClient(id);
+
+			try
+			{
+				if (state == null)
+				{
+					throw new Exception("Client does not exist.");
+				}
+
+				if (!IsConnected(state.Id))
+				{
+					//Sets client with id to disconnected
+					ClientDisconnectedInvoke(state.Id);
+					Close(state.Id);
+					InvokeMessageFailed(id, bytes, "Message failed to send because the destination socket is not connected.");
+				}
+
+				BlockingMessageQueue.Enqueue(new Message(bytes, MessageType.Partial, state));
+
+			}
+			catch (Exception ex)
+			{
+				InvokeMessageFailed(id, bytes, ex.Message);
+			}
+
+		}
+
+		protected override void BeginSendFromQueue(Message message)
+		{
+			try
+			{
+				_mreWriting.WaitOne();
+				_mreWriting.Reset();
+
+				if (message.MessageType == MessageType.Partial)
+					message.SocketState.SslStream.BeginWrite(message.MessageBytes, 0, message.MessageBytes.Length, SendCallbackPartial, message.SocketState);
+				if (message.MessageType == MessageType.Complete)
+					message.SocketState.SslStream.BeginWrite(message.MessageBytes, 0, message.MessageBytes.Length, SendCallback, message.SocketState);
+			}
+			catch (Exception ex)
+			{
+				InvokeMessageFailed(message.SocketState.Id, message.MessageBytes, ex.Message);
+			}
+		}
+
+		#endregion
+
+		#region Callbacks
+
 		//End the send and invoke MessageSubmitted event.
 		protected override void SendCallback(IAsyncResult result)
 		{
@@ -378,36 +440,6 @@ namespace AsyncClientServer.Server
 			}
 		}
 
-		//Send partial message
-		protected override void SendBytesPartial(byte[] bytes, int id)
-		{
-			var state = GetClient(id);
-
-			try
-			{
-				if (state == null)
-				{
-					throw new Exception("Client does not exist.");
-				}
-
-				if (!IsConnected(state.Id))
-				{
-					//Sets client with id to disconnected
-					ClientDisconnectedInvoke(state.Id);
-					Close(state.Id);
-					InvokeMessageFailed(id, bytes, "Message failed to send because the destination socket is not connected.");
-				}
-
-				BlockingMessageQueue.Enqueue(new Message(bytes, MessageType.Partial, state));
-				
-			}
-			catch (Exception ex)
-			{
-				InvokeMessageFailed(id, bytes, ex.Message);
-			}
-
-		}
-
 		//End the send and invoke MessageSubmitted event.
 		protected override void SendCallbackPartial(IAsyncResult result)
 		{
@@ -432,6 +464,9 @@ namespace AsyncClientServer.Server
 			}
 		}
 
+		#endregion
+
+
 		/// <summary>
 		/// Disposes of the AsyncSocketSslListener.
 		/// </summary>
@@ -451,23 +486,7 @@ namespace AsyncClientServer.Server
 		}
 
 
-		protected override void BeginSendFromQueue(Message message)
-		{
-			try
-			{
-				_mreWriting.WaitOne();
-				_mreWriting.Reset();
 
-				if (message.MessageType == MessageType.Partial)
-					message.SocketState.SslStream.BeginWrite(message.MessageBytes, 0, message.MessageBytes.Length, SendCallbackPartial, message.SocketState);
-				if (message.MessageType == MessageType.Complete)
-					message.SocketState.SslStream.BeginWrite(message.MessageBytes, 0, message.MessageBytes.Length, SendCallback, message.SocketState);
-			}
-			catch (Exception ex)
-			{
-				InvokeMessageFailed(message.SocketState.Id, message.MessageBytes, ex.Message);
-			}
-		}
 
 	}
 }

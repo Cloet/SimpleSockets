@@ -49,10 +49,10 @@ namespace AsyncClientServer.Client
 			IpServer = ipServer;
 			Port = port;
 			ReconnectInSeconds = reconnectInSeconds;
-			_keepAliveTimer.Enabled = false;
+			KeepAliveTimer.Enabled = false;
 			
 
-			_endpoint = new IPEndPoint(GetIp(ipServer), port);
+			Endpoint = new IPEndPoint(GetIp(ipServer), port);
 
 			TokenSource = new CancellationTokenSource();
 			Token = TokenSource.Token;
@@ -67,9 +67,9 @@ namespace AsyncClientServer.Client
 						return;
 
 					//Try and connect
-					_listener = new Socket(_endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-					_listener.BeginConnect(_endpoint, OnConnectCallback, _listener);
-					_connected.WaitOne();
+					Listener = new Socket(Endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+					Listener.BeginConnect(Endpoint, OnConnectCallback, Listener);
+					ConnectedMre.WaitOne();
 
 					//If client is connected activate connected event
 					if (IsConnected())
@@ -77,11 +77,11 @@ namespace AsyncClientServer.Client
 						InvokeConnected(this);
 					}
 					else {
-						_keepAliveTimer.Enabled = false;
+						KeepAliveTimer.Enabled = false;
 						InvokeDisconnected(this);
 						Close();
-						_connected.Reset();
-						_listener.BeginConnect(_endpoint, OnConnectCallback, _listener);
+						ConnectedMre.Reset();
+						Listener.BeginConnect(Endpoint, OnConnectCallback, Listener);
 						
 					}
 
@@ -103,15 +103,15 @@ namespace AsyncClientServer.Client
 			{
 				//Client is connected to server and set connected variable
 				server.EndConnect(result);
-				_connected.Set();
-				_keepAliveTimer.Enabled = true;
+				ConnectedMre.Set();
+				KeepAliveTimer.Enabled = true;
 				Receive();
 			}
 			catch (SocketException)
 			{
 				Thread.Sleep(ReconnectInSeconds * 1000);
 				if (!Token.IsCancellationRequested)
-					_listener.BeginConnect(_endpoint, OnConnectCallback, _listener);
+					Listener.BeginConnect(Endpoint, OnConnectCallback, Listener);
 			}
 			catch (Exception ex)
 			{
@@ -131,7 +131,7 @@ namespace AsyncClientServer.Client
 
 			try
 			{
-				_close = close;
+				CloseClient = close;
 				BlockingMessageQueue.Enqueue(new Message(bytes, MessageType.Complete));
 			}
 			catch (Exception ex)
@@ -158,18 +158,35 @@ namespace AsyncClientServer.Client
 			}
 			finally
 			{
-				InvokeMessageSubmitted(_close);
+				InvokeMessageSubmitted(CloseClient);
 
-				if (_close)
+				if (CloseClient)
 					Close();
 
-				_sent.Set();
+				SentMre.Set();
 			}
+		}
+
+		protected override void BeginSendFromQueue(Message message)
+		{
+
+			try
+			{
+				if (message.MessageType == MessageType.Partial)
+					Listener.BeginSend(message.MessageBytes, 0, message.MessageBytes.Length, SocketFlags.None, SendCallbackPartial, Listener);
+				if (message.MessageType == MessageType.Complete)
+					Listener.BeginSend(message.MessageBytes, 0, message.MessageBytes.Length, SocketFlags.None, SendCallback, Listener);
+			}
+			catch (Exception ex)
+			{
+				InvokeMessageFailed(message.MessageBytes, ex.Message);
+			}
+
 		}
 
 		#endregion
 
-		#region FILE SENDING
+		#region Callbacks
 
 		//Sends bytes of file
 		protected override void SendBytesPartial(byte[] bytes, int id)
@@ -200,23 +217,6 @@ namespace AsyncClientServer.Client
 			{
 				throw new Exception(se.ToString());
 			}
-		}
-
-		protected override void BeginSendFromQueue(Message message)
-		{
-
-			try
-			{
-				if (message.MessageType == MessageType.Partial)
-					_listener.BeginSend(message.MessageBytes, 0, message.MessageBytes.Length, SocketFlags.None, SendCallbackPartial, _listener);
-				if (message.MessageType == MessageType.Complete)
-					_listener.BeginSend(message.MessageBytes, 0, message.MessageBytes.Length, SocketFlags.None, SendCallback, _listener);
-			}
-			catch (Exception ex)
-			{
-				InvokeMessageFailed(message.MessageBytes, ex.Message);
-			}
-
 		}
 
 		#endregion
