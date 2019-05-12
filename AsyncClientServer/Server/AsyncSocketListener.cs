@@ -31,7 +31,8 @@ namespace AsyncClientServer.Server
 
 		/// <summary>
 		/// Start listening on specified port and ip.
-		/// <para/>The limit is the maximum amount of client which can connect at one moment.
+		/// <para/>The limit is the maximum amount of client which can connect at one moment. You can just fill in 'null' or "" as the ip value.
+		/// That way it will automatically choose an ip to listen to. Using IPAddress.Any.
 		/// </summary>
 		/// <param name="ip">The ip the server will be listening to.</param>
 		/// <param name="port">The port on which the server will be running.</param>
@@ -48,9 +49,6 @@ namespace AsyncClientServer.Server
 			Port = port;
 			Ip = ip;
 
-			//var ipServer = Dns.GetHostAddresses(ip).First();
-			//if (ipServer == null)
-			//	throw new ArgumentException("Invalid server IP.");
 			var endpoint = new IPEndPoint(GetIp(ip), port);
 
 			TokenSource = new CancellationTokenSource();
@@ -257,6 +255,53 @@ namespace AsyncClientServer.Server
 			}
 		}
 
+		//Sends part of a message
+		protected override void SendBytesPartial(byte[] bytes, int id)
+		{
+			var state = GetClient(id);
+
+			try
+			{
+				if (state == null)
+				{
+					throw new Exception("Client does not exist.");
+				}
+
+				if (!IsConnected(state.Id))
+				{
+					//Sets client with id to disconnected
+					ClientDisconnectedInvoke(state.Id);
+					Close(state.Id);
+					InvokeMessageFailed(id, bytes, "Message failed to send because the destination socket is not connected.");
+				}
+
+				BlockingMessageQueue.Enqueue(new Message(bytes, MessageType.Partial, state));
+			}
+			catch (Exception ex)
+			{
+				InvokeMessageFailed(id, bytes, ex.Message);
+			}
+		}
+
+		protected override void BeginSendFromQueue(Message message)
+		{
+			try
+			{
+				if (message.MessageType == MessageType.Partial)
+					message.SocketState.Listener.BeginSend(message.MessageBytes, 0, message.MessageBytes.Length, SocketFlags.None, SendCallbackPartial, message.SocketState);
+				if (message.MessageType == MessageType.Complete)
+					message.SocketState.Listener.BeginSend(message.MessageBytes, 0, message.MessageBytes.Length, SocketFlags.None, SendCallbackPartial, message.SocketState);
+			}
+			catch (Exception ex)
+			{
+				InvokeMessageFailed(message.SocketState.Id, message.MessageBytes, ex.Message);
+			}
+		}
+
+		#endregion
+
+		#region Callbacks
+
 		//End the send and invoke MessageSubmitted event.
 		protected override void SendCallback(IAsyncResult result)
 		{
@@ -283,53 +328,6 @@ namespace AsyncClientServer.Server
 			finally
 			{
 				InvokeMessageSubmitted(state.Id, state.Close);
-			}
-		}
-
-		protected override void BeginSendFromQueue(Message message)
-		{
-			try
-			{
-				if (message.MessageType == MessageType.Partial)
-					message.SocketState.Listener.BeginSend(message.MessageBytes, 0, message.MessageBytes.Length, SocketFlags.None, SendCallbackPartial, message.SocketState);
-				if (message.MessageType == MessageType.Complete)
-					message.SocketState.Listener.BeginSend(message.MessageBytes, 0, message.MessageBytes.Length, SocketFlags.None, SendCallbackPartial, message.SocketState);
-			}
-			catch (Exception ex)
-			{
-				InvokeMessageFailed(message.SocketState.Id, message.MessageBytes, ex.Message);
-			}
-		}
-
-		#endregion
-
-		#region Callbacks
-
-		//Sends part of a message
-		protected override void SendBytesPartial(byte[] bytes, int id)
-		{
-			var state = GetClient(id);
-
-			try
-			{
-				if (state == null)
-				{
-					throw new Exception("Client does not exist.");
-				}
-
-				if (!IsConnected(state.Id))
-				{
-					//Sets client with id to disconnected
-					ClientDisconnectedInvoke(state.Id);
-					Close(state.Id);
-					InvokeMessageFailed(id, bytes, "Message failed to send because the destination socket is not connected.");
-				}
-
-				BlockingMessageQueue.Enqueue(new Message(bytes, MessageType.Partial, state));
-			}
-			catch (Exception ex)
-			{
-				InvokeMessageFailed(id, bytes, ex.Message);
 			}
 		}
 

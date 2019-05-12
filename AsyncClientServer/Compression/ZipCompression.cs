@@ -9,11 +9,8 @@ using System.Threading.Tasks;
 
 namespace AsyncClientServer.Compression
 {
-	public class ZipCompression: FolderCompression
+	internal class ZipCompression: FolderCompression
 	{
-
-		
-
 
 		/// <summary>
 		/// Compresses a folder to .zip file.
