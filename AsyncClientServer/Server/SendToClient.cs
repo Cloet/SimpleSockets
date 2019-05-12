@@ -503,6 +503,7 @@ namespace AsyncClientServer.Server
 		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
 		/// </summary>
 		/// <param name="message"></param>
+		/// <param name="header"></param>
 		/// <param name="encryptMessage"></param>
 		/// <param name="close"></param>
 		public async Task SendCustomHeaderToAllClientsAsync(string message,string header, bool encryptMessage, bool close)
@@ -517,6 +518,7 @@ namespace AsyncClientServer.Server
 		/// <para>Will encrypt the message before it is sent.</para>
 		/// </summary>
 		/// <param name="message"></param>
+		/// <param name="header"></param>
 		/// <param name="close"></param>
 		public async Task SendCustomHeaderToAllClientsAsync(string message,string header, bool close)
 		{
