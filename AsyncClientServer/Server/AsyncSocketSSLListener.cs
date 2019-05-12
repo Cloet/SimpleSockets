@@ -52,6 +52,14 @@ namespace AsyncClientServer.Server
 			}
 		}
 
+		/// <summary>
+		/// Start listening on specified port and ip.
+		/// <para/>The limit is the maximum amount of client which can connect at one moment. You can just fill in 'null' or "" as the ip value.
+		/// That way it will automatically choose an ip to listen to. Using IPAddress.Any.
+		/// </summary>
+		/// <param name="ip"></param>
+		/// <param name="port"></param>
+		/// <param name="limit"></param>
 		public override void StartListening(string ip, int port, int limit = 500)
 		{
 
@@ -66,9 +74,6 @@ namespace AsyncClientServer.Server
 			Port = port;
 			Ip = ip;
 
-			//var ipServer = Dns.GetHostAddresses(ip).First();
-			//if (ipServer == null)
-			//	throw new ArgumentException("Invalid server IP.");
 			var endpoint = new IPEndPoint(GetIp(ip), port);
 
 			TokenSource = new CancellationTokenSource();

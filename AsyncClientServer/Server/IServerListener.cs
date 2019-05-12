@@ -76,7 +76,7 @@ namespace AsyncClientServer.Server
 		/// <summary>
 		/// Used to encrypt files/folders
 		/// </summary>
-		Encryption MessageEncrypter { set; }
+		Encryption MessageEncryptor { set; }
 
 		/// <summary>
 		/// Used to compress files before sending

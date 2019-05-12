@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace AsyncClientServer.Compression
 {
-	public class GZipCompression: FileCompression
+	internal class GZipCompression: FileCompression
 	{
 
 		/// <summary>
