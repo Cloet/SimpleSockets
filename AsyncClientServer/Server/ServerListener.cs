@@ -151,14 +151,16 @@ namespace AsyncClientServer.Server
 		/// </summary>
 		public string Ip { get; protected set; }
 
+		/// <inheritdoc />
 		/// <summary>
 		/// Used to encrypt files/folders
 		/// </summary>
-		public Encryption MessageEncrypter
+		public Encryption MessageEncryptor
 		{
 			set => Encrypter = value ?? throw new ArgumentNullException(nameof(value));
 		}
 
+		/// <inheritdoc />
 		/// <summary>
 		/// Used to compress files before sending
 		/// </summary>
@@ -167,6 +169,7 @@ namespace AsyncClientServer.Server
 			set => FileCompressor = value ?? throw new ArgumentNullException(nameof(value));
 		}
 
+		/// <inheritdoc />
 		/// <summary>
 		/// Used to compress folder before sending
 		/// </summary>
@@ -212,10 +215,10 @@ namespace AsyncClientServer.Server
 					Ip = ipAdr.ToString();
 					return ipAdr;
 				}
-				else
-				{
-					return IPAddress.Parse(ip);
-				}
+
+				//Try to parse the ip string to a valid IPAddress
+				return IPAddress.Parse(ip);
+
 			}
 			catch (SocketException se)
 			{
