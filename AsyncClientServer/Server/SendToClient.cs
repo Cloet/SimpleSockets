@@ -461,6 +461,74 @@ namespace AsyncClientServer.Server
 
 		/*=================================
 		*
+		*	Custom Header
+		*
+		*===========================================*/
+
+		/// <inheritdoc />
+		/// <summary>
+		/// Sends a Message to all clients
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="encryptMessage"></param>
+		/// <param name="close"></param>
+		public void SendCustomHeaderToAllClients(string message,string header, bool encryptMessage, bool close)
+		{
+			var data = CreateByteCustomHeader(message, header, encryptMessage);
+			foreach (var c in GetClients())
+			{
+				SendBytes(c.Value.Id, data, close);
+			}
+		}
+
+		/// <inheritdoc />
+		/// <summary>
+		/// Sends a Message to all clients
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
+		/// <para>Will encrypt the message before it is sent.</para>
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="close"></param>
+		public void SendCustomHeaderToAllClients(string message,string header, bool close)
+		{
+			SendCustomHeaderToAllClients(message, header, false, close);
+		}
+
+		/// <inheritdoc />
+		/// <summary>
+		/// Sends a Message to all clients asynchronous.
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="encryptMessage"></param>
+		/// <param name="close"></param>
+		public async Task SendCustomHeaderToAllClientsAsync(string message,string header, bool encryptMessage, bool close)
+		{
+			await Task.Run(() => SendCustomHeaderToAllClients(message, header, encryptMessage, close));
+		}
+
+		/// <inheritdoc />
+		/// <summary>
+		/// Sends a Message to all clients
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
+		/// <para>Will encrypt the message before it is sent.</para>
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="close"></param>
+		public async Task SendCustomHeaderToAllClientsAsync(string message,string header, bool close)
+		{
+			await Task.Run(() => SendCustomHeaderToAllClients(message, header, false, close));
+		}
+
+
+
+		/*=================================
+		*
 		*	MESSAGE
 		*
 		*===========================================*/

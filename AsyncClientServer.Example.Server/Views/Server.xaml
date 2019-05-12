@@ -53,5 +53,6 @@
 		</ListView>
 		<Button Margin="1020,484,10,10" Content="Stop" Click="Button_Click"/>
 		<Button Margin="915,484,108,10" Content="Restart" Click="Button_Click_1"/>
+		<Button Margin="810,484,213,10" Content="Get IP" Click="Button_Click_2"/>
 	</Grid>
 </Window>
