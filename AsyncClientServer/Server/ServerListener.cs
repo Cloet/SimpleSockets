@@ -206,7 +206,16 @@ namespace AsyncClientServer.Server
 		{
 			try
 			{
-				return Dns.GetHostAddresses(ip).First();
+				if (string.IsNullOrEmpty(ip))
+				{
+					IPAddress ipAdr = IPAddress.Any;
+					Ip = ipAdr.ToString();
+					return ipAdr;
+				}
+				else
+				{
+					return IPAddress.Parse(ip);
+				}
 			}
 			catch (SocketException se)
 			{

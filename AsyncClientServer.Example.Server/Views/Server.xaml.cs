@@ -44,7 +44,7 @@ namespace AsyncClientServer.Example.Server
 			_clientVM = (ClientInfoViewModel) ListViewClients.DataContext;
 			_clientVM.Listener = _listener;
 			BindEvents();
-			_listener.StartListening("127.0.0.1", 13000);
+			_listener.StartListening("", 13000);
 		}
 
 		public void BindEvents()
@@ -141,6 +141,11 @@ namespace AsyncClientServer.Example.Server
 			ListViewClients.DataContext = _clientVM;
 			_listener.ResumeListening();
 
+		}
+
+		private void Button_Click_2(object sender, RoutedEventArgs e)
+		{
+			MessageBox.Show(_listener.Ip);
 		}
 
 

@@ -187,7 +187,9 @@ namespace AsyncClientServer.Client
 		{
 			try
 			{
-				return Dns.GetHostAddresses(ip).First();				
+				IPAddress[] list = Dns.GetHostEntry(ip).AddressList;
+				return list.First();
+				//return Dns.GetHostAddresses(ip).First();
 			}
 			catch (SocketException se)
 			{
