@@ -25,16 +25,16 @@ namespace AsyncClientServer.Example.Client
 	public partial class Client : Window
 	{
 
-		private ITcpClient _client;
+		private ISocketClient _client;
 
 		public Client()
 		{
 			InitializeComponent();
 
 			//_client = new AsyncSslClient("", "");
-			_client = new AsyncClient();
+			_client = new AsyncSocketClient();
 			BindEvents();
-			Task.Run(() => StartClient());
+			Task.Run(StartClient);
 		}
 
 		private void StartClient()
@@ -81,45 +81,45 @@ namespace AsyncClientServer.Example.Client
 				new Action(() => { TextBlockStatus.Text = text; }));
 		}
 
-		private void CustomHeader(ITcpClient a, string msg, string header)
+		private void CustomHeader(ISocketClient a, string msg, string header)
 		{
 			AppendRichtTextBoxLog(header + ": " + msg);
 		}
 
-		private void ConnectedToServer(ITcpClient a)
+		private void ConnectedToServer(ISocketClient a)
 		{
 			AppendRichtTextBoxLog("The client has connected to the server.");
 			ChangeStatus("CONNECTED");
 			MessageBox.Show("Client has connected to the server on ip : " + a.IpServer);
 		}
 
-		private void ServerMessageReceived(ITcpClient a, string msg)
+		private void ServerMessageReceived(ISocketClient a, string msg)
 		{
 			AppendRichtTextBoxLog("MESSAGE" + ": " + msg);
 		}
 
-		void FileReceived(ITcpClient a, string file)
+		void FileReceived(ISocketClient a, string file)
 		{
 			AppendRichtTextBoxLog("File/Folder has been received and saved at path: " + file);
 		}
 
-		void Disconnected(ITcpClient a, string ip, int port)
+		void Disconnected(ISocketClient a, string ip, int port)
 		{
 			AppendRichtTextBoxLog("Client has disconnected from the server.");
 			ChangeStatus("DISCONNECTED");
 			MessageBox.Show("Client has disconnected to the server on ip : " + ip + " on port " + port);
 		}
 
-		void Progress(ITcpClient a, int bytes, int messageSize)
+		void Progress(ISocketClient a, int bytes, int messageSize)
 		{
 		}
 
-		void ClientMessageSubmitted(ITcpClient a, bool close)
+		void ClientMessageSubmitted(ISocketClient a, bool close)
 		{
 			AppendRichtTextBoxLog("Client has submitted a message.");
 		}
 
-		private void MessageFailed(ITcpClient tcpClient, byte[] messageData, string exceptionMessage)
+		private void MessageFailed(ISocketClient tcpClient, byte[] messageData, string exceptionMessage)
 		{
 		}
 

@@ -8,7 +8,7 @@ namespace AsyncClientServer.Messaging.Handlers
 	internal class MessageHandlerState: SocketStateState
 	{
 
-		public MessageHandlerState(ISocketState state, TcpClient client, ServerListener listener) : base(state, client,listener)
+		public MessageHandlerState(ISocketState state, SocketClient client, ServerListener listener) : base(state, client,listener)
 		{
 		}
 

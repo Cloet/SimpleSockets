@@ -101,8 +101,23 @@ namespace AsyncClientServer.Server
 		/// <param name="limit"></param>
 		void StartListening(string ip, int port, int limit = 500);
 
+		/// <summary>
+		/// Starts the server on all possible interfaces.
+		/// Safest way to start the server.
+		/// </summary>
+		/// <param name="port"></param>
+		/// <param name="limit"></param>
+		void StartListening(int port, int limit = 500);
+
+		/// <summary>
+		/// Stops the server from listening,
+		/// The server can be resumed with "ResumeListening"
+		/// </summary>
 		void StopListening();
 
+		/// <summary>
+		/// Restarts the server if "StopListening" has been called.
+		/// </summary>
 		void ResumeListening();
 
 		/// <summary>

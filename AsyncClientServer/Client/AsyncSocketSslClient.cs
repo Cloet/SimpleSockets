@@ -17,7 +17,7 @@ using AsyncClientServer.Messaging.Metadata;
 
 namespace AsyncClientServer.Client
 {
-	public sealed class AsyncSslClient: TcpClient
+	public sealed class AsyncSocketSslClient: SocketClient
 	{
 
 		private SslStream _sslStream;
@@ -35,7 +35,7 @@ namespace AsyncClientServer.Client
 		/// <param name="certificatePassword"></param>
 		/// <param name="tls"></param>
 		/// <param name="acceptInvalidCertificates"></param>
-		public AsyncSslClient(string certificate, string certificatePassword,TlsProtocol tls = TlsProtocol.Tls12,bool acceptInvalidCertificates = true) : base()
+		public AsyncSocketSslClient(string certificate, string certificatePassword,TlsProtocol tls = TlsProtocol.Tls12,bool acceptInvalidCertificates = true) : base()
 		{
 
 			if (string.IsNullOrEmpty(certificate))
@@ -83,7 +83,7 @@ namespace AsyncClientServer.Client
 			TokenSource = new CancellationTokenSource();
 			Token = TokenSource.Token;
 
-			Task.Run(() => SendFromQueue(), Token);
+			Task.Run(SendFromQueue, Token);
 
 			Task.Run(() =>
 			{
@@ -130,12 +130,11 @@ namespace AsyncClientServer.Client
 				var stream = new NetworkStream(Listener);
 				_sslStream = new SslStream(stream, false, new RemoteCertificateValidationCallback(ValidateCertificate), null);
 
-				Task.Run(() => SendFromQueue(), Token);
+				Task.Run(SendFromQueue, Token);
 
 				Task.Run(() =>
 				{
 					bool success = Authenticate(_sslStream).Result;
-
 
 					if (success)
 					{
@@ -458,7 +457,7 @@ namespace AsyncClientServer.Client
 			}
 			catch (Exception ex)
 			{
-				throw new Exception("Error trying to dispose of " + nameof(AsyncSslClient) + " class.", ex);
+				throw new Exception("Error trying to dispose of " + nameof(AsyncSocketSslClient) + " class.", ex);
 			}
 
 		}

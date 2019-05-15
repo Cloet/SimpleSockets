@@ -11,13 +11,13 @@ namespace AsyncClientServer.Messaging.Handlers
 
 		protected ISocketState State;
 		//Client is used to invoke message/file received event (not necessary when using on the server side.)
-		protected TcpClient Client = null;
+		protected SocketClient Client = null;
 		protected ServerListener Server = null;
 		protected Encryption Encrypter;
 		protected FileCompression FileEncrypter;
 		protected FolderCompression FolderEncrypter;
 
-		protected SocketStateState(ISocketState state, TcpClient client, ServerListener listener)
+		protected SocketStateState(ISocketState state, SocketClient client, ServerListener listener)
 		{
 			State = state;
 			Client = client;

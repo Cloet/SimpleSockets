@@ -157,7 +157,13 @@ namespace AsyncClientServer.Server
 		/// </summary>
 		public Encryption MessageEncryptor
 		{
-			set => Encrypter = value ?? throw new ArgumentNullException(nameof(value));
+			set
+			{
+				if (IsServerRunning)
+					throw new Exception("The Encrypter cannot be changed while the server is running.");
+
+				Encrypter = value ?? throw new ArgumentNullException(nameof(value));
+			} 
 		}
 
 		/// <inheritdoc />
@@ -166,7 +172,13 @@ namespace AsyncClientServer.Server
 		/// </summary>
 		public FileCompression ServerFileCompressor
 		{
-			set => FileCompressor = value ?? throw new ArgumentNullException(nameof(value));
+			set
+			{
+				if (IsServerRunning)
+					throw new Exception("The FileCompressor cannot be changed while the server is running.");
+
+				FileCompressor = value ?? throw new ArgumentNullException(nameof(value));
+			} 
 		}
 
 		/// <inheritdoc />
@@ -175,7 +187,13 @@ namespace AsyncClientServer.Server
 		/// </summary>
 		public FolderCompression ServerFolderCompressor
 		{
-			set => FolderCompressor = value ?? throw new ArgumentNullException(nameof(value));
+			set
+			{
+				if (IsServerRunning)
+					throw new Exception("The FolderCompressor cannot be changed while the server is running.");
+
+				FolderCompressor = value ?? throw new ArgumentNullException(nameof(value));
+			}
 		}
 
 		/// <summary>
@@ -284,6 +302,17 @@ namespace AsyncClientServer.Server
 		/// <param name="port"></param>
 		/// <param name="limit"></param>
 		public abstract void StartListening(string ip, int port, int limit = 500);
+
+		/// <summary>
+		/// Starts listening on all possible interfaces.
+		/// Safest option to start the server.
+		/// </summary>
+		/// <param name="port"></param>
+		/// <param name="limit"></param>
+		public void StartListening(int port, int limit = 500)
+		{
+			StartListening(null, port, limit);
+		}
 
 		/// <summary>
 		/// Stops the server from listening
