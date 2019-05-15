@@ -9,7 +9,7 @@ namespace AsyncClientServer.Messaging.Handlers
 	internal class MessageHasBeenReceivedState: SocketStateState
 	{
 
-		public MessageHasBeenReceivedState(ISocketState state, TcpClient client, ServerListener listener) : base(state, client, listener)
+		public MessageHasBeenReceivedState(ISocketState state, SocketClient client, ServerListener listener) : base(state, client, listener)
 		{
 		}
 

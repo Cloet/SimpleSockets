@@ -21,13 +21,13 @@ namespace AsyncClientServer.Client
 	/// <summary>
 	/// The Following code handles the client in an Async fashion.
 	/// <para>To send messages to the corresponding Server, you should use the class "SendToServer"</para>
-	/// <para>Extends <see cref="TcpClient"/>
+	/// <para>Extends <see cref="SocketClient"/>
 	/// </para>
 	/// </summary>
-	public sealed class AsyncClient : TcpClient
+	public sealed class AsyncSocketClient : SocketClient
 	{
 
-		public AsyncClient(): base()
+		public AsyncSocketClient(): base()
 		{
 		}
 
@@ -57,7 +57,7 @@ namespace AsyncClientServer.Client
 			TokenSource = new CancellationTokenSource();
 			Token = TokenSource.Token;
 
-			Task.Run(() => SendFromQueue(), Token);
+			Task.Run(SendFromQueue, Token);
 
 			Task.Run(() =>
 			{
@@ -82,7 +82,6 @@ namespace AsyncClientServer.Client
 						Close();
 						ConnectedMre.Reset();
 						Listener.BeginConnect(Endpoint, OnConnectCallback, Listener);
-						
 					}
 
 				}

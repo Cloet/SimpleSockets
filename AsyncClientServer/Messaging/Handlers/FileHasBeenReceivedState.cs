@@ -8,7 +8,7 @@ namespace AsyncClientServer.Messaging.Handlers
 	internal class FileHasBeenReceivedState: SocketStateState
 	{
 
-		public FileHasBeenReceivedState(ISocketState state, TcpClient client,ServerListener listener, string tempFilePath) : base(state, client,listener)
+		public FileHasBeenReceivedState(ISocketState state, SocketClient client,ServerListener listener, string tempFilePath) : base(state, client,listener)
 		{
 			_tempFilePath = tempFilePath;
 		}

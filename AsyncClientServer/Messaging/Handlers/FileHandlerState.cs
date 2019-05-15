@@ -9,7 +9,7 @@ namespace AsyncClientServer.Messaging.Handlers
 	internal class FileHandlerState : SocketStateState
 	{
 
-		public FileHandlerState(ISocketState state, TcpClient client, ServerListener listener) : base(state, client,listener)
+		public FileHandlerState(ISocketState state, SocketClient client, ServerListener listener) : base(state, client,listener)
 		{
 		}
 

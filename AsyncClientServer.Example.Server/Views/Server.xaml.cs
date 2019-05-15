@@ -44,7 +44,7 @@ namespace AsyncClientServer.Example.Server
 			_clientVM = (ClientInfoViewModel) ListViewClients.DataContext;
 			_clientVM.Listener = _listener;
 			BindEvents();
-			_listener.StartListening("", 13000);
+			_listener.StartListening(13000);
 		}
 
 		public void BindEvents()

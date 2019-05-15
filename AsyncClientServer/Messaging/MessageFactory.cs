@@ -165,8 +165,7 @@ namespace AsyncClientServer.Messaging
 		/// <param name="close"></param>
 		/// <param name="id"></param>
 		/// <returns></returns>
-		protected async Task CreateAndSendAsyncFolderMessage(string folderLocation, string remoteFolderLocation,
-			bool encryptFolder, bool close, int id = -1)
+		protected async Task CreateAndSendAsyncFolderMessage(string folderLocation, string remoteFolderLocation,bool encryptFolder, bool close, int id = -1)
 		{
 
 			try

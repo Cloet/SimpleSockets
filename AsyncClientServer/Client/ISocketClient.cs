@@ -9,7 +9,7 @@ namespace AsyncClientServer.Client
 	/// <para>Implements
 	/// <seealso cref="T:System.IDisposable" /></para>
 	/// </summary>
-	public interface ITcpClient : IDisposable, ISendToServer
+	public interface ISocketClient : IDisposable, ISendToServer
 	{
 
 		/// <summary>
@@ -94,6 +94,11 @@ namespace AsyncClientServer.Client
 		/// Tries to reconnect every x seconds
 		/// </summary>
 		int ReconnectInSeconds { get; }
+
+		/// <summary>
+		/// Returns True when the client is running.
+		/// </summary>
+		bool IsClientRunning { get; }
 
 		/// <summary>
 		/// Closes the client, makes sure the client can be reused.

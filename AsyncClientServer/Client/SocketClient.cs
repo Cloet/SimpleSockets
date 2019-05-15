@@ -16,54 +16,54 @@ namespace AsyncClientServer.Client
 	/// Event that triggers when a client is connected to server
 	/// </summary>
 	/// <param name="tcpClient"></param>
-	public delegate void ConnectedHandler(ITcpClient tcpClient);
+	public delegate void ConnectedHandler(ISocketClient tcpClient);
 
 	/// <summary>
 	/// Event that is triggered when the client has disconnected from the server.
 	/// </summary>
-	public delegate void DisconnectedFromServerHandler(ITcpClient tcpClient, string ipServer, int port);
+	public delegate void DisconnectedFromServerHandler(ISocketClient tcpClient, string ipServer, int port);
 
 	/// <summary>
 	/// Event that triggers when client receives a message
 	/// </summary>
 	/// <param name="tcpClient"></param>
 	/// <param name="msg"></param>
-	public delegate void ClientMessageReceivedHandler(ITcpClient tcpClient, string msg);
+	public delegate void ClientMessageReceivedHandler(ISocketClient tcpClient, string msg);
 
 	/// <summary>
 	/// Event that is triggered when client receives a custom header message.
 	/// </summary>
 	/// <param name="tcpClient"></param>
 	/// <param name="msg"></param>
-	public delegate void ClientCustomHeaderReceivedHandler(ITcpClient tcpClient, string msg, string header);
+	public delegate void ClientCustomHeaderReceivedHandler(ISocketClient tcpClient, string msg, string header);
 
 	/// <summary>
 	/// Event that triggers when client sends a message
 	/// </summary>
 	/// <param name="tcpClient"></param>
 	/// <param name="close"></param>
-	public delegate void ClientMessageSubmittedHandler(ITcpClient tcpClient, bool close);
+	public delegate void ClientMessageSubmittedHandler(ISocketClient tcpClient, bool close);
 
 	/// <summary>
 	/// Event that is triggered when a file is received from the server, returns the new file path
 	/// </summary>
 	/// <param name="tcpClient"></param>
 	/// <param name="path"></param>
-	public delegate void FileFromServerReceivedHandler(ITcpClient tcpClient, string path);
+	public delegate void FileFromServerReceivedHandler(ISocketClient tcpClient, string path);
 
 	/// <summary>
 	/// Event that is triggered when a message failed to send
 	/// </summary>
 	/// <param name="tcpClient"></param>
 	/// <param name="exceptionMessage"></param>
-	public delegate void DataTransferFailedHandler(ITcpClient tcpClient,byte[] messageData, string exceptionMessage);
+	public delegate void DataTransferFailedHandler(ISocketClient tcpClient,byte[] messageData, string exceptionMessage);
 
 	/// <summary>
 	/// Event that is triggered when a message has failed to send
 	/// </summary>
 	/// <param name="tcpClient"></param>
 	/// <param name="exceptionMessage"></param>
-	public delegate void ErrorHandler(ITcpClient tcpClient, string exceptionMessage);
+	public delegate void ErrorHandler(ISocketClient tcpClient, string exceptionMessage);
 
 	/// <summary>
 	/// Event that is triggered when a file is received from the server and show the progress.
@@ -71,9 +71,9 @@ namespace AsyncClientServer.Client
 	/// <param name="tcpClient"></param>
 	/// <param name="bytesReceived"></param>
 	/// <param name="messageSize"></param>
-	public delegate void ProgressFileTransferHandler(ITcpClient tcpClient, int bytesReceived, int messageSize);
+	public delegate void ProgressFileTransferHandler(ISocketClient tcpClient, int bytesReceived, int messageSize);
 
-	public abstract class TcpClient : SendToServer, ITcpClient
+	public abstract class SocketClient : SendToServer, ISocketClient
 	{
 		//Protected variabeles
 		protected Socket Listener;
@@ -104,11 +104,22 @@ namespace AsyncClientServer.Client
 		public string IpServer { get; protected set; }
 
 		/// <summary>
+		/// Returns True if the client is currently active and trying to connect to a server.
+		/// </summary>
+		public bool IsClientRunning { get; protected set; }
+
+		/// <summary>
 		/// Used to encrypt files/folders
 		/// </summary>
 		public Encryption MessageEncrypter
 		{
-			set => Encrypter = value ?? throw new ArgumentNullException(nameof(value));
+			set
+			{
+				if (IsClientRunning)
+					throw new Exception("The MessageEncrypter cannot be changed while the client is running.");
+
+				Encrypter = value ?? throw new ArgumentNullException(nameof(value));
+			}
 		}
 
 		/// <summary>
@@ -116,7 +127,13 @@ namespace AsyncClientServer.Client
 		/// </summary>
 		public FileCompression ClientFileCompressor
 		{
-			set => FileCompressor = value ?? throw new ArgumentNullException(nameof(value));
+			set
+			{
+				if (IsClientRunning)
+					throw new Exception("The FileCompressor cannot be changed while the client is running.");
+
+				FileCompressor = value ?? throw new ArgumentNullException(nameof(value));
+			}
 		}
 
 		/// <summary>
@@ -124,7 +141,13 @@ namespace AsyncClientServer.Client
 		/// </summary>
 		public FolderCompression ClientFolderCompressor
 		{
-			set => FolderCompressor = value ?? throw new ArgumentNullException(nameof(value));
+			set
+			{
+				if (IsClientRunning)
+					throw new Exception("The FolderCompressor cannot be changed while the client is running.");
+
+				FolderCompressor = value ?? throw new ArgumentNullException(nameof(value));
+			} 
 		}
 
 		/// <inheritdoc />
@@ -148,12 +171,14 @@ namespace AsyncClientServer.Client
 		/// Constructor
 		/// Use StartClient() to start a connection to a server.
 		/// </summary>
-		protected TcpClient()
+		protected SocketClient()
 		{
 			KeepAliveTimer = new System.Timers.Timer(15000);
 			KeepAliveTimer.Elapsed += KeepAlive;
 			KeepAliveTimer.AutoReset = true;
 			KeepAliveTimer.Enabled = false;
+
+			IsClientRunning = false;
 
 			Encrypter = new Aes256();
 			FileCompressor = new GZipCompression();
@@ -187,9 +212,7 @@ namespace AsyncClientServer.Client
 		{
 			try
 			{
-				IPAddress[] list = Dns.GetHostEntry(ip).AddressList;
-				return list.First();
-				//return Dns.GetHostAddresses(ip).First();
+				return Dns.GetHostAddresses(ip).First();
 			}
 			catch (SocketException se)
 			{
@@ -197,7 +220,7 @@ namespace AsyncClientServer.Client
 			}
 			catch (Exception ex)
 			{
-				throw new Exception("Error trying to get IPAddress from string : " + ip, ex);
+				throw new Exception("Error trying to get a valid IPAddress from string : " + ip, ex);
 			}
 		}
 
@@ -228,6 +251,7 @@ namespace AsyncClientServer.Client
 			{
 				ConnectedMre.Reset();
 				TokenSource.Cancel();
+				IsClientRunning = false;
 
 				if (!IsConnected())
 				{
@@ -382,8 +406,6 @@ namespace AsyncClientServer.Client
 
 		#endregion
 
-
-
 		#region Invokes
 
 
@@ -412,13 +434,14 @@ namespace AsyncClientServer.Client
 			CustomHeaderReceived?.Invoke(this, msg, header);
 		}
 
-		protected void InvokeConnected(ITcpClient a)
+		protected void InvokeConnected(ISocketClient a)
 		{
+			IsClientRunning = true;
 			Connected?.Invoke(a);
 			_disconnectedInvoked = false;
 		}
 
-		protected void InvokeDisconnected(ITcpClient a)
+		protected void InvokeDisconnected(ISocketClient a)
 		{
 			if (_disconnectedInvoked == false)
 			{

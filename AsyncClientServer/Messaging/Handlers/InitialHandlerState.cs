@@ -13,7 +13,7 @@ namespace AsyncClientServer.Messaging.Handlers
 		//The types of messages that can be send.
 		private readonly string[] _messageTypes = { "COMMAND", "MESSAGE", "OBJECT" };
 
-		public InitialHandlerState(ISocketState state, TcpClient client, ServerListener listener) : base(state, client,listener)
+		public InitialHandlerState(ISocketState state, SocketClient client, ServerListener listener) : base(state, client,listener)
 		{
 		}
 
