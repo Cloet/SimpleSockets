@@ -436,8 +436,8 @@ namespace AsyncClientServer.Client
 			{
 				state.Reset();
 				DisposeSslStream();
-				Listener.BeginConnect(Endpoint, OnConnectCallback, Listener);
 				InvokeErrorThrown(ex.Message);
+				StartReceiving(state);
 			}
 		}
 

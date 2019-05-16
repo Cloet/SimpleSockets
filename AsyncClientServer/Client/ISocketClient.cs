@@ -1,6 +1,6 @@
 ﻿using System;
-using AsyncClientServer.Compression;
-using AsyncClientServer.Cryptography;
+using AsyncClientServer.Messaging.Compression;
+using AsyncClientServer.Messaging.Cryptography;
 
 namespace AsyncClientServer.Client
 {
@@ -78,7 +78,7 @@ namespace AsyncClientServer.Client
 		/// <summary>
 		/// Used to encrypt files/folders
 		/// </summary>
-		Encryption MessageEncrypter { set; }
+		MessageEncryption ClientMessageEncryption { set; }
 
 		/// <summary>
 		/// Used to compress files before sending

@@ -25,7 +25,7 @@ namespace AsyncClientServer.Example.Client
 	public partial class Client : Window
 	{
 
-		private ISocketClient _client;
+		private readonly ISocketClient _client;
 
 		public Client()
 		{

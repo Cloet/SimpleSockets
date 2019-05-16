@@ -2,8 +2,8 @@
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
-using AsyncClientServer.Compression;
-using AsyncClientServer.Cryptography;
+using AsyncClientServer.Messaging.Compression;
+using AsyncClientServer.Messaging.Cryptography;
 
 namespace AsyncClientServer.Messaging
 {
@@ -25,7 +25,7 @@ namespace AsyncClientServer.Messaging
 		/// Used for encryption and decryption of data.
 		/// Created in ServerListener and TcpClient
 		/// </summary>
-		public Encryption Encrypter { get; protected set; }
+		public MessageEncryption MessageEncryption { get; protected set; }
 
 		/// <summary>
 		/// Used to compress and decompress files.
@@ -38,6 +38,7 @@ namespace AsyncClientServer.Messaging
 		public FolderCompression FolderCompressor { get; set; }
 
 
+		#region Encryption/Compression
 
 		//Encrypts a file and returns the new file path.
 		protected async Task<string> EncryptFileAsync(string path)
@@ -46,8 +47,8 @@ namespace AsyncClientServer.Messaging
 			{
 				return await Task.Run(() =>
 				{
-					Encrypter.FileEncrypt(Path.GetFullPath(path));
-					path += Encrypter.Extension;
+					MessageEncryption.FileEncrypt(Path.GetFullPath(path));
+					path += MessageEncryption.Extension;
 					return path;
 				});
 			}
@@ -87,6 +88,9 @@ namespace AsyncClientServer.Messaging
 			}
 		}
 
+		#endregion
+
+
 		//Triggered when file/folder is done sending.
 		protected abstract void FileTransferCompleted(bool close, int id);
 
@@ -94,20 +98,10 @@ namespace AsyncClientServer.Messaging
 		protected abstract void SendBytesPartial(byte[] bytes, int id);
 
 
-		/// <summary>
-		/// This method Sends a file asynchronous.
-		/// <para>It checks if the file has to be compressed and/or encrypted before being sent.
-		/// It reads the file with a default buffer of 10Mb. Whenever a part of the buffer is read it will send bytes.</para>
-		/// </summary>
-		/// <param name="fileLocation"></param>
-		/// <param name="remoteSaveLocation"></param>
-		/// <param name="compressFile"></param>
-		/// <param name="encryptFile"></param>
-		/// <param name="close"></param>
-		/// <param name="id"></param>
-		/// <returns></returns>
-		protected async Task CreateAndSendAsyncFileMessage(string fileLocation, string remoteSaveLocation,
-			bool compressFile, bool encryptFile, bool close, int id = -1)
+		// This method Sends a file asynchronous.
+		// It checks if the file has to be compressed and/or encrypted before being sent.
+		// It reads the file with a default buffer of 10Mb. Whenever a part of the buffer is read it will send bytes.
+		protected async Task CreateAndSendAsyncFileMessage(string fileLocation, string remoteSaveLocation,bool compressFile, bool encryptFile, bool close, int id = -1)
 		{
 
 			try
@@ -131,7 +125,7 @@ namespace AsyncClientServer.Messaging
 						previousFile = file;
 
 					file = await EncryptFileAsync(file);
-					remoteSaveLocation += Encrypter.Extension;
+					remoteSaveLocation += MessageEncryption.Extension;
 
 					//Deletes the compressed file
 					if (previousFile != string.Empty)
@@ -150,21 +144,13 @@ namespace AsyncClientServer.Messaging
 			}
 			catch (Exception ex)
 			{
-				throw new Exception("Unable to Send a file.", ex);
+				throw new Exception(ex.Message, ex);
 			}
 		}
 
-		/// <summary>
-		/// This methods Sends a folder asynchronous.
-		/// <para>It checks if the folder has to be encrypted before being sent.
-		/// The folder will always be compressed as a .ZIP file to make transfer easier. Uses the extension "CZip".</para>
-		/// </summary>
-		/// <param name="folderLocation"></param>
-		/// <param name="remoteFolderLocation"></param>
-		/// <param name="encryptFolder"></param>
-		/// <param name="close"></param>
-		/// <param name="id"></param>
-		/// <returns></returns>
+		// This methods Sends a folder asynchronous.
+		// It checks if the folder has to be encrypted before being sent.
+		// The folder will always be compressed as a .ZIP file to make transfer easier.
 		protected async Task CreateAndSendAsyncFolderMessage(string folderLocation, string remoteFolderLocation,bool encryptFolder, bool close, int id = -1)
 		{
 
@@ -186,7 +172,7 @@ namespace AsyncClientServer.Messaging
 				{
 					//Encrypt and adjust file names.
 					folderToSend = await EncryptFileAsync(folderToSend);
-					remoteFolderLocation += Encrypter.Extension;
+					remoteFolderLocation += MessageEncryption.Extension;
 					File.Delete(tempPath);
 				}
 
@@ -202,11 +188,9 @@ namespace AsyncClientServer.Messaging
 			}
 			catch (Exception ex)
 			{
-				throw new Exception("Unable to Send folder async.", ex);
+				throw new Exception(ex.Message, ex);
 			}
 		}
-
-
 
 		//Streams the file and constantly sends bytes to server or client.
 		//This method is called in createAsyncFileMessage.
@@ -216,7 +200,7 @@ namespace AsyncClientServer.Messaging
 			try
 			{
 				var file = location;
-				var buffer = new byte[10485760];
+				var buffer = new byte[10485760]; //10 MB buffer
 				bool firstRead = true;
 
 				//Stream that reads the file and sends bits to the server.
@@ -245,7 +229,7 @@ namespace AsyncClientServer.Messaging
 							if (encrypt)
 							{
 								byte[] prefix = Encoding.UTF8.GetBytes("ENCRYPTED_");
-								byte[] headerData = Encrypter.EncryptStringToBytes(remoteSaveLocation);
+								byte[] headerData = MessageEncryption.EncryptStringToBytes(remoteSaveLocation);
 								header = new byte[prefix.Length + headerData.Length];
 								prefix.CopyTo(header, 0);
 								headerData.CopyTo(header, 10);
@@ -276,7 +260,7 @@ namespace AsyncClientServer.Messaging
 							data = message;
 						}
 
-						SendBytesPartial(data, id);
+						SendBytesPartial(data, id); //Send the buffer
 
 						
 					}
@@ -296,6 +280,8 @@ namespace AsyncClientServer.Messaging
 		}
 
 
+		#region Byte Array Creation
+
 		//Writes a message to byte array
 		private byte[] CreateByteArray(string message, string header, bool encrypt)
 		{
@@ -308,14 +294,14 @@ namespace AsyncClientServer.Messaging
 				{
 					//Header
 					byte[] encryptedPrefix = Encoding.UTF8.GetBytes("ENCRYPTED_");
-					byte[] encryptedHeader = Encrypter.EncryptStringToBytes(header);
+					byte[] encryptedHeader = MessageEncryption.EncryptStringToBytes(header);
 
 					headerArray = new byte[encryptedHeader.Length + encryptedPrefix.Length];
 
 					encryptedPrefix.CopyTo(headerArray, 0);
 					encryptedHeader.CopyTo(headerArray, 10);
 
-					messageArray = Encrypter.EncryptStringToBytes(message);
+					messageArray = MessageEncryption.EncryptStringToBytes(message);
 				}
 				else
 				{
@@ -378,16 +364,16 @@ namespace AsyncClientServer.Messaging
 				//Check if the file and header have to be encrypted.
 				if (encryptFile)
 				{
-					Encrypter.FileEncrypt(fileToSend.FullName);
+					MessageEncryption.FileEncrypt(fileToSend.FullName);
 					//Delete compressed file
 					if (compressFile)
 						File.Delete(fileToSend.FullName);
 
-					fileToSend = new FileInfo(fileToSend.FullName + Encrypter.Extension);
-					remoteSaveLocation += Encrypter.Extension;
+					fileToSend = new FileInfo(fileToSend.FullName + MessageEncryption.Extension);
+					remoteSaveLocation += MessageEncryption.Extension;
 
 					byte[] encryptedPrefix = Encoding.UTF8.GetBytes("ENCRYPTED_");
-					byte[] encryptedHeader = Encrypter.EncryptStringToBytes(remoteSaveLocation);
+					byte[] encryptedHeader = MessageEncryption.EncryptStringToBytes(remoteSaveLocation);
 
 					header = new byte[encryptedHeader.Length + encryptedPrefix.Length];
 
@@ -455,18 +441,18 @@ namespace AsyncClientServer.Messaging
 				if (encryptFolder)
 				{
 					//Encrypt the file with AES256
-					Encrypter.FileEncrypt(tempPath);
+					MessageEncryption.FileEncrypt(tempPath);
 
 					//Delete compressed file
 					File.Delete(tempPath);
 
 					//Change the path with encryption
-					folderToSend = tempPath + Encrypter.Extension;
-					remoteFolderLocation += Encrypter.Extension;
+					folderToSend = tempPath + MessageEncryption.Extension;
+					remoteFolderLocation += MessageEncryption.Extension;
 
 					//The encrypted header
 					byte[] encryptedPrefix = Encoding.UTF8.GetBytes("ENCRYPTED_");
-					byte[] encryptedHeader = Encrypter.EncryptStringToBytes(remoteFolderLocation);
+					byte[] encryptedHeader = MessageEncryption.EncryptStringToBytes(remoteFolderLocation);
 
 					header = new byte[encryptedHeader.Length + encryptedPrefix.Length];
 
@@ -531,6 +517,10 @@ namespace AsyncClientServer.Messaging
 		{
 			return CreateByteArray(message, "<h>" + header + "</h>", encrypt);
 		}
+
+
+		#endregion
+
 
 	}
 }
