@@ -1,16 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Net.Mime;
 using System.Security.Cryptography;
-using System.Security.Policy;
 using System.Text;
-using System.Threading.Tasks;
 
-namespace AsyncClientServer.Cryptography
+namespace AsyncClientServer.Messaging.Cryptography
 {
-	public class Aes256: Encryption
+	public class Aes256: MessageEncryption
 	{
 
 		public Aes256()
@@ -46,8 +41,8 @@ namespace AsyncClientServer.Cryptography
 		public override byte[] EncryptStringToBytes(string plainText)
 		{
 			// Check arguments.
-			if (plainText == null || plainText.Length <= 0)
-				throw new ArgumentNullException("plainText");
+			if (string.IsNullOrEmpty(plainText))
+				throw new ArgumentNullException(nameof(plainText));
 			byte[] encrypted;
 
 			// Create an Aes object
@@ -94,7 +89,7 @@ namespace AsyncClientServer.Cryptography
 			{
 				// Check arguments.
 				if (cipherText == null || cipherText.Length <= 0)
-					throw new ArgumentNullException("cipherText");
+					throw new ArgumentNullException(nameof(cipherText));
 
 				byte[] decryptedBytes = new byte[cipherText.Length];
 
@@ -212,7 +207,7 @@ namespace AsyncClientServer.Cryptography
 			}
 			catch (Exception ex)
 			{
-				Console.WriteLine("Error: " + ex.Message);
+				throw new Exception("Error:" + ex.Message, ex);
 			}
 			finally
 			{

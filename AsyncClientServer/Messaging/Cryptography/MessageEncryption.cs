@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace AsyncClientServer.Cryptography
+﻿namespace AsyncClientServer.Messaging.Cryptography
 {
-	public abstract class Encryption
+	public abstract class MessageEncryption
 	{
 
 		public string Extension => ".EncryptedPART";

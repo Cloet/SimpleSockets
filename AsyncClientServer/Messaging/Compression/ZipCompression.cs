@@ -1,13 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace AsyncClientServer.Compression
+namespace AsyncClientServer.Messaging.Compression
 {
 	internal class ZipCompression: FolderCompression
 	{

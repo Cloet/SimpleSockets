@@ -9,9 +9,9 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
-using AsyncClientServer.Cryptography;
-using AsyncClientServer.Compression;
 using AsyncClientServer.Messaging;
+using AsyncClientServer.Messaging.Compression;
+using AsyncClientServer.Messaging.Cryptography;
 using AsyncClientServer.Messaging.Metadata;
 
 namespace AsyncClientServer.Server
@@ -155,14 +155,14 @@ namespace AsyncClientServer.Server
 		/// <summary>
 		/// Used to encrypt files/folders
 		/// </summary>
-		public Encryption MessageEncryptor
+		public MessageEncryption ServerMessageEncryption
 		{
 			set
 			{
 				if (IsServerRunning)
 					throw new Exception("The Encrypter cannot be changed while the server is running.");
 
-				Encrypter = value ?? throw new ArgumentNullException(nameof(value));
+				MessageEncryption = value ?? throw new ArgumentNullException(nameof(value));
 			} 
 		}
 
@@ -209,7 +209,7 @@ namespace AsyncClientServer.Server
 
 			IsServerRunning = false;
 
-			Encrypter = new Aes256();
+			MessageEncryption = new Aes256();
 			FileCompressor = new GZipCompression();
 			FolderCompressor = new ZipCompression();
 		}

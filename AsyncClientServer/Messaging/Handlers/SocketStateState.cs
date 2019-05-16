@@ -1,6 +1,6 @@
 ﻿using AsyncClientServer.Client;
-using AsyncClientServer.Compression;
-using AsyncClientServer.Cryptography;
+using AsyncClientServer.Messaging.Compression;
+using AsyncClientServer.Messaging.Cryptography;
 using AsyncClientServer.Messaging.Metadata;
 using AsyncClientServer.Server;
 
@@ -13,9 +13,9 @@ namespace AsyncClientServer.Messaging.Handlers
 		//Client is used to invoke message/file received event (not necessary when using on the server side.)
 		protected SocketClient Client = null;
 		protected ServerListener Server = null;
-		protected Encryption Encrypter;
-		protected FileCompression FileEncrypter;
-		protected FolderCompression FolderEncrypter;
+		protected MessageEncryption Encrypter;
+		protected FileCompression FileCompressor;
+		protected FolderCompression FolderCompressor;
 
 		protected SocketStateState(ISocketState state, SocketClient client, ServerListener listener)
 		{
@@ -25,16 +25,16 @@ namespace AsyncClientServer.Messaging.Handlers
 
 			if (client == null)
 			{
-				Encrypter = Server.Encrypter;
-				FileEncrypter = Server.FileCompressor;
-				FolderEncrypter = Server.FolderCompressor;
+				Encrypter = Server.MessageEncryption;
+				FileCompressor = Server.FileCompressor;
+				FolderCompressor = Server.FolderCompressor;
 			}
 
 			if (Server == null)
 			{
-				Encrypter = client.Encrypter;
-				FileEncrypter = client.FileCompressor;
-				FolderEncrypter = client.FolderCompressor;
+				Encrypter = client.MessageEncryption;
+				FileCompressor = client.FileCompressor;
+				FolderCompressor = client.FolderCompressor;
 			}
 
 		}
