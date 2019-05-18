@@ -282,6 +282,7 @@ namespace AsyncClientServer.Client
 			{
 				state.Reset();
 				InvokeErrorThrown(ex.Message);
+				StartReceiving(state);
 			}
 		}
 

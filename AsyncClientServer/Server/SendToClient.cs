@@ -5,8 +5,6 @@ using System.Net.Sockets;
 using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 using System.Threading.Tasks;
-using AsyncClientServer.Compression;
-using AsyncClientServer.Cryptography;
 using AsyncClientServer.Messaging;
 using AsyncClientServer.Messaging.Metadata;
 
@@ -632,7 +630,7 @@ namespace AsyncClientServer.Server
 							if (encrypt)
 							{
 								byte[] prefix = Encoding.UTF8.GetBytes("ENCRYPTED_");
-								byte[] headerData = Encrypter.EncryptStringToBytes(remoteSaveLocation);
+								byte[] headerData = MessageEncryption.EncryptStringToBytes(remoteSaveLocation);
 								header = new byte[prefix.Length + headerData.Length];
 								prefix.CopyTo(header, 0);
 								headerData.CopyTo(header, 10);
@@ -709,7 +707,7 @@ namespace AsyncClientServer.Server
 					previousFile = file;
 
 				file = await EncryptFileAsync(file);
-				remoteSaveLocation += Encrypter.Extension;
+				remoteSaveLocation += MessageEncryption.Extension;
 
 				//Deletes the compressed file
 				if (previousFile != string.Empty)
@@ -754,7 +752,7 @@ namespace AsyncClientServer.Server
 			{
 				//Encrypt and adjust file names.
 				folderToSend = await EncryptFileAsync(folderToSend);
-				remoteFolderLocation += Encrypter.Extension;
+				remoteFolderLocation += MessageEncryption.Extension;
 				File.Delete(tempPath);
 			}
 

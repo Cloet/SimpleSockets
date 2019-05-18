@@ -1,4 +1,7 @@
 # AsyncClientServer with ssl implementation
+
+[![NuGet version](https://badge.fury.io/nu/AsyncClientServer.svg)](https://badge.fury.io/nu/AsyncClientServer)
+
 C# Library using sockets to connect client to server using Asynchronous programming.
 
 ## SSL

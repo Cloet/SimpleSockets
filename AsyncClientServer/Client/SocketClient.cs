@@ -1,6 +1,4 @@
-﻿using AsyncClientServer.Compression;
-using AsyncClientServer.Cryptography;
-using AsyncClientServer.Messaging;
+﻿using AsyncClientServer.Messaging;
 using AsyncClientServer.Messaging.Metadata;
 using System;
 using System.Linq;
@@ -8,6 +6,8 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Timers;
+using AsyncClientServer.Messaging.Compression;
+using AsyncClientServer.Messaging.Cryptography;
 
 namespace AsyncClientServer.Client
 {
@@ -111,14 +111,14 @@ namespace AsyncClientServer.Client
 		/// <summary>
 		/// Used to encrypt files/folders
 		/// </summary>
-		public Encryption MessageEncrypter
+		public MessageEncryption ClientMessageEncryption
 		{
 			set
 			{
 				if (IsClientRunning)
 					throw new Exception("The MessageEncrypter cannot be changed while the client is running.");
 
-				Encrypter = value ?? throw new ArgumentNullException(nameof(value));
+				MessageEncryption = value ?? throw new ArgumentNullException(nameof(value));
 			}
 		}
 
@@ -180,7 +180,7 @@ namespace AsyncClientServer.Client
 
 			IsClientRunning = false;
 
-			Encrypter = new Aes256();
+			MessageEncryption = new Aes256();
 			FileCompressor = new GZipCompression();
 			FolderCompressor = new ZipCompression();
 		}

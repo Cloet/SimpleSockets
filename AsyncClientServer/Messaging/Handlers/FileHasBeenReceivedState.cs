@@ -118,17 +118,17 @@ namespace AsyncClientServer.Messaging.Handlers
 		{
 			FileInfo info = new FileInfo(path);
 
-			if (info.Extension == FileEncrypter.Extension)
+			if (info.Extension == FileCompressor.Extension)
 			{
-				FileInfo decompressedFile = FileEncrypter.Decompress(info);
+				FileInfo decompressedFile = FileCompressor.Decompress(info);
 				File.Delete(info.FullName);
 				return decompressedFile.Name;
 			}
 			
-			if (info.Extension == FolderEncrypter.Extension)
+			if (info.Extension == FolderCompressor.Extension)
 			{
 				DirectoryInfo extractedFolder = new DirectoryInfo(info.FullName.Remove(info.FullName.Length - info.Extension.Length));
-				FolderEncrypter.Extract(info.FullName, extractedFolder.FullName);
+				FolderCompressor.Extract(info.FullName, extractedFolder.FullName);
 				File.Delete(info.FullName);
 				return extractedFolder.Name;
 			}
