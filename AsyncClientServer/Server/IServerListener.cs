@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net;
 using AsyncClientServer.Compression;
 using AsyncClientServer.Cryptography;
 using AsyncClientServer.Messaging.Metadata;
@@ -94,6 +95,19 @@ namespace AsyncClientServer.Server
 		bool IsServerRunning { get;}
 
 		/// <summary>
+		/// Server will only accept IP Addresses that are in the whitelist.
+		/// If the whitelist is empty all IP's will be accepted unless they are blacklisted.
+		/// </summary>
+		IList<IPAddress> WhiteList { get; set; }
+
+		/// <summary>
+		/// The server will not accept connections from these IPAddresses.
+		/// Whitelist has priority over Blacklist meaning that if an IPAddress is in the whitelist and blacklist
+		/// It will still be added.
+		/// </summary>
+		 IList<IPAddress> BlackList { get; set; }
+
+		/// <summary>
 		/// Starts the server on a certain port
 		/// </summary>
 		/// <param name="ip"></param>
@@ -126,6 +140,13 @@ namespace AsyncClientServer.Server
 		/// <param name="id"></param>
 		/// <returns></returns>
 		bool IsConnected(int id);
+
+		/// <summary>
+		/// Export Connected Clients to a DSV (Delimiter separated values)  File
+		/// </summary>
+		/// <param name="path"></param>
+		/// <param name="delimiter"></param>
+		void ExportConnectedClientsToDsv(string path, string delimiter = ";");
 
 		/// <summary>
 		/// Gets all currently connected clients

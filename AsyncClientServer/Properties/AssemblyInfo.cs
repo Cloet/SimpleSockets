@@ -6,12 +6,12 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("AsyncClientServer")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription(".NET Client/server library with SSL implementation. Supports Message Framing for reliable transmission and receipt of data.")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Hewlett-Packard")]
+[assembly: AssemblyCompany("Cloet")]
 [assembly: AssemblyProduct("AsyncClientServer")]
-[assembly: AssemblyCopyright("Copyright © Hewlett-Packard 2019")]
-[assembly: AssemblyTrademark("")]
+[assembly: AssemblyCopyright("Copyright 2019")]
+[assembly: AssemblyTrademark("Cloet")]
 [assembly: AssemblyCulture("")]
 
 // Setting ComVisible to false makes the types in this assembly not visible

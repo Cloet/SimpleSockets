@@ -74,7 +74,7 @@ namespace AsyncClientServer.Server
 			Port = port;
 			Ip = ip;
 
-			var endpoint = new IPEndPoint(GetIp(ip), port);
+			var endpoint = new IPEndPoint(DetermineListenerIp(ip), port);
 
 			TokenSource = new CancellationTokenSource();
 			Token = TokenSource.Token;
@@ -123,16 +123,16 @@ namespace AsyncClientServer.Server
 					state = new SocketState(((Socket)result.AsyncState).EndAccept(result), id);
 				}
 
+				//If the server shouldn't accept the IP do nothing.
+				if (!IsConnectionAllowed(state))
+					return;
+
 				var stream = new NetworkStream(state.Listener);
 
 				if (_acceptInvalidCertificates)
-				{
 					state.SslStream = new SslStream(stream, false, new RemoteCertificateValidationCallback(AcceptCertificate));
-				}
 				else
-				{
 					state.SslStream = new SslStream(stream, false);
-				}
 
 
 				Task.Run(() =>
@@ -141,7 +141,10 @@ namespace AsyncClientServer.Server
 
 					if (success)
 					{
-						ConnectedClients.Add(id, state);
+						lock (ConnectedClients)
+						{
+							ConnectedClients.Add(id, state);
+						}
 						ClientConnectedInvoke(id, state);
 						StartReceiving(state);
 					}

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.Eventing.Reader;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -49,7 +50,7 @@ namespace AsyncClientServer.Server
 			Port = port;
 			Ip = ip;
 
-			var endpoint = new IPEndPoint(GetIp(ip), port);
+			var endpoint = new IPEndPoint(DetermineListenerIp(ip), port);
 
 			TokenSource = new CancellationTokenSource();
 			Token = TokenSource.Token;
@@ -102,9 +103,12 @@ namespace AsyncClientServer.Server
 				{
 					var id = !ConnectedClients.Any() ? 1 : ConnectedClients.Keys.Max() + 1;
 
-					
-
 					state = new SocketState(((Socket) result.AsyncState).EndAccept(result), id);
+
+
+					//If the server shouldn't accept the IP do nothing.
+					if (!IsConnectionAllowed(state))
+						return;
 
 					var client = ConnectedClients.FirstOrDefault(x => x.Value == state);
 

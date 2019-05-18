@@ -140,6 +140,19 @@ namespace AsyncClientServer.Server
 			return ConnectedClients.ToDictionary(x => x.Key, x => (ISocketInfo) x.Value);
 		}
 
+		/// <summary>
+		/// Server will only accept IP Addresses that are in the whitelist.
+		/// If the whitelist is empty all IPs will be accepted unless they are blacklisted.
+		/// </summary>
+		public IList<IPAddress> WhiteList { get; set; }
+
+		/// <summary>
+		/// The server will not accept connections from these IPAddresses.
+		/// Whitelist has priority over Blacklist meaning that if an IPAddress is in the whitelist and blacklist
+		/// It will still be added.
+		/// </summary>
+		public IList<IPAddress> BlackList { get; set; }
+
 		/// <inheritdoc />
 		/// <summary>
 		/// Get the port used to start the server
@@ -216,20 +229,20 @@ namespace AsyncClientServer.Server
 
 		/// <summary>
 		/// Add a socket to the clients dictionary.
-		/// Lock clients temporary to handle mulitple access.
+		/// Lock clients temporary to handle multiple access.
 		/// ReceiveCallback raise an event, after the message receiving is complete.
 		/// </summary>
 		/// <param name="result"></param>
 		protected abstract void OnClientConnect(IAsyncResult result);
 
 		//Converts string to IPAddress
-		protected IPAddress GetIp(string ip)
+		protected IPAddress DetermineListenerIp(string ip)
 		{
 			try
 			{
 				if (string.IsNullOrEmpty(ip))
 				{
-					IPAddress ipAdr = IPAddress.Any;
+					var ipAdr = IPAddress.Any;
 					Ip = ipAdr.ToString();
 					return ipAdr;
 				}
@@ -248,18 +261,69 @@ namespace AsyncClientServer.Server
 			}
 		}
 
+		/// <summary>
+		/// Export Connected Clients to a DSV (Delimiter separated values)  File
+		/// </summary>
+		/// <param name="path"></param>
+		/// <param name="delimiter"></param>
+		public void ExportConnectedClientsToDsv(string path, string delimiter = ";")
+		{
+
+			using (StreamWriter sw = new StreamWriter(path))
+			{
+				var last = GetConnectedClients().Last();
+				foreach (var client in GetConnectedClients())
+				{
+					if (client.Key != last.Key)
+						sw.Write(client.Value.RemoteIPv4 + delimiter);
+					else
+						sw.Write(client.Value.RemoteIPv4);
+
+				}
+			}
+
+		}
+
+		//Check if the server should allow the client that is attempting to connect.
+		internal bool IsConnectionAllowed(ISocketState state)
+		{
+			if (WhiteList.Count > 0)
+			{
+				return CheckWhitelist(state.RemoteIPv4) || CheckWhitelist(state.RemoteIPv6);
+			}
+
+			if (BlackList.Count > 0)
+			{
+				return !CheckBlacklist(state.RemoteIPv4) && !CheckBlacklist(state.RemoteIPv6);
+			}
+			
+			return true;
+		}
+
+		//Checks if an ip is in the whitelist
+		protected bool CheckWhitelist(string ip)
+		{
+			var address = IPAddress.Parse(ip);
+			return WhiteList.Any(x => Equals(x, address));
+		}
+
+		//Checks if an ip is in the blacklist
+		protected bool CheckBlacklist(string ip)
+		{
+			var address = IPAddress.Parse(ip);
+			return BlackList.Any(x => Equals(x, address));
+		}
+
 		//Timer that checks client every x seconds
 		private void KeepAlive(object source, ElapsedEventArgs e)
 		{
 			CheckAllClients();
 		}
 
-		/* Gets a socket from the clients dictionary by his Id. */
+		// Gets a socket from the clients dictionary by his Id.
 		internal ISocketState GetClient(int id)
 		{
-			ISocketState state;
-
-			return ConnectedClients.TryGetValue(id, out state) ? state : null;
+			return ConnectedClients.TryGetValue(id, out var state) ? state : null;
 		}
 
 		#region Public Methods

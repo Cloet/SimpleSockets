@@ -11,7 +11,7 @@
 		/// The id of the state
 		/// </summary>
 		int Id { get; }
-
+		
 		/// <summary>
 		/// The remote IPv4 of the client.
 		/// </summary>

@@ -17,7 +17,7 @@ using AsyncClientServer.Messaging.Metadata;
 
 namespace AsyncClientServer.Client
 {
-	public sealed class AsyncSocketSslClient: SocketClient
+	public sealed class AsyncSocketSslClient : SocketClient
 	{
 
 		private SslStream _sslStream;
@@ -35,7 +35,7 @@ namespace AsyncClientServer.Client
 		/// <param name="certificatePassword"></param>
 		/// <param name="tls"></param>
 		/// <param name="acceptInvalidCertificates"></param>
-		public AsyncSocketSslClient(string certificate, string certificatePassword,TlsProtocol tls = TlsProtocol.Tls12,bool acceptInvalidCertificates = true) : base()
+		public AsyncSocketSslClient(string certificate, string certificatePassword, TlsProtocol tls = TlsProtocol.Tls12, bool acceptInvalidCertificates = true) : base()
 		{
 
 			if (string.IsNullOrEmpty(certificate))
@@ -113,7 +113,7 @@ namespace AsyncClientServer.Client
 				{
 					InvokeErrorThrown(ex.Message);
 				}
-			},Token);
+			}, Token);
 
 		}
 
@@ -180,49 +180,35 @@ namespace AsyncClientServer.Client
 		//Authenticate sslstream
 		private async Task<bool> Authenticate(SslStream sslStream)
 		{
-			try
+			SslProtocols protocol = SslProtocols.Tls12;
+
+			switch (_tlsProtocol)
 			{
-				SslProtocols protocol = SslProtocols.Tls12;
-
-				switch (_tlsProtocol)
-				{
-					case TlsProtocol.Tls10:
-						protocol = SslProtocols.Tls;
-						break;
-					case TlsProtocol.Tls11:
-						protocol = SslProtocols.Tls11;
-						break;
-					case TlsProtocol.Tls12:
-						protocol = SslProtocols.Tls12;
-						break;
-				}
-
-
-				await sslStream.AuthenticateAsClientAsync(IpServer, _sslCertificateCollection, protocol, false);
-
-				if (!sslStream.IsEncrypted)
-				{
-					throw new Exception("Stream from server is not encrypted.");
-				}
-
-				if (!sslStream.IsAuthenticated)
-				{
-					throw new Exception("Stream from server not authenticated.");
-				}
-
-				return true;
-			}
-			catch (IOException ex)
-			{
-				InvokeErrorThrown(ex.Message);
-				return false;
-			}
-			catch (Exception ex)
-			{
-				InvokeErrorThrown(ex.Message);
-				return false;
+				case TlsProtocol.Tls10:
+					protocol = SslProtocols.Tls;
+					break;
+				case TlsProtocol.Tls11:
+					protocol = SslProtocols.Tls11;
+					break;
+				case TlsProtocol.Tls12:
+					protocol = SslProtocols.Tls12;
+					break;
 			}
 
+
+			await sslStream.AuthenticateAsClientAsync(IpServer, _sslCertificateCollection, protocol, false);
+
+			if (!sslStream.IsEncrypted)
+			{
+				throw new AuthenticationException("Stream from server is not encrypted.");
+			}
+
+			if (!sslStream.IsAuthenticated)
+			{
+				throw new AuthenticationException("Stream from server not authenticated.");
+			}
+
+			return true;
 
 		}
 
@@ -254,14 +240,15 @@ namespace AsyncClientServer.Client
 					Close();
 					InvokeMessageFailed(bytes, "Server socket is not connected.");
 				}
-				else { 
+				else
+				{
 					CloseClient = close;
 					BlockingMessageQueue.Enqueue(new Message(bytes, MessageType.Complete));
 				}
 			}
 			catch (Exception ex)
 			{
-				InvokeMessageFailed(bytes,ex.Message);
+				InvokeMessageFailed(bytes, ex.Message);
 			}
 		}
 

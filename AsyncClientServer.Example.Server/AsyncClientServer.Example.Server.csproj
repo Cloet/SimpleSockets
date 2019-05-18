@@ -107,12 +107,6 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\AsyncClientServer\AsyncClientServer.csproj">
-      <Project>{1e5cb910-ec0a-4a97-98a4-87505733a3e4}</Project>
-      <Name>AsyncClientServer</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <Resource Include="Images\Icons\computer.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Resource>
@@ -122,6 +116,12 @@
     <Resource Include="Images\Icons\unlinked.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Resource>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AsyncClientServer\AsyncClientServer.csproj">
+      <Project>{1e5cb910-ec0a-4a97-98a4-87505733a3e4}</Project>
+      <Name>AsyncClientServer</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
