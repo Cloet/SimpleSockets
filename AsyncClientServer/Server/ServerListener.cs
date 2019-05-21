@@ -219,6 +219,8 @@ namespace AsyncClientServer.Server
 			_keepAliveTimer.Elapsed += KeepAlive;
 			_keepAliveTimer.AutoReset = true;
 			_keepAliveTimer.Enabled = true;
+			WhiteList = new List<IPAddress>();
+			BlackList = new List<IPAddress>();
 
 			IsServerRunning = false;
 

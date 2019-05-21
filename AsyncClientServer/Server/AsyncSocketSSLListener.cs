@@ -129,11 +129,8 @@ namespace AsyncClientServer.Server
 
 				var stream = new NetworkStream(state.Listener);
 
-				if (_acceptInvalidCertificates)
-					state.SslStream = new SslStream(stream, false, new RemoteCertificateValidationCallback(AcceptCertificate));
-				else
-					state.SslStream = new SslStream(stream, false);
-
+				//Create SslStream
+				state.SslStream = new SslStream(stream, false,new RemoteCertificateValidationCallback(AcceptCertificate));
 
 				Task.Run(() =>
 				{
@@ -208,17 +205,7 @@ namespace AsyncClientServer.Server
 			}
 			catch (IOException ex)
 			{
-				switch (ex.Message)
-				{
-					case "Authentication failed because the remote party has closed the transport stream.":
-					case "Unable to read data from the transport connection: An existing connection was forcibly closed by the remote host.":
-						throw new IOException("IOException " + state.Id + " closed the connection.");
-					case "The handshake failed due to an unexpected packet format.":
-						throw new IOException("IOException " + state.Id + " disconnected, invalid handshake.");
-					default:
-						throw new IOException(ex.Message, ex);
-				}
-
+				throw new IOException(ex.Message, ex);
 			}
 			catch (Exception ex)
 			{

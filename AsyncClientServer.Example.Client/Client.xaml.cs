@@ -31,7 +31,8 @@ namespace AsyncClientServer.Example.Client
 		{
 			InitializeComponent();
 
-			//_client = new AsyncSslClient("", "");
+			//_client = new AsyncSocketSslClient(@"", "");
+			
 			_client = new AsyncSocketClient();
 			BindEvents();
 			Task.Run(StartClient);
@@ -39,7 +40,7 @@ namespace AsyncClientServer.Example.Client
 
 		private void StartClient()
 		{
-			_client.StartClient("127.0.0.1", 13000);
+			_client.StartClient("178.118.182.101", 13000);
 		}
 
 		private void BindEvents()
