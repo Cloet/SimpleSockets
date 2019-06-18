@@ -17,7 +17,7 @@ namespace AsyncClientServer.Example.Server.ViewModel
 {
 	public class ClientInfoViewModel: INotifyPropertyChanged
 	{
-		public IServerListener Listener;
+		public ServerListener Listener;
 		private ObservableCollection<Model.Client> _clientList = new ObservableCollection<Model.Client>();
 
 		public ObservableCollection<Model.Client> ClientList

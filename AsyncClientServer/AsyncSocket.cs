@@ -1,13 +1,16 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using AsyncClientServer.Messaging;
 using AsyncClientServer.Messaging.Compression;
 using AsyncClientServer.Messaging.Cryptography;
+using AsyncClientServer.Messaging.Metadata;
 
-namespace AsyncClientServer.Messaging
+namespace AsyncClientServer
 {
-
 	/// <summary>
 	/// Abstract class used to send data to server/client
 	/// <para>Used to set different types of headers.</para>
@@ -19,77 +22,10 @@ namespace AsyncClientServer.Messaging
 	/// </para>
 	/// <para>Check CreateByteArray method for more info.</para>
 	/// </summary>
-	public abstract class MessageFactory
+	public abstract class AsyncSocket: IDisposable
 	{
-		/// <summary>
-		/// Used for encryption and decryption of data.
-		/// Created in ServerListener and TcpClient
-		/// </summary>
-		public MessageEncryption MessageEncryption { get; protected set; }
 
-		/// <summary>
-		/// Used to compress and decompress files.
-		/// </summary>
-		public FileCompression FileCompressor { get; set; }
-
-		/// <summary>
-		/// Class used to compress and extract folders.
-		/// </summary>
-		public FolderCompression FolderCompressor { get; set; }
-
-
-		#region Encryption/Compression
-
-		//Encrypts a file and returns the new file path.
-		protected async Task<string> EncryptFileAsync(string path)
-		{
-			try
-			{
-				return await Task.Run(() =>
-				{
-					MessageEncryption.FileEncrypt(Path.GetFullPath(path));
-					path += MessageEncryption.Extension;
-					return path;
-				});
-			}
-			catch (Exception ex)
-			{
-				throw new Exception(ex.Message, ex);
-			}
-		}
-
-		//Compresses a file and returns the new path
-		protected async Task<string> CompressFileAsync(string path)
-		{
-			try
-			{
-				return await Task.Run(() => FileCompressor.Compress(new FileInfo(Path.GetFullPath(path))).FullName);
-			}
-			catch (Exception ex)
-			{
-				throw new Exception(ex.Message, ex);
-			}
-		}
-
-		//Compresses a folder and returns the new path
-		protected async Task<string> CompressFolderAsync(string path, string tempPath)
-		{
-			try
-			{
-				return await Task.Run(() =>
-				{
-					FolderCompressor.Compress(Path.GetFullPath(path), Path.GetFullPath(tempPath));
-					return tempPath;
-				});
-			}
-			catch (Exception ex)
-			{
-				throw new Exception(ex.Message, ex);
-			}
-		}
-
-		#endregion
-
+		#region MessageCreation
 
 		//Triggered when file/folder is done sending.
 		protected abstract void FileTransferCompleted(bool close, int id);
@@ -101,7 +37,7 @@ namespace AsyncClientServer.Messaging
 		// This method Sends a file asynchronous.
 		// It checks if the file has to be compressed and/or encrypted before being sent.
 		// It reads the file with a default buffer of 10Mb. Whenever a part of the buffer is read it will send bytes.
-		protected async Task CreateAndSendAsyncFileMessage(string fileLocation, string remoteSaveLocation,bool compressFile, bool encryptFile, bool close, int id = -1)
+		protected async Task CreateAndSendAsyncFileMessage(string fileLocation, string remoteSaveLocation, bool compressFile, bool encryptFile, bool close, int id = -1)
 		{
 
 			try
@@ -151,7 +87,7 @@ namespace AsyncClientServer.Messaging
 		// This methods Sends a folder asynchronous.
 		// It checks if the folder has to be encrypted before being sent.
 		// The folder will always be compressed as a .ZIP file to make transfer easier.
-		protected async Task CreateAndSendAsyncFolderMessage(string folderLocation, string remoteFolderLocation,bool encryptFolder, bool close, int id = -1)
+		protected async Task CreateAndSendAsyncFolderMessage(string folderLocation, string remoteFolderLocation, bool encryptFolder, bool close, int id = -1)
 		{
 
 			try
@@ -262,7 +198,7 @@ namespace AsyncClientServer.Messaging
 
 						SendBytesPartial(data, id); //Send the buffer
 
-						
+
 					}
 
 				}
@@ -271,7 +207,7 @@ namespace AsyncClientServer.Messaging
 				if (encrypt)
 					File.Delete(file);
 
-				
+
 			}
 			catch (Exception ex)
 			{
@@ -521,6 +457,163 @@ namespace AsyncClientServer.Messaging
 
 		#endregion
 
+		#endregion
+
+		#region Encryption/Compression
+
+
+		//Encrypts a file and returns the new file path.
+		protected async Task<string> EncryptFileAsync(string path)
+		{
+			try
+			{
+				return await Task.Run(() =>
+				{
+					MessageEncryption.FileEncrypt(Path.GetFullPath(path));
+					path += MessageEncryption.Extension;
+					return path;
+				});
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message, ex);
+			}
+		}
+
+		//Compresses a file and returns the new path
+		protected async Task<string> CompressFileAsync(string path)
+		{
+			try
+			{
+				return await Task.Run(() => FileCompressor.Compress(new FileInfo(Path.GetFullPath(path))).FullName);
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message, ex);
+			}
+		}
+
+		//Compresses a folder and returns the new path
+		protected async Task<string> CompressFolderAsync(string path, string tempPath)
+		{
+			try
+			{
+				return await Task.Run(() =>
+				{
+					FolderCompressor.Compress(Path.GetFullPath(path), Path.GetFullPath(tempPath));
+					return tempPath;
+				});
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message, ex);
+			}
+		}
+
+		#endregion
+
+		#region Vars
+
+		protected MessageEncryption _messageEncryption;
+		protected FileCompression _fileCompressor;
+		protected FolderCompression _folderCompressor;
+		
+		/// <summary>
+		/// Used to compress files before sending
+		/// </summary>
+		public FileCompression FileCompressor
+		{
+			internal get => _fileCompressor;
+			set
+			{
+				if (IsRunning)
+					throw new Exception("The file compressor cannot be changed while the socket is running.");
+
+				_fileCompressor = value ?? throw new ArgumentNullException(nameof(value));
+			}
+
+		}
+
+		/// <summary>
+		/// Used to encrypt files/folders
+		/// </summary>
+		public MessageEncryption MessageEncryption
+		{
+			internal get => _messageEncryption;
+			set
+			{
+				if (IsRunning)
+					throw new Exception("The Encrypter cannot be changed while the socket is running.");
+
+				_messageEncryption = value ?? throw new ArgumentNullException(nameof(value));
+			}
+		}
+
+		/// <summary>
+		/// Used to compress folder before sending
+		/// </summary>
+		public FolderCompression FolderCompressor
+		{
+			internal get => _folderCompressor;
+			set
+			{
+				if (IsRunning)
+					throw new Exception("The Folder compressor cannot be changed while the socket is running.");
+
+				_folderCompressor = value ?? throw new ArgumentNullException(nameof(value));
+			}
+		}
+
+		/// <summary>
+		/// Get the port used to start the server
+		/// </summary>
+		public int Port { get; protected set; }
+
+		/// <summary>
+		/// Get the ip on which the server is running
+		/// </summary>
+		public string Ip { get; protected set; }
+
+		/// <summary>
+		/// Indicates if the server or client is running.
+		/// </summary>
+		public bool IsRunning { get; set; }
+
+		#endregion
+
+		#region Methods
+
+		/// <summary>
+		/// Dispose of the socket
+		/// </summary>
+		public abstract void Dispose();
+
+		/// <summary>
+		/// Change the buffer size of the server
+		/// </summary>
+		/// <param name="bufferSize"></param>
+		public void ChangeSocketBufferSize(int bufferSize)
+		{
+			if (bufferSize < 1024)
+				throw new ArgumentException("The buffer size should be more then 1024 bytes.");
+
+			SocketState.ChangeBufferSize(bufferSize);
+		}
+
+		//When client receives message
+		protected abstract void ReceiveCallback(IAsyncResult result);
+
+		/// <summary>
+		/// Start receiving bytes from server
+		/// </summary>
+		/// <param name="state"></param>
+		/// <param name="offset"></param>
+		internal abstract void StartReceiving(ISocketState state, int offset = 0);
+
+		//Handle a message
+		protected abstract void HandleMessage(IAsyncResult result);
+		
+		#endregion
 
 	}
 }

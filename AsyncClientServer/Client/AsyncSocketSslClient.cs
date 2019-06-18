@@ -73,7 +73,7 @@ namespace AsyncClientServer.Client
 
 			_sslCertificateCollection = new X509Certificate2Collection { _sslCertificate };
 
-			IpServer = ipServer;
+			Ip = ipServer;
 			Port = port;
 			ReconnectInSeconds = reconnectInSeconds;
 			KeepAliveTimer.Enabled = false;
@@ -196,7 +196,7 @@ namespace AsyncClientServer.Client
 			}
 
 
-			await sslStream.AuthenticateAsClientAsync(IpServer, _sslCertificateCollection, protocol, false);
+			await sslStream.AuthenticateAsClientAsync(Ip, _sslCertificateCollection, protocol, false);
 
 			if (!sslStream.IsEncrypted)
 			{

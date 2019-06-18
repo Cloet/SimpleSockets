@@ -88,7 +88,7 @@ namespace AsyncClientServer.Server
 	/// Base class for ServerListener.
 	/// <para>Use AsyncSocketListener or AsyncSocketSslListener.</para>
 	/// </summary>
-	public abstract class ServerListener : SendToClient, IServerListener
+	public abstract class ServerListener : AsyncSocket
 	{
 
 		private static System.Timers.Timer _keepAliveTimer;
@@ -103,11 +103,6 @@ namespace AsyncClientServer.Server
 		protected CancellationTokenSource TokenSource { get; set; }
 		protected CancellationToken Token { get; set; }
 
-		/// <inheritdoc />
-		/// <summary>
-		/// Returns true when the server is running.
-		/// </summary>
-		public bool IsServerRunning { get; protected set; }
 
 		//Events
 		public event MessageReceivedHandler MessageReceived;
@@ -125,12 +120,11 @@ namespace AsyncClientServer.Server
 		/// Get dictionary of clients
 		/// </summary>
 		/// <returns></returns>
-		internal override IDictionary<int, ISocketState> GetClients()
+		internal IDictionary<int, ISocketState> GetClients()
 		{
 			return ConnectedClients;
 		}
 
-		/// <inheritdoc />
 		/// <summary>
 		/// Returns all currently connected clients
 		/// </summary>
@@ -152,62 +146,7 @@ namespace AsyncClientServer.Server
 		/// It will still be added.
 		/// </summary>
 		public IList<IPAddress> BlackList { get; set; }
-
-		/// <inheritdoc />
-		/// <summary>
-		/// Get the port used to start the server
-		/// </summary>
-		public int Port { get; protected set; }
-
-		/// <summary>
-		/// Get the ip on which the server is running
-		/// </summary>
-		public string Ip { get; protected set; }
-
-		/// <inheritdoc />
-		/// <summary>
-		/// Used to encrypt files/folders
-		/// </summary>
-		public MessageEncryption ServerMessageEncryption
-		{
-			set
-			{
-				if (IsServerRunning)
-					throw new Exception("The Encrypter cannot be changed while the server is running.");
-
-				MessageEncryption = value ?? throw new ArgumentNullException(nameof(value));
-			} 
-		}
-
-		/// <inheritdoc />
-		/// <summary>
-		/// Used to compress files before sending
-		/// </summary>
-		public FileCompression ServerFileCompressor
-		{
-			set
-			{
-				if (IsServerRunning)
-					throw new Exception("The FileCompressor cannot be changed while the server is running.");
-
-				FileCompressor = value ?? throw new ArgumentNullException(nameof(value));
-			} 
-		}
-
-		/// <inheritdoc />
-		/// <summary>
-		/// Used to compress folder before sending
-		/// </summary>
-		public FolderCompression ServerFolderCompressor
-		{
-			set
-			{
-				if (IsServerRunning)
-					throw new Exception("The FolderCompressor cannot be changed while the server is running.");
-
-				FolderCompressor = value ?? throw new ArgumentNullException(nameof(value));
-			}
-		}
+		
 
 		/// <summary>
 		/// Base constructor
@@ -222,7 +161,7 @@ namespace AsyncClientServer.Server
 			WhiteList = new List<IPAddress>();
 			BlackList = new List<IPAddress>();
 
-			IsServerRunning = false;
+			IsRunning = false;
 
 			MessageEncryption = new Aes256();
 			FileCompressor = new GZipCompression();
@@ -330,7 +269,6 @@ namespace AsyncClientServer.Server
 
 		#region Public Methods
 
-		/// <inheritdoc />
 		/// <summary>
 		/// Check if a client with given id is connected, remove if inactive.
 		/// </summary>
@@ -380,13 +318,14 @@ namespace AsyncClientServer.Server
 			StartListening(null, port, limit);
 		}
 
+
 		/// <summary>
 		/// Stops the server from listening
 		/// </summary>
 		public void StopListening()
 		{
 			TokenSource.Cancel();
-			IsServerRunning = false;
+			IsRunning = false;
 
 			foreach (var id in ConnectedClients.Keys.ToList())
 			{
@@ -401,7 +340,7 @@ namespace AsyncClientServer.Server
 		/// </summary>
 		public void ResumeListening()
 		{
-			if (IsServerRunning)
+			if (IsRunning)
 				throw new Exception("The server is already running.");
 
 			if (string.IsNullOrEmpty(Ip))
@@ -412,7 +351,6 @@ namespace AsyncClientServer.Server
 			StartListening(Ip, Port, Limit);
 		}
 
-		/// <inheritdoc />
 		/// <summary>
 		/// returns if a certain client is connected
 		/// </summary>
@@ -438,7 +376,7 @@ namespace AsyncClientServer.Server
 		/// <summary>
 		/// Properly dispose the class.
 		/// </summary>
-		public virtual void Dispose()
+		public override void Dispose()
 		{
 			try
 			{
@@ -446,7 +384,7 @@ namespace AsyncClientServer.Server
 				{
 					TokenSource.Cancel();
 					TokenSource.Dispose();
-					IsServerRunning = false;
+					IsRunning = false;
 					Listener.Dispose();
 					CanAcceptConnections.Dispose();
 					_keepAliveTimer.Enabled = false;
@@ -474,19 +412,7 @@ namespace AsyncClientServer.Server
 			}
 		}
 
-		/// <summary>
-		/// Change the buffer size of the server
-		/// </summary>
-		/// <param name="bufferSize"></param>
-		public void ChangeSocketBufferSize(int bufferSize)
-		{
-			if (bufferSize < 1024)
-				throw new ArgumentException("The buffer size should be more then 1024 bytes.");
 
-			SocketState.ChangeBufferSize(bufferSize);
-		}
-
-		/// <inheritdoc />
 		/// <summary>
 		/// Close a certain client
 		/// </summary>
@@ -550,7 +476,7 @@ namespace AsyncClientServer.Server
 		#region Receiving Data
 
 		//Handles messages the server receives
-		protected void ReceiveCallback(IAsyncResult result)
+		protected override void ReceiveCallback(IAsyncResult result)
 		{
 			try
 			{
@@ -560,15 +486,7 @@ namespace AsyncClientServer.Server
 			{
 				throw new Exception(ex.ToString());
 			}
-
-
 		}
-
-		//Start receiving
-		internal abstract void StartReceiving(ISocketState state, int offset = 0);
-
-		//Handles messages
-		protected abstract void HandleMessage(IAsyncResult result);
 
 		#endregion
 
@@ -623,7 +541,7 @@ namespace AsyncClientServer.Server
 
 		protected void ServerHasStartedInvoke()
 		{
-			IsServerRunning = true;
+			IsRunning = true;
 			ServerHasStarted?.Invoke();
 		}
 
@@ -661,6 +579,755 @@ namespace AsyncClientServer.Server
 		{
 			MessageReceived?.Invoke(id, text);
 		}
+
+		#endregion
+
+
+		#region Messaging
+
+		/// <summary>
+		/// Sends bytes to corresponding client.
+		/// <para>The id is not zero-based!</para>
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="data"></param>
+		/// <param name="close"></param>
+		/// <returns>Boolean, True when the message was sent successfully, False when an Error Occurred. (Errors will be invoked to MessageFailed.)</returns>
+		protected abstract void SendBytes(int id, byte[] data, bool close);
+
+
+		#region Message
+
+		/*==========================================
+		*
+		*	MESSAGE
+		*
+		*===========================================*/
+
+		/// <summary>
+		/// Send a message to corresponding client.
+		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
+		/// <para>Id is not zero-based!</para>
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="message"></param>
+		/// <param name="encryptMessage"></param>
+		/// <param name="close"></param>
+		/// <returns>Boolean, True when the message was sent successfully, False when an Error Occurred. (Errors will be invoked to MessageFailed.)</returns>
+		public void SendMessage(int id, string message, bool encryptMessage, bool close)
+		{
+			byte[] data = CreateByteMessage(message, encryptMessage);
+			SendBytes(id, data, close);
+		}
+
+		/// <summary>
+		/// Sends a message to the corresponding client.
+		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
+		/// <para>This method encrypts the message that will be send.</para>
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="message"></param>
+		/// <param name="close"></param>
+		/// <returns>Boolean, True when the message was sent successfully, False when an Error Occurred. (Errors will be invoked to MessageFailed.)</returns>
+		public void SendMessage(int id, string message, bool close)
+		{
+			SendMessage(id, message, true, close);
+		}
+
+		/// <summary>
+		/// Send a message to corresponding client asynchronous.
+		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
+		/// <para>Id is not zero-based!</para>
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="message"></param>
+		/// <param name="encryptMessage"></param>
+		/// <param name="close"></param>
+		/// <returns>Boolean, True when the message was sent successfully, False when an Error Occurred. (Errors will be invoked to MessageFailed.)</returns>
+		public async Task SendMessageAsync(int id, string message, bool encryptMessage, bool close)
+		{
+			await Task.Run(() => SendMessage(id, message, encryptMessage, close));
+		}
+
+		/// <summary>
+		/// Sends a message to the corresponding client asynchronous.
+		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
+		/// <para>This method encrypts the message that will be send.</para>
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="message"></param>
+		/// <param name="close"></param>
+		/// <returns>Boolean, True when the message was sent successfully, False when an Error Occurred. (Errors will be invoked to MessageFailed.)</returns>
+		public async Task SendMessageAsync(int id, string message, bool close)
+		{
+			await Task.Run(() => SendMessage(id, message, close));
+		}
+
+
+		#endregion
+
+		#region File
+
+		
+		/*================================
+		*
+		*	FILE
+		*
+		*===========================================*/
+
+		/// <summary>
+		/// Sends a file to corresponding client.
+		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
+		/// <para>The id is not zero-based!</para>
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="fileLocation"></param>
+		/// <param name="remoteSaveLocation"></param>
+		/// <param name="encryptFile"></param>
+		/// <param name="compressFile"></param>
+		/// <param name="close"></param>
+		/// <returns>Boolean, True when the message was sent successfully, False when an Error Occurred. (Errors will be invoked to MessageFailed.)</returns>
+		public void SendFile(int id, string fileLocation, string remoteSaveLocation, bool encryptFile, bool compressFile, bool close)
+		{
+			try
+			{
+				Task.Run(() => SendFileAsync(id, fileLocation, remoteSaveLocation, encryptFile, compressFile, close));
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message, ex);
+			}
+		}
+
+		/// <summary>
+		/// Sends a file to corresponding client.
+		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
+		/// <para>Encrypts and compresses the file before sending.</para>
+		/// <para>The id is not zero-based!</para>
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="fileLocation"></param>
+		/// <param name="remoteSaveLocation"></param>
+		/// <param name="close"></param>
+		public void SendFile(int id, string fileLocation, string remoteSaveLocation, bool close)
+		{
+			SendFile(id, fileLocation, remoteSaveLocation, false, true, close);
+		}
+
+		/// <summary>
+		/// Sends a file to corresponding client.
+		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
+		/// <para>The id is not zero-based!</para>
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="fileLocation"></param>
+		/// <param name="remoteFileLocation"></param>
+		/// <param name="encryptFile"></param>
+		/// <param name="compressFile"></param>
+		/// <param name="close"></param>
+		public async Task SendFileAsync(int id, string fileLocation, string remoteFileLocation, bool encryptFile, bool compressFile, bool close)
+		{
+			await CreateAndSendAsyncFileMessage(fileLocation, remoteFileLocation, compressFile, encryptFile, close, id);
+		}
+
+		/// <summary>
+		/// Sends a file to corresponding client.
+		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
+		/// <para>Encrypts and compresses the file before sending.</para>
+		/// <para>The id is not zero-based!</para>
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="fileLocation"></param>
+		/// <param name="remoteFileLocation"></param>
+		/// <param name="close"></param>
+		public async Task SendFileAsync(int id, string fileLocation, string remoteFileLocation, bool close)
+		{
+			await SendFileAsync(id, fileLocation, remoteFileLocation, false, true, close);
+		}
+
+
+		#endregion
+
+		#region Folder
+
+		/*=================================
+		*
+		*	FOLDER
+		*
+		*===========================================*/
+
+		/// <summary>
+		/// Sends a folder to the corresponding client.
+		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
+		/// <para>Folder will be compressed to .zip file before being sent.</para>
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="folderLocation"></param>
+		/// <param name="remoteFolderLocation"></param>
+		/// <param name="encryptFolder"></param>
+		/// <param name="close"></param>
+		public void SendFolder(int id, string folderLocation, string remoteFolderLocation, bool encryptFolder, bool close)
+		{
+			try
+			{
+				Task.Run(() => SendFolderAsync(id, folderLocation, remoteFolderLocation, encryptFolder, close));
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message, ex);
+			}
+		}
+
+		/// <summary>
+		/// Sends a folder to the corresponding client.
+		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
+		/// <para>Folder will be compressed to a .zip file and encrypted.</para>
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="folderLocation"></param>
+		/// <param name="remoteFolderLocation"></param>
+		/// <param name="close"></param>
+		public void SendFolder(int id, string folderLocation, string remoteFolderLocation, bool close)
+		{
+			SendFolder(id, folderLocation, remoteFolderLocation, true, close);
+		}
+
+		/// <summary>
+		/// Sends a folder to the corresponding client asynchronous.
+		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
+		/// <para>Folder will be compressed to .zip file before being sent.</para>
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="folderLocation"></param>
+		/// <param name="remoteFolderLocation"></param>
+		/// <param name="encryptFolder"></param>
+		/// <param name="close"></param>
+		public async Task SendFolderAsync(int id, string folderLocation, string remoteFolderLocation, bool encryptFolder, bool close)
+		{
+			try
+			{
+				await CreateAndSendAsyncFolderMessage(folderLocation, remoteFolderLocation, encryptFolder, close, id);
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message, ex);
+			}
+		}
+
+
+		/// <summary>
+		/// Sends a folder to the corresponding client asynchronous.
+		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
+		/// <para>Folder will be compressed to a .zip file and encrypted.</para>
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="folderLocation"></param>
+		/// <param name="remoteFolderLocation"></param>
+		/// <param name="close"></param>
+		/// <returns>Boolean, True when the message was sent successfully, False when an Error Occurred. (Errors will be invoked to MessageFailed.)</returns>
+		public async Task SendFolderAsync(int id, string folderLocation, string remoteFolderLocation, bool close)
+		{
+			await SendFolderAsync(id, folderLocation, remoteFolderLocation, false, close);
+		}
+
+		#endregion
+
+		#region Custom Header
+		
+		/// <summary>
+		/// Sends a message to the client with a custom header.
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="close"></param>
+		public void SendCustomHeaderMessage(int id, string message, string header, bool close)
+		{
+			SendCustomHeaderMessage(id, message, header, false, close);
+		}
+
+		/// <summary>
+		/// Sends a message to the client with a custom header.
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="encrypt"></param>
+		/// <param name="close"></param>
+		public void SendCustomHeaderMessage(int id, string message, string header, bool encrypt, bool close)
+		{
+			byte[] data = CreateByteCustomHeader(message, header, encrypt);
+			SendBytes(id, data, close);
+		}
+
+		/// <summary>
+		/// Sends a message to the client with a custom header
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="close"></param>
+		public async Task SendCustomHeaderMessageAsync(int id, string message, string header, bool close)
+		{
+			await Task.Run(() => SendCustomHeaderMessage(id, message, header, false, close));
+		}
+
+		/// <summary>
+		/// Sends a message to the client with a custom header
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="encrypt"></param>
+		/// <param name="close"></param>
+		public async Task SendCustomHeaderMessageAsync(int id, string message, string header, bool encrypt, bool close)
+		{
+			await Task.Run(() => SendCustomHeaderMessage(id, message, header, encrypt, close));
+		}
+
+		#endregion
+
+		#region Broadcast
+		
+		///////////////
+		//Broadcasts//
+		//////////////
+
+		/*=================================
+		*
+		*	FILE
+		*
+		*===========================================*/
+
+		/// <summary>
+		/// Sends a file to all clients
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
+		/// </summary>
+		/// <param name="fileLocation"></param>
+		/// <param name="remoteSaveLocation"></param>
+		/// <param name="encryptFile"></param>
+		/// <param name="compressFile"></param>
+		/// <param name="close"></param>
+		/// <returns>Boolean, True when the message was sent successfully, False when an Error Occurred. (Errors will be invoked to MessageFailed.)</returns>
+		public void SendFileToAllClients(string fileLocation, string remoteSaveLocation, bool encryptFile,bool compressFile, bool close)
+		{
+			var data = CreateByteFile(fileLocation, remoteSaveLocation, encryptFile, compressFile);
+			foreach (var c in GetClients())
+			{
+				SendBytes(c.Value.Id, data, close);
+			}
+		}
+
+		/// <summary>
+		/// Sends a file to all clients
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
+		/// <para>Will encrypt and compress the file before sending.</para>
+		/// </summary>
+		/// <param name="fileLocation"></param>
+		/// <param name="remoteSaveLocation"></param>
+		/// <param name="close"></param>
+		public void SendFileToAllClients(string fileLocation, string remoteSaveLocation, bool close)
+		{
+			SendFileToAllClients(fileLocation, remoteSaveLocation, false, true, close);
+		}
+
+		/// <summary>
+		/// Sends a file to all clients asynchronous
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
+		/// </summary>
+		/// <param name="fileLocation"></param>
+		/// <param name="remoteSaveLocation"></param>
+		/// <param name="encryptFile"></param>
+		/// <param name="compressFile"></param>
+		/// <param name="close"></param>
+		public async Task SendFileToAllClientsAsync(string fileLocation, string remoteSaveLocation, bool encryptFile,bool compressFile,bool close)
+		{
+			await CreateAsyncFileMessageBroadcast(fileLocation, remoteSaveLocation, compressFile, encryptFile, close);
+		}
+
+		/// <summary>
+		/// Sends a file to all clients asynchronous.
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
+		/// <para>Will encrypt and compress the file before sending.</para>
+		/// </summary>
+		/// <param name="fileLocation"></param>
+		/// <param name="remoteSaveLocation"></param>
+		/// <param name="close"></param>
+		public async Task SendFileToAllClientsAsync(string fileLocation, string remoteSaveLocation, bool close)
+		{
+			await SendFileToAllClientsAsync(fileLocation, remoteSaveLocation, false, true, close);
+		}
+
+
+		/*=================================
+		*
+		*	FOLDER
+		*
+		*===========================================*/
+
+		/// <summary>
+		/// Sends a folder to all clients.
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
+		/// </summary>
+		/// <param name="folderLocation"></param>
+		/// <param name="remoteFolderLocation"></param>
+		/// <param name="encryptFolder"></param>
+		/// <param name="close"></param>
+		public void SendFolderToAllClients(string folderLocation, string remoteFolderLocation, bool encryptFolder, bool close)
+		{
+			var data = CreateByteFolder(folderLocation, remoteFolderLocation, encryptFolder);
+			foreach (var c in GetClients())
+			{
+				SendBytes(c.Value.Id, data, close);
+			}
+		}
+
+		/// <summary>
+		/// Sends a folder to all clients.
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
+		/// <para>Will encrypt and compress the folder before sending.</para>
+		/// </summary>
+		/// <param name="folderLocation"></param>
+		/// <param name="remoteFolderLocation"></param>
+		/// <param name="close"></param>
+		public void SendFolderToAllClients(string folderLocation, string remoteFolderLocation, bool close)
+		{
+			SendFolderToAllClients(folderLocation, remoteFolderLocation, false, close);
+		}
+
+		/// <summary>
+		/// Sends a folder to all clients asynchronous.
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
+		/// </summary>
+		/// <param name="folderLocation"></param>
+		/// <param name="remoteFolderLocation"></param>
+		/// <param name="encryptFolder"></param>
+		/// <param name="close"></param>
+		public async Task SendFolderToAllClientsAsync(string folderLocation, string remoteFolderLocation, bool encryptFolder, bool close)
+		{
+			await CreateAsyncFolderMessageBroadcast(folderLocation, remoteFolderLocation, encryptFolder, close);
+		}
+
+		/// <summary>
+		/// Sends a folder to all clients asynchronous.
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
+		/// <para>Will encrypt and compress the folder before sending.</para>
+		/// </summary>
+		/// <param name="folderLocation"></param>
+		/// <param name="remoteFolderLocation"></param>
+		/// <param name="close"></param>
+		public async Task SendFolderToAllClientsAsync(string folderLocation, string remoteFolderLocation, bool close)
+		{
+			await SendFolderToAllClientsAsync(folderLocation, remoteFolderLocation, false, close);
+		}
+
+		/*=================================
+		*
+		*	Custom Header
+		*
+		*===========================================*/
+
+		/// <summary>
+		/// Sends a Message to all clients
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="encryptMessage"></param>
+		/// <param name="close"></param>
+		public void SendCustomHeaderToAllClients(string message, string header, bool encryptMessage, bool close)
+		{
+			var data = CreateByteCustomHeader(message, header, encryptMessage);
+			foreach (var c in GetClients())
+			{
+				SendBytes(c.Value.Id, data, close);
+			}
+		}
+
+		/// <summary>
+		/// Sends a Message to all clients
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
+		/// <para>Will encrypt the message before it is sent.</para>
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="close"></param>
+		public void SendCustomHeaderToAllClients(string message, string header, bool close)
+		{
+			SendCustomHeaderToAllClients(message, header, false, close);
+		}
+
+		/// <summary>
+		/// Sends a Message to all clients asynchronous.
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="encryptMessage"></param>
+		/// <param name="close"></param>
+		public async Task SendCustomHeaderToAllClientsAsync(string message, string header, bool encryptMessage, bool close)
+		{
+			await Task.Run(() => SendCustomHeaderToAllClients(message, header, encryptMessage, close));
+		}
+
+		/// <summary>
+		/// Sends a Message to all clients
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
+		/// <para>Will encrypt the message before it is sent.</para>
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="close"></param>
+		public async Task SendCustomHeaderToAllClientsAsync(string message, string header, bool close)
+		{
+			await Task.Run(() => SendCustomHeaderToAllClients(message, header, false, close));
+		}
+
+
+
+		/*=================================
+		*
+		*	MESSAGE
+		*
+		*===========================================*/
+
+		/// <summary>
+		/// Sends a Message to all clients
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="encryptMessage"></param>
+		/// <param name="close"></param>
+		public void SendMessageToAllClients(string message, bool encryptMessage, bool close)
+		{
+			var data = CreateByteMessage(message, encryptMessage);
+			foreach (var c in GetClients())
+			{
+				SendBytes(c.Value.Id, data, close);
+			}
+		}
+
+		/// <summary>
+		/// Sends a Message to all clients
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
+		/// <para>Will encrypt the message before it is sent.</para>
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="close"></param>
+		public void SendMessageToAllClients(string message, bool close)
+		{
+			SendMessageToAllClients(message, false, close);
+		}
+
+		/// <summary>
+		/// Sends a Message to all clients asynchronous.
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="encryptMessage"></param>
+		/// <param name="close"></param>
+		public async Task SendMessageToAllClientsAsync(string message, bool encryptMessage, bool close)
+		{
+			await Task.Run(() => SendMessageToAllClients(message, false, close));
+		}
+
+		/// <summary>
+		/// Sends a Message to all clients
+		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
+		/// <para>Will encrypt the message before it is sent.</para>
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="close"></param>
+		public async Task SendMessageToAllClientsAsync(string message, bool close)
+		{
+			await Task.Run(() => SendMessageToAllClients(message, close));
+		}
+
+
+		#region Broadcast File/folder
+
+		protected async Task<List<int>> StreamFileAndSendToAllClients(string location, string remoteSaveLocation, bool encrypt)
+		{
+			try
+			{
+				var file = location;
+				var buffer = new byte[10485760];
+				bool firstRead = true;
+				List<int> clientIds = new List<int>();
+
+				foreach (var c in GetClients())
+				{
+					clientIds.Add(c.Value.Id);
+				}
+
+				//Stream that reads the file and sends bits to the server.
+				using (var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, buffer.Length, true))
+				{
+					//How much bytes that have been read
+					int read = 0;
+
+
+					while ((read = await stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+					{
+						//data bytes
+						byte[] data = null;
+
+						//The message
+						byte[] message = new byte[read];
+						Array.Copy(buffer, 0, message, 0, read);
+
+
+						//Checks if it is the first read of the file
+						if (firstRead)
+						{
+
+							byte[] header = null;
+
+							if (encrypt)
+							{
+								byte[] prefix = Encoding.UTF8.GetBytes("ENCRYPTED_");
+								byte[] headerData = MessageEncryption.EncryptStringToBytes(remoteSaveLocation);
+								header = new byte[prefix.Length + headerData.Length];
+								prefix.CopyTo(header, 0);
+								headerData.CopyTo(header, 10);
+							}
+							else
+							{
+								header = Encoding.UTF8.GetBytes(remoteSaveLocation);
+							}
+
+							//Message
+							byte[] messageData = message; //Message part
+							byte[] headerBytes = header; //Header
+							byte[] headerLen = BitConverter.GetBytes(headerBytes.Length); //Length of the header
+							byte[] messageLength = BitConverter.GetBytes(stream.Length); //Total bytes in the file
+
+							data = new byte[4 + 4 + headerBytes.Length + messageData.Length];
+
+							messageLength.CopyTo(data, 0);
+							headerLen.CopyTo(data, 4);
+							headerBytes.CopyTo(data, 8);
+							messageData.CopyTo(data, 8 + headerBytes.Length);
+
+							firstRead = false;
+
+						}
+						else
+						{
+							data = message;
+						}
+
+
+						foreach (var key in clientIds)
+						{
+							SendBytesPartial(data, key);
+						}
+
+					}
+
+				}
+
+				//Delete encrypted file after it has been read.
+				if (encrypt)
+					File.Delete(file);
+
+				return clientIds;
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message, ex);
+			}
+		}
+
+
+		protected async Task CreateAsyncFileMessageBroadcast(string fileLocation, string remoteSaveLocation, bool compressFile, bool encryptFile, bool close)
+		{
+			var file = Path.GetFullPath(fileLocation);
+
+			IList<int> clients;
+
+			//Compresses the file
+			if (compressFile)
+			{
+				file = await CompressFileAsync(file);
+				remoteSaveLocation += FileCompressor.Extension;
+			}
+
+			//Encrypts the file and deletes the compressed file
+			if (encryptFile)
+			{
+				//Gets the location before the encryption
+
+				string previousFile = string.Empty;
+				if (compressFile)
+					previousFile = file;
+
+				file = await EncryptFileAsync(file);
+				remoteSaveLocation += MessageEncryption.Extension;
+
+				//Deletes the compressed file
+				if (previousFile != string.Empty)
+					File.Delete(previousFile);
+
+			}
+
+			clients = await StreamFileAndSendToAllClients(file, remoteSaveLocation, encryptFile);
+
+			//Deletes the compressed file if no encryption occured.
+			if (compressFile && !encryptFile)
+				File.Delete(file);
+
+
+			//Invoke completed for each client that should have received the file
+			foreach (var client in clients)
+			{
+				FileTransferCompleted(close, client);
+			}
+
+		}
+
+		protected async Task CreateAsyncFolderMessageBroadcast(string folderLocation, string remoteFolderLocation, bool encryptFolder,bool close)
+		{
+
+			IList<int> clients;
+
+			//Gets a temp path for the zip file.
+			string tempPath = Path.GetTempFileName();
+
+			//Check if the current temp file exists, if so delete it.
+			File.Delete(tempPath);
+
+			//Add extension and compress.
+			tempPath += FolderCompressor.Extension;
+			string folderToSend = await CompressFolderAsync(folderLocation, tempPath);
+			remoteFolderLocation += FolderCompressor.Extension;
+
+			//Check if folder needs to be encrypted.
+			if (encryptFolder)
+			{
+				//Encrypt and adjust file names.
+				folderToSend = await EncryptFileAsync(folderToSend);
+				remoteFolderLocation += MessageEncryption.Extension;
+				File.Delete(tempPath);
+			}
+
+			clients = await StreamFileAndSendToAllClients(folderToSend, remoteFolderLocation, encryptFolder);
+
+			//Deletes the compressed folder if not encryption occured.
+			if (File.Exists(folderToSend))
+				File.Delete(folderToSend);
+
+			//Invoke completed for each client that should have received the file
+			foreach (var client in clients)
+			{
+				FileTransferCompleted(close, client);
+			}
+
+		}
+
+		#endregion
+
+		#endregion
 
 		#endregion
 

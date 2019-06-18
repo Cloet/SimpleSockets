@@ -63,10 +63,10 @@ There are two different options of async client:
 Creating the Server
 ```C#
 //Create Regular server
-IServerlistener listener = new AsyncSocketListener();
+Serverlistener listener = new AsyncSocketListener();
 //Create Ssl server
 //(Certificate will be a .pfx) file
-IServerlistener listener = new AsyncSocketSslListener("path to certificate","password");
+Serverlistener listener = new AsyncSocketSslListener("path to certificate","password");
 ```
 
 Starts the server
@@ -141,10 +141,10 @@ There are two different options of async client:
 Creating a client
 ```C#
 //Regular async client
-ITcpClient client = new AsyncClient();
+SocketClient client = new AsyncClient();
 //Ssl async client
 //(Certificate will be a .pfx) file
-ITcpClient client = new AsyncSslClient("Path to Certificate","Password");
+SocketClient client = new AsyncSslClient("Path to Certificate","Password");
 ```
 
 Starts the client

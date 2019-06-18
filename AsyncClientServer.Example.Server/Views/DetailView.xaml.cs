@@ -27,10 +27,10 @@ namespace AsyncClientServer.Example.Server.Views
 	/// </summary>
 	public partial class DetailView : Window
 	{
-		private IServerListener _listener;
+		private ServerListener _listener;
 		private Model.Client _client;
 
-		public DetailView(IServerListener listener, Model.Client client)
+		public DetailView(ServerListener listener, Model.Client client)
 		{
 			InitializeComponent();
 			_listener = listener;

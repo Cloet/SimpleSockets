@@ -25,7 +25,7 @@ namespace AsyncClientServer.Example.Client
 	public partial class Client : Window
 	{
 
-		private readonly ISocketClient _client;
+		private readonly SocketClient _client;
 
 		public Client()
 		{
@@ -40,7 +40,7 @@ namespace AsyncClientServer.Example.Client
 
 		private void StartClient()
 		{
-			_client.StartClient("178.118.182.101", 13000);
+			_client.StartClient("127.0.0.1", 13000);
 		}
 
 		private void BindEvents()
@@ -82,45 +82,45 @@ namespace AsyncClientServer.Example.Client
 				new Action(() => { TextBlockStatus.Text = text; }));
 		}
 
-		private void CustomHeader(ISocketClient a, string msg, string header)
+		private void CustomHeader(SocketClient a, string msg, string header)
 		{
 			AppendRichtTextBoxLog(header + ": " + msg);
 		}
 
-		private void ConnectedToServer(ISocketClient a)
+		private void ConnectedToServer(SocketClient a)
 		{
 			AppendRichtTextBoxLog("The client has connected to the server.");
 			ChangeStatus("CONNECTED");
-			MessageBox.Show("Client has connected to the server on ip : " + a.IpServer);
+			MessageBox.Show("Client has connected to the server on ip : " + a.Ip);
 		}
 
-		private void ServerMessageReceived(ISocketClient a, string msg)
+		private void ServerMessageReceived(SocketClient a, string msg)
 		{
 			AppendRichtTextBoxLog("MESSAGE" + ": " + msg);
 		}
 
-		void FileReceived(ISocketClient a, string file)
+		void FileReceived(SocketClient a, string file)
 		{
 			AppendRichtTextBoxLog("File/Folder has been received and saved at path: " + file);
 		}
 
-		void Disconnected(ISocketClient a, string ip, int port)
+		void Disconnected(SocketClient a, string ip, int port)
 		{
 			AppendRichtTextBoxLog("Client has disconnected from the server.");
 			ChangeStatus("DISCONNECTED");
 			MessageBox.Show("Client has disconnected to the server on ip : " + ip + " on port " + port);
 		}
 
-		void Progress(ISocketClient a, int bytes, int messageSize)
+		void Progress(SocketClient a, int bytes, int messageSize)
 		{
 		}
 
-		void ClientMessageSubmitted(ISocketClient a, bool close)
+		void ClientMessageSubmitted(SocketClient a, bool close)
 		{
 			AppendRichtTextBoxLog("Client has submitted a message.");
 		}
 
-		private void MessageFailed(ISocketClient tcpClient, byte[] messageData, string exceptionMessage)
+		private void MessageFailed(SocketClient tcpClient, byte[] messageData, string exceptionMessage)
 		{
 		}
 
@@ -242,7 +242,7 @@ namespace AsyncClientServer.Example.Client
 
 		private void Button_Click(object sender, RoutedEventArgs e)
 		{
-			_client.StartClient(_client.IpServer, _client.Port);
+			_client.StartClient(_client.Ip, _client.Port);
 		}
 
 		private void Button1_Click(object sender, RoutedEventArgs e)

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Timers;
 using AsyncClientServer.Messaging.Compression;
 using AsyncClientServer.Messaging.Cryptography;
@@ -16,54 +17,54 @@ namespace AsyncClientServer.Client
 	/// Event that triggers when a client is connected to server
 	/// </summary>
 	/// <param name="tcpClient"></param>
-	public delegate void ConnectedHandler(ISocketClient tcpClient);
+	public delegate void ConnectedHandler(SocketClient tcpClient);
 
 	/// <summary>
 	/// Event that is triggered when the client has disconnected from the server.
 	/// </summary>
-	public delegate void DisconnectedFromServerHandler(ISocketClient tcpClient, string ipServer, int port);
+	public delegate void DisconnectedFromServerHandler(SocketClient tcpClient, string ipServer, int port);
 
 	/// <summary>
 	/// Event that triggers when client receives a message
 	/// </summary>
 	/// <param name="tcpClient"></param>
 	/// <param name="msg"></param>
-	public delegate void ClientMessageReceivedHandler(ISocketClient tcpClient, string msg);
+	public delegate void ClientMessageReceivedHandler(SocketClient tcpClient, string msg);
 
 	/// <summary>
 	/// Event that is triggered when client receives a custom header message.
 	/// </summary>
 	/// <param name="tcpClient"></param>
 	/// <param name="msg"></param>
-	public delegate void ClientCustomHeaderReceivedHandler(ISocketClient tcpClient, string msg, string header);
+	public delegate void ClientCustomHeaderReceivedHandler(SocketClient tcpClient, string msg, string header);
 
 	/// <summary>
 	/// Event that triggers when client sends a message
 	/// </summary>
 	/// <param name="tcpClient"></param>
 	/// <param name="close"></param>
-	public delegate void ClientMessageSubmittedHandler(ISocketClient tcpClient, bool close);
+	public delegate void ClientMessageSubmittedHandler(SocketClient tcpClient, bool close);
 
 	/// <summary>
 	/// Event that is triggered when a file is received from the server, returns the new file path
 	/// </summary>
 	/// <param name="tcpClient"></param>
 	/// <param name="path"></param>
-	public delegate void FileFromServerReceivedHandler(ISocketClient tcpClient, string path);
+	public delegate void FileFromServerReceivedHandler(SocketClient tcpClient, string path);
 
 	/// <summary>
 	/// Event that is triggered when a message failed to send
 	/// </summary>
 	/// <param name="tcpClient"></param>
 	/// <param name="exceptionMessage"></param>
-	public delegate void DataTransferFailedHandler(ISocketClient tcpClient,byte[] messageData, string exceptionMessage);
+	public delegate void DataTransferFailedHandler(SocketClient tcpClient,byte[] messageData, string exceptionMessage);
 
 	/// <summary>
 	/// Event that is triggered when a message has failed to send
 	/// </summary>
 	/// <param name="tcpClient"></param>
 	/// <param name="exceptionMessage"></param>
-	public delegate void ErrorHandler(ISocketClient tcpClient, string exceptionMessage);
+	public delegate void ErrorHandler(SocketClient tcpClient, string exceptionMessage);
 
 	/// <summary>
 	/// Event that is triggered when a file is received from the server and show the progress.
@@ -71,9 +72,9 @@ namespace AsyncClientServer.Client
 	/// <param name="tcpClient"></param>
 	/// <param name="bytesReceived"></param>
 	/// <param name="messageSize"></param>
-	public delegate void ProgressFileTransferHandler(ISocketClient tcpClient, int bytesReceived, int messageSize);
+	public delegate void ProgressFileTransferHandler(SocketClient tcpClient, int bytesReceived, int messageSize);
 
-	public abstract class SocketClient : SendToServer, ISocketClient
+	public abstract class SocketClient : AsyncSocket
 	{
 		//Protected variabeles
 		protected Socket Listener;
@@ -91,66 +92,6 @@ namespace AsyncClientServer.Client
 		protected CancellationTokenSource TokenSource { get; set; }
 		protected CancellationToken Token { get; set; }
 
-		/// <inheritdoc />
-		/// <summary>
-		/// The port of the server
-		/// </summary>
-		public int Port { get; protected set; }
-
-		/// <inheritdoc />
-		/// <summary>
-		/// The ip of the server
-		/// </summary>
-		public string IpServer { get; protected set; }
-
-		/// <summary>
-		/// Returns True if the client is currently active and trying to connect to a server.
-		/// </summary>
-		public bool IsClientRunning { get; protected set; }
-
-		/// <summary>
-		/// Used to encrypt files/folders
-		/// </summary>
-		public MessageEncryption ClientMessageEncryption
-		{
-			set
-			{
-				if (IsClientRunning)
-					throw new Exception("The MessageEncrypter cannot be changed while the client is running.");
-
-				MessageEncryption = value ?? throw new ArgumentNullException(nameof(value));
-			}
-		}
-
-		/// <summary>
-		/// Used to compress files before sending
-		/// </summary>
-		public FileCompression ClientFileCompressor
-		{
-			set
-			{
-				if (IsClientRunning)
-					throw new Exception("The FileCompressor cannot be changed while the client is running.");
-
-				FileCompressor = value ?? throw new ArgumentNullException(nameof(value));
-			}
-		}
-
-		/// <summary>
-		/// Used to compress folder before sending
-		/// </summary>
-		public FolderCompression ClientFolderCompressor
-		{
-			set
-			{
-				if (IsClientRunning)
-					throw new Exception("The FolderCompressor cannot be changed while the client is running.");
-
-				FolderCompressor = value ?? throw new ArgumentNullException(nameof(value));
-			} 
-		}
-
-		/// <inheritdoc />
 		/// <summary>
 		/// This is how many seconds te client waits to try and reconnect to the server
 		/// </summary>
@@ -178,7 +119,7 @@ namespace AsyncClientServer.Client
 			KeepAliveTimer.AutoReset = true;
 			KeepAliveTimer.Enabled = false;
 
-			IsClientRunning = false;
+			IsRunning = false;
 
 			MessageEncryption = new Aes256();
 			FileCompressor = new GZipCompression();
@@ -196,11 +137,11 @@ namespace AsyncClientServer.Client
 			{
 				Close();
 				ConnectedMre.Reset();
-				StartClient(IpServer, Port, ReconnectInSeconds);
+				StartClient(Ip, Port, ReconnectInSeconds);
 			}
 		}
+		
 
-		/// <inheritdoc />
 		/// <summary>
 		/// Starts the client.
 		/// <para>requires server ip, port number and how many seconds the client should wait to try to connect again. Default is 5 seconds</para>
@@ -224,7 +165,6 @@ namespace AsyncClientServer.Client
 			}
 		}
 
-		/// <inheritdoc />
 		/// <summary>
 		/// Check if client is connected to server
 		/// </summary>
@@ -251,7 +191,7 @@ namespace AsyncClientServer.Client
 			{
 				ConnectedMre.Reset();
 				TokenSource.Cancel();
-				IsClientRunning = false;
+				IsRunning = false;
 
 				if (!IsConnected())
 				{
@@ -272,7 +212,7 @@ namespace AsyncClientServer.Client
 		/// <summary>
 		/// Safely close client and break all connections to server.
 		/// </summary>
-		public virtual void Dispose()
+		public override void Dispose()
 		{
 			Close();
 			ConnectedMre.Dispose();
@@ -283,19 +223,7 @@ namespace AsyncClientServer.Client
 
 			GC.SuppressFinalize(this);
 		}
-
-		/// <summary>
-		/// Change the buffer size of the server
-		/// </summary>
-		/// <param name="bufferSize"></param>
-		public void ChangeSocketBufferSize(int bufferSize)
-		{
-			if (bufferSize < 1024)
-				throw new ArgumentException("The buffer size should be more then 1024 bytes.");
-
-			SocketState.ChangeBufferSize(bufferSize);
-		}
-
+		
 
 		//When client connects.
 		protected abstract void OnConnectCallback(IAsyncResult result);
@@ -316,7 +244,7 @@ namespace AsyncClientServer.Client
 		}
 
 		//When client receives message
-		protected void ReceiveCallback(IAsyncResult result)
+		protected override void ReceiveCallback(IAsyncResult result)
 		{
 			try
 			{
@@ -330,16 +258,6 @@ namespace AsyncClientServer.Client
 				throw new Exception(ex.ToString());
 			}
 		}
-
-		/// <summary>
-		/// Start receiving bytes from server
-		/// </summary>
-		/// <param name="state"></param>
-		/// <param name="offset"></param>
-		internal abstract void StartReceiving(ISocketState state, int offset = 0);
-
-		//Handle a message
-		protected abstract void HandleMessage(IAsyncResult result);
 
 		#endregion
 
@@ -434,18 +352,18 @@ namespace AsyncClientServer.Client
 			CustomHeaderReceived?.Invoke(this, msg, header);
 		}
 
-		protected void InvokeConnected(ISocketClient a)
+		protected void InvokeConnected(SocketClient a)
 		{
-			IsClientRunning = true;
+			IsRunning = true;
 			Connected?.Invoke(a);
 			_disconnectedInvoked = false;
 		}
 
-		protected void InvokeDisconnected(ISocketClient a)
+		protected void InvokeDisconnected(SocketClient a)
 		{
 			if (_disconnectedInvoked == false)
 			{
-				Disconnected?.Invoke(a, a.IpServer, a.Port);
+				Disconnected?.Invoke(a, a.Ip, a.Port);
 				_disconnectedInvoked = true;
 			}
 		}
@@ -459,6 +377,276 @@ namespace AsyncClientServer.Client
 		{
 			ErrorThrown?.Invoke(this, exception);
 		}
+
+		#endregion
+
+		#region Messaging
+
+		/// <summary>
+		/// Send bytes to the server
+		/// </summary>
+		/// <param name="msg">Message as a byte array</param>
+		/// <param name="close">if you want to close the client after sending the message.</param>
+		protected abstract void SendBytes(byte[] msg, bool close);
+
+		#region Message
+		/*=================================
+		*
+		*	MESSAGE
+		*
+		*===========================================*/
+
+		/// <summary>
+		/// Send a message to the server
+		/// <para/>The close parameter indicates if the client should close after sending or not.
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="encryptMessage"></param>
+		/// <param name="close"></param>
+		public void SendMessage(string message, bool encryptMessage, bool close)
+		{
+			byte[] data = CreateByteMessage(message, encryptMessage);
+			SendBytes(data, close);
+		}
+
+		/// <summary>
+		/// Send a message to the server
+		/// <para/>The close parameter indicates if the client should close after sending or not.
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="close"></param>
+		public void SendMessage(string message, bool close)
+		{
+			SendMessage(message, false, close);
+		}
+
+		/// <summary>
+		/// Send a message to the server asynchronous.
+		/// <para/>The close parameter indicates if the client should close after sending or not.
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="encryptMessage"></param>
+		/// <param name="close"></param>
+		public async Task SendMessageAsync(string message, bool encryptMessage, bool close)
+		{
+			await Task.Run(() => SendMessage(message, encryptMessage, close));
+		}
+
+		/// <summary>
+		/// Send a message to the server asynchronous.
+		/// <para/>The close parameter indicates if the client should close after sending or not.
+		/// <para>The message will be encrypted before sending.</para>
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="close"></param>
+		public async Task SendMessageAsync(string message, bool close)
+		{
+			await Task.Run(() => SendMessage(message, close));
+		}
+		#endregion
+
+		#region File
+		/*=================================
+		*
+		*	FILE
+		*
+		*===========================================*/
+
+		/// <summary>
+		/// Send a file to server
+		/// <para/>The close parameter indicates if the client should close after sending or not.
+		/// <para>Simple way of sending large files over sockets</para>
+		/// </summary>
+		/// <param name="fileLocation"></param>
+		/// <param name="remoteFileLocation"></param>
+		/// <param name="encryptFile"></param>
+		/// <param name="compressFile"></param>
+		/// <param name="close"></param>
+		public void SendFile(string fileLocation, string remoteFileLocation, bool encryptFile, bool compressFile, bool close)
+		{
+			Task.Run(() => SendFileAsync(fileLocation, remoteFileLocation, encryptFile, compressFile, close));
+		}
+
+		/// <summary>
+		/// Send a file to server
+		/// <para/>The close parameter indicates if the client should close after sending or not.
+		/// <para>Simple way of sending large files over sockets</para>
+		/// </summary>
+		/// <param name="fileLocation"></param>
+		/// <param name="remoteFileLocation"></param>
+		/// <param name="close"></param>
+		public void SendFile(string fileLocation, string remoteFileLocation, bool close)
+		{
+			SendFile(fileLocation, remoteFileLocation, false, true, close);
+		}
+
+		/// <summary>
+		/// Send a file to server asynchronous.
+		/// <para/>The close parameter indicates if the client should close after sending or not.
+		/// <para>Simple way of sending large files over sockets</para>
+		/// </summary>
+		/// <param name="fileLocation"></param>
+		/// <param name="remoteSaveLocation"></param>
+		/// <param name="encryptFile"></param>
+		/// <param name="compressFile"></param>
+		/// <param name="close"></param>
+		public async Task SendFileAsync(string fileLocation, string remoteSaveLocation, bool encryptFile, bool compressFile, bool close)
+		{
+			try
+			{
+				await CreateAndSendAsyncFileMessage(fileLocation, remoteSaveLocation, compressFile, encryptFile, close);
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message, ex);
+			}
+
+
+		}
+
+		/// <summary>
+		/// Send a file to server asynchronous.
+		/// <para/>The close parameter indicates if the client should close after sending or not.
+		/// <para>The file will be compressed before sending.</para>
+		/// <para>Simple way of sending large files over sockets</para>
+		/// </summary>
+		/// <param name="fileLocation"></param>
+		/// <param name="remoteFileLocation"></param>
+		/// <param name="close"></param>
+		public async Task SendFileAsync(string fileLocation, string remoteFileLocation, bool close)
+		{
+			await SendFileAsync(fileLocation, remoteFileLocation, false, true, close);
+		}
+		#endregion
+
+		#region Folder
+		/*=================================
+		*
+		*	FOLDER
+		*
+		*===========================================*/
+
+		/// <summary>
+		/// Sends a folder to the server.
+		/// <para/>The close parameter indicates if the client should close after sending or not.
+		/// <para>The folder will be compressed to a .zip file before sending.</para>
+		/// <para>Simple way of sending a folder over sockets</para>
+		/// </summary>
+		/// <param name="folderLocation"></param>
+		/// <param name="remoteFolderLocation"></param>
+		/// <param name="encryptFolder"></param>
+		/// <param name="close"></param>
+		public void SendFolder(string folderLocation, string remoteFolderLocation, bool encryptFolder, bool close)
+		{
+			Task.Run(() => SendFolderAsync(folderLocation, remoteFolderLocation, encryptFolder, close));
+		}
+
+		/// <summary>
+		/// Sends a folder to the server.
+		/// <para/>The close parameter indicates if the client should close after sending or not.
+		/// <para>The folder will be compressed before it will be sent.</para>
+		/// <para>Simple way of sending a folder over sockets</para>
+		/// </summary>
+		/// <param name="folderLocation"></param>
+		/// <param name="remoteFolderLocation"></param>
+		/// <param name="close"></param>
+		public void SendFolder(string folderLocation, string remoteFolderLocation, bool close)
+		{
+			SendFolder(folderLocation, remoteFolderLocation, false, close);
+		}
+
+
+		/// <summary>
+		/// Sends a folder to the server asynchronous.
+		/// <para/>The close parameter indicates if the client should close after sending or not.
+		/// <para>The folder will be compressed to a .zip file before sending.</para>
+		/// <para>Simple way of sending a folder over sockets</para>
+		/// </summary>
+		/// <param name="folderLocation"></param>
+		/// <param name="remoteFolderLocation"></param>
+		/// <param name="encryptFolder"></param>
+		/// <param name="close"></param>
+		public async Task SendFolderAsync(string folderLocation, string remoteFolderLocation, bool encryptFolder, bool close)
+		{
+
+			try
+			{
+				await CreateAndSendAsyncFolderMessage(folderLocation, remoteFolderLocation, encryptFolder, close);
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message, ex);
+			}
+		}
+
+		/// <summary>
+		/// Sends a folder to the server asynchronous.
+		/// <para/>The close parameter indicates if the client should close after sending or not.
+		/// <para>The folder will be encrypted and compressed before it will be sent.</para>
+		/// <para>Simple way of sending a folder over sockets</para>
+		/// </summary>
+		/// <param name="folderLocation"></param>
+		/// <param name="remoteFolderLocation"></param>
+		/// <param name="close"></param>
+		public async Task SendFolderAsync(string folderLocation, string remoteFolderLocation, bool close)
+		{
+			await SendFolderAsync(folderLocation, remoteFolderLocation, false, close);
+		}
+		#endregion
+
+		#region Custom Header
+		//CUSTOM HEADER//	
+
+		/// <summary>
+		/// Sends a message to the server with a custom header.
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="close"></param>
+		public void SendCustomHeaderMessage(string message, string header, bool close)
+		{
+			SendCustomHeaderMessage(message, header, false, close);
+		}
+
+		/// <summary>
+		/// Sends a message to the server with a custom header.
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="encrypt"></param>
+		/// <param name="close"></param>
+		public void SendCustomHeaderMessage(string message, string header, bool encrypt, bool close)
+		{
+			byte[] data = CreateByteCustomHeader(message, header, encrypt);
+			SendBytes(data, close);
+		}
+
+		/// <summary>
+		/// Sends a message to the server with a custom header
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="close"></param>
+		/// <returns></returns>
+		public async Task SendCustomHeaderMessageAsync(string message, string header, bool close)
+		{
+			await Task.Run(() => SendCustomHeaderMessage(message, header, false, close));
+		}
+
+		/// <summary>
+		/// Sends a message to the server with a custom header
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="header"></param>
+		/// <param name="encrypt"></param>
+		/// <param name="close"></param>
+		/// <returns></returns>
+		public async Task SendCustomHeaderMessageAsync(string message, string header, bool encrypt, bool close)
+		{
+			await Task.Run(() => SendCustomHeaderMessage(message, header, encrypt, close));
+		}
+
+		#endregion
 
 		#endregion
 

@@ -30,7 +30,7 @@ namespace AsyncClientServer.Client
 		public AsyncSocketClient(): base()
 		{
 		}
-
+		
 		/// <summary>
 		/// Starts the client.
 		/// <para>requires server ip, port number and how many seconds the client should wait to try to connect again. Default is 5 seconds</para>
@@ -46,7 +46,7 @@ namespace AsyncClientServer.Client
 				throw new ArgumentOutOfRangeException(nameof(reconnectInSeconds));
 
 
-			IpServer = ipServer;
+			Ip = ipServer;
 			Port = port;
 			ReconnectInSeconds = reconnectInSeconds;
 			KeepAliveTimer.Enabled = false;

@@ -37,8 +37,8 @@
     <Reference Include="System.IO.Compression.FileSystem" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AsyncSocket.cs" />
     <Compile Include="Client\AsyncSocketSslClient.cs" />
-    <Compile Include="Client\ISocketClient.cs" />
     <Compile Include="Client\SocketClient.cs" />
     <Compile Include="Messaging\Compression\GZipCompression.cs" />
     <Compile Include="Messaging\Compression\FileCompression.cs" />
@@ -50,16 +50,10 @@
     <Compile Include="Messaging\Message.cs" />
     <Compile Include="Messaging\MessageType.cs" />
     <Compile Include="Server\AsyncSocketSslListener.cs" />
-    <Compile Include="Server\IServerListener.cs" />
-    <Compile Include="Server\ISendToClient.cs" />
-    <Compile Include="Client\ISendToServer.cs" />
     <Compile Include="Server\ServerListener.cs" />
     <Compile Include="SslProtocol.cs" />
     <Compile Include="Messaging\Metadata\ISocketInfo.cs" />
     <Compile Include="Messaging\Metadata\ISocketState.cs" />
-    <Compile Include="Messaging\MessageFactory.cs" />
-    <Compile Include="Server\SendToClient.cs" />
-    <Compile Include="Client\SendToServer.cs" />
     <Compile Include="Client\AsyncSocketClient.cs" />
     <Compile Include="Server\AsyncSocketListener.cs" />
     <Compile Include="Messaging\Handlers\FileHandlerState.cs" />

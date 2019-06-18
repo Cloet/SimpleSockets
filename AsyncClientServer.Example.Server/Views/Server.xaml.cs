@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -14,6 +15,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using AsyncClientServer.Client;
 using AsyncClientServer.Example.Server.ViewModel;
 using AsyncClientServer.Messaging;
 using AsyncClientServer.Messaging.Metadata;
@@ -27,11 +29,14 @@ namespace AsyncClientServer.Example.Server
 	public partial class Server : Window
 	{
 
-		private IServerListener _listener;
+		private ServerListener _listener;
 		private ClientInfoViewModel _clientVM;
 
 		public Server()
 		{
+
+			AsyncSocket test = new AsyncSocketClient();
+
 			InitializeComponent();
 
 			StartServer();
@@ -39,7 +44,7 @@ namespace AsyncClientServer.Example.Server
 
 		public void StartServer()
 		{
-			//_listener = new AsyncSocketSslListener(@"", "");
+			//_listener = new AsyncSocketSslListener(@"", "")
 			_listener = new AsyncSocketListener();
 			_clientVM = (ClientInfoViewModel) ListViewClients.DataContext;
 			_clientVM.Listener = _listener;
