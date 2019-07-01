@@ -57,7 +57,7 @@ namespace AsyncClientServer.Client
 			TokenSource = new CancellationTokenSource();
 			Token = TokenSource.Token;
 
-			Task.Run(SendFromQueue, Token);
+			Task.Run(() => SendFromQueue(), Token);
 
 			Task.Run(() =>
 			{
