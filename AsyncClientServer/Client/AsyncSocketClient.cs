@@ -24,7 +24,7 @@ namespace AsyncClientServer.Client
 	/// <para>Extends <see cref="SocketClient"/>
 	/// </para>
 	/// </summary>
-	public sealed class AsyncSocketClient : SocketClient
+	public class AsyncSocketClient : SocketClient
 	{
 
 		public AsyncSocketClient(): base()
@@ -57,7 +57,7 @@ namespace AsyncClientServer.Client
 			TokenSource = new CancellationTokenSource();
 			Token = TokenSource.Token;
 
-			Task.Run(SendFromQueue, Token);
+			Task.Run(() => SendFromQueue(), Token);
 
 			Task.Run(() =>
 			{
