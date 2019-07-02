@@ -17,7 +17,7 @@ using AsyncClientServer.Messaging.Metadata;
 
 namespace AsyncClientServer.Client
 {
-	public sealed class AsyncSocketSslClient : SocketClient
+	public class AsyncSocketSslClient : SocketClient
 	{
 
 		private SslStream _sslStream;

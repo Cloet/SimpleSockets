@@ -20,7 +20,7 @@ namespace AsyncClientServer.Server
 	/// <para>Handles sending and receiving data to/from clients</para>
 	/// <para/>Extends <see cref="ServerListener"/>
 	/// </summary>
-	public sealed class AsyncSocketListener : ServerListener
+	public class AsyncSocketListener : ServerListener
 	{
 
 		/// <summary>

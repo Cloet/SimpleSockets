@@ -24,7 +24,7 @@ namespace AsyncClientServer.Client
 	/// <para>Extends <see cref="SocketClient"/>
 	/// </para>
 	/// </summary>
-	public sealed class AsyncSocketClient : SocketClient
+	public class AsyncSocketClient : SocketClient
 	{
 
 		public AsyncSocketClient(): base()
