@@ -360,10 +360,10 @@ namespace AsyncClientServer.Server
 		{
 			try
 			{
-
-				var state = this.GetClient(id);
-
-				return !((state.Listener.Poll(1000, SelectMode.SelectRead) && (state.Listener.Available == 0)) || !state.Listener.Connected);
+                if (this.GetClient(id) is ISocketState state && state.Listener is Socket socket)
+                {
+                    return !((socket.Poll(1000, SelectMode.SelectRead) && (socket.Available == 0)) || !socket.Connected);
+                }
 			}
 			catch (Exception ex)
 			{
