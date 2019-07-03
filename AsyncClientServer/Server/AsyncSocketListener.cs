@@ -133,7 +133,7 @@ namespace AsyncClientServer.Server
 			}
 			catch (SocketException se)
 			{
-				throw new Exception(se.ToString());
+                this.InvokeErrorThrown(se.Message);
 			}
 
 		}
