@@ -255,7 +255,7 @@ namespace AsyncClientServer.Client
 			}
 			catch (Exception ex)
 			{
-				throw new Exception(ex.ToString());
+                this.InvokeErrorThrown(ex.Message);
 			}
 		}
 
