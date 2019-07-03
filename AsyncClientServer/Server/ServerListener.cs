@@ -429,8 +429,11 @@ namespace AsyncClientServer.Server
 
 			try
 			{
-				state.Listener.Shutdown(SocketShutdown.Both);
-				state.Listener.Close();
+                if (state?.Listener != null)
+                {
+                    state.Listener.Shutdown(SocketShutdown.Both);
+                    state.Listener.Close();
+                }
 			}
 			catch (SocketException se)
 			{
