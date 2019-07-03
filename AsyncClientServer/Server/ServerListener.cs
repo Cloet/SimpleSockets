@@ -367,9 +367,10 @@ namespace AsyncClientServer.Server
 			}
 			catch (Exception ex)
 			{
-				throw new Exception(ex.ToString());
+                this.InvokeErrorThrown(ex.Message);
 			}
 
+            return false;
 		}
 
 		/// <inheritdoc />
@@ -423,7 +424,7 @@ namespace AsyncClientServer.Server
 
 			if (state == null)
 			{
-				throw new Exception("Client does not exist.");
+                this.InvokeErrorThrown("Client does not exist.");
 			}
 
 			try
