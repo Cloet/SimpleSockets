@@ -444,7 +444,7 @@ namespace AsyncClientServer.Server
 				lock (ConnectedClients)
 				{
 					ConnectedClients.Remove(id);
-					ClientDisconnected?.Invoke(state.Id);
+					ClientDisconnected?.Invoke(id);
 				}
 			}
 		}
