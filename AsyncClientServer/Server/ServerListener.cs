@@ -457,21 +457,18 @@ namespace AsyncClientServer.Server
 
 		protected void SendFromQueue()
 		{
-
 			while (!Token.IsCancellationRequested)
 			{
-				BlockingMessageQueue.TryPeek(out var message);
+				BlockingMessageQueue.TryDequeue(out var message);
 
 				if (IsConnected(message.SocketState.Id))
 				{
-					BlockingMessageQueue.TryDequeue(out message);
 					BeginSendFromQueue(message);
 				}
 				else
 				{
 					Close(message.SocketState.Id);
 				}
-
 			}
 		}
 
