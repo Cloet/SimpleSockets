@@ -1,12 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics.Eventing.Reader;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Timers;
 using AsyncClientServer.Messaging;
 using AsyncClientServer.Messaging.Handlers;
 using AsyncClientServer.Messaging.Metadata;
