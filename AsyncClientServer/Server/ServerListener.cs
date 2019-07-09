@@ -360,16 +360,17 @@ namespace AsyncClientServer.Server
 		{
 			try
 			{
-
-				var state = this.GetClient(id);
-
-				return !((state.Listener.Poll(1000, SelectMode.SelectRead) && (state.Listener.Available == 0)) || !state.Listener.Connected);
+                if (this.GetClient(id) is ISocketState state && state.Listener is Socket socket)
+                {
+                    return !((socket.Poll(1000, SelectMode.SelectRead) && (socket.Available == 0)) || !socket.Connected);
+                }
 			}
 			catch (Exception ex)
 			{
-				throw new Exception(ex.ToString());
+                this.InvokeErrorThrown(ex.Message);
 			}
 
+            return false;
 		}
 
 		/// <inheritdoc />
@@ -423,13 +424,16 @@ namespace AsyncClientServer.Server
 
 			if (state == null)
 			{
-				throw new Exception("Client does not exist.");
+                this.InvokeErrorThrown("Client does not exist.");
 			}
 
 			try
 			{
-				state.Listener.Shutdown(SocketShutdown.Both);
-				state.Listener.Close();
+                if (state?.Listener != null)
+                {
+                    state.Listener.Shutdown(SocketShutdown.Both);
+                    state.Listener.Close();
+                }
 			}
 			catch (SocketException se)
 			{
@@ -440,7 +444,7 @@ namespace AsyncClientServer.Server
 				lock (ConnectedClients)
 				{
 					ConnectedClients.Remove(id);
-					ClientDisconnected?.Invoke(state.Id);
+					ClientDisconnected?.Invoke(id);
 				}
 			}
 		}
@@ -453,21 +457,18 @@ namespace AsyncClientServer.Server
 
 		protected void SendFromQueue()
 		{
-
 			while (!Token.IsCancellationRequested)
 			{
-				BlockingMessageQueue.TryPeek(out var message);
+				BlockingMessageQueue.TryDequeue(out var message);
 
 				if (IsConnected(message.SocketState.Id))
 				{
-					BlockingMessageQueue.TryDequeue(out message);
 					BeginSendFromQueue(message);
 				}
 				else
 				{
 					Close(message.SocketState.Id);
 				}
-
 			}
 		}
 
@@ -484,7 +485,7 @@ namespace AsyncClientServer.Server
 			}
 			catch (Exception ex)
 			{
-				throw new Exception(ex.ToString());
+                this.InvokeErrorThrown(ex.Message);
 			}
 		}
 

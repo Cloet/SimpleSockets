@@ -227,4 +227,6 @@ public async Task SendCustomHeaderToAllClientsAsync(string message, string heade
 public async Task SendCustomHeaderToAllClientsAsync(string message, string header, bool close);
 
 ```
+## Class Diagram of AsyncSockets
+<img src='https://i.imgur.com/GqoAZI3.png' />
 

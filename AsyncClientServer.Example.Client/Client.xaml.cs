@@ -35,7 +35,7 @@ namespace AsyncClientServer.Example.Client
 			
 			_client = new AsyncSocketClient();
 			BindEvents();
-			Task.Run(StartClient);
+			Task.Run(() => StartClient());
 		}
 
 		private void StartClient()

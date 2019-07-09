@@ -14,7 +14,7 @@ using AsyncClientServer.Messaging.Metadata;
 
 namespace AsyncClientServer.Server
 {
-	public sealed class AsyncSocketSslListener : ServerListener
+	public class AsyncSocketSslListener : ServerListener
 	{
 		private readonly X509Certificate _serverCertificate = null;
 		private bool _acceptInvalidCertificates = true;
