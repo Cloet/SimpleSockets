@@ -17,7 +17,6 @@ namespace AsyncClientServer.Server
 	public class AsyncSocketSslListener : ServerListener
 	{
 		private readonly X509Certificate _serverCertificate = null;
-		private bool _acceptInvalidCertificates = true;
 		private readonly ManualResetEvent _mreRead = new ManualResetEvent(true);
 		private readonly ManualResetEvent _mreWriting = new ManualResetEvent(true);
 		private readonly TlsProtocol _tlsProtocol;
@@ -77,7 +76,7 @@ namespace AsyncClientServer.Server
 			TokenSource = new CancellationTokenSource();
 			Token = TokenSource.Token;
 
-			Task.Run(() => SendFromQueue(), Token);
+			Task.Run(SendFromQueue, Token);
 
 			Task.Run(() =>
 			{
@@ -93,7 +92,7 @@ namespace AsyncClientServer.Server
 						while (!Token.IsCancellationRequested)
 						{
 							CanAcceptConnections.Reset();
-							listener.BeginAccept(OnClientConnect, listener);
+							listener.BeginAccept(this.OnClientConnect, listener);
 							CanAcceptConnections.WaitOne();
 						}
 					}

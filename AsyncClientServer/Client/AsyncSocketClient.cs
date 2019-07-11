@@ -26,7 +26,10 @@ namespace AsyncClientServer.Client
 	/// </summary>
 	public class AsyncSocketClient : SocketClient
 	{
-
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="type"></param>
 		public AsyncSocketClient(): base()
 		{
 		}
@@ -57,7 +60,7 @@ namespace AsyncClientServer.Client
 			TokenSource = new CancellationTokenSource();
 			Token = TokenSource.Token;
 
-			Task.Run(() => SendFromQueue(), Token);
+			Task.Run(SendFromQueue, Token);
 
 			Task.Run(() =>
 			{
@@ -68,7 +71,7 @@ namespace AsyncClientServer.Client
 
 					//Try and connect
 					Listener = new Socket(Endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-					Listener.BeginConnect(Endpoint, OnConnectCallback, Listener);
+					Listener.BeginConnect(Endpoint, this.OnConnectCallback, Listener);
 					ConnectedMre.WaitOne();
 
 					//If client is connected activate connected event
@@ -81,7 +84,7 @@ namespace AsyncClientServer.Client
 						InvokeDisconnected(this);
 						Close();
 						ConnectedMre.Reset();
-						Listener.BeginConnect(Endpoint, OnConnectCallback, Listener);
+						Listener.BeginConnect(Endpoint, this.OnConnectCallback, Listener);
 					}
 
 				}
@@ -89,7 +92,7 @@ namespace AsyncClientServer.Client
 				{
 					throw new Exception(ex.Message, ex);
 				}
-			},Token);
+			}, Token);
 
 
 		}

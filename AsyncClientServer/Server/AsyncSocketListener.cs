@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.Eventing.Reader;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -52,12 +53,13 @@ namespace AsyncClientServer.Server
 			TokenSource = new CancellationTokenSource();
 			Token = TokenSource.Token;
 
-			Task.Run(() => SendFromQueue(), Token);
+			Task.Run(SendFromQueue, Token);
 
 			Task.Run(() =>
 			{
 				try
 				{
+
 					using (var listener = new Socket(endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp))
 					{
 						Listener = listener;
@@ -68,20 +70,21 @@ namespace AsyncClientServer.Server
 						while (!Token.IsCancellationRequested)
 						{
 							CanAcceptConnections.Reset();
-							listener.BeginAccept(OnClientConnect, listener);
+							listener.BeginAccept(this.OnClientConnect, listener);
 							CanAcceptConnections.WaitOne();
 						}
 
 					}
 				}
-				catch (ObjectDisposedException)
+				catch (ObjectDisposedException ode)
 				{
+					InvokeErrorThrown(ode.Message);
 				}
 				catch (SocketException se)
 				{
 					throw new Exception(se.ToString());
 				}
-			},Token);
+			}, Token);
 
 		}
 
@@ -125,8 +128,9 @@ namespace AsyncClientServer.Server
 
 				StartReceiving(state);
 			}
-			catch (ObjectDisposedException)
+			catch (ObjectDisposedException ode)
 			{
+				InvokeErrorThrown(ode.Message);
 			}
 			catch (SocketException se)
 			{

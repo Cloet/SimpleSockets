@@ -119,7 +119,7 @@ namespace AsyncClientServer.Example.Server.Views
 
 			try
 			{
-				Task.Run(() => _listener.SendFolderAsync(_client.Id, source, destination, false));
+				Task.Run(() => _listener.SendFolder(_client.Id, source, destination, false));
 			}
 			catch (Exception ex)
 			{
@@ -159,7 +159,7 @@ namespace AsyncClientServer.Example.Server.Views
 
 			try
 			{
-				Task.Run(() => _listener.SendFileAsync(_client.Id, source, destination, false));
+				Task.Run(() => _listener.SendFile(_client.Id, source, destination, false));
 			}
 			catch (Exception ex)
 			{

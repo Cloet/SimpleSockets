@@ -50,7 +50,6 @@ namespace AsyncClientServer.Client
 				_sslCertificate = new X509Certificate2(File.ReadAllBytes(Path.GetFullPath(certificate)), certificatePassword);
 			}
 
-
 			_tlsProtocol = tls;
 			AcceptInvalidCertificates = acceptInvalidCertificates;
 
@@ -83,7 +82,7 @@ namespace AsyncClientServer.Client
 			TokenSource = new CancellationTokenSource();
 			Token = TokenSource.Token;
 
-			Task.Run(() => SendFromQueue(), Token);
+			Task.Run(SendFromQueue, Token);
 
 			Task.Run(() =>
 			{
@@ -105,7 +104,7 @@ namespace AsyncClientServer.Client
 						InvokeDisconnected(this);
 						Close();
 						ConnectedMre.Reset();
-						Listener.BeginConnect(Endpoint, OnConnectCallback, Listener);
+						Listener.BeginConnect(Endpoint, this.OnConnectCallback, Listener);
 					}
 
 				}
@@ -130,7 +129,7 @@ namespace AsyncClientServer.Client
 				var stream = new NetworkStream(Listener);
 				_sslStream = new SslStream(stream, false, new RemoteCertificateValidationCallback(ValidateCertificate), null);
 
-				Task.Run(() => SendFromQueue(), Token);
+				Task.Run(SendFromQueue, Token);
 
 				Task.Run(() =>
 				{

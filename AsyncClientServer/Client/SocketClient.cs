@@ -84,13 +84,7 @@ namespace AsyncClientServer.Client
 		protected IPEndPoint Endpoint;
 		protected static System.Timers.Timer KeepAliveTimer;
 		private bool _disconnectedInvoked;
-
-		//Contains messages
-		protected BlockingQueue<Message> BlockingMessageQueue = new BlockingQueue<Message>();
-
-		//Tokensource to cancel running tasks
-		protected CancellationTokenSource TokenSource { get; set; }
-		protected CancellationToken Token { get; set; }
+		
 
 		/// <summary>
 		/// This is how many seconds te client waits to try and reconnect to the server

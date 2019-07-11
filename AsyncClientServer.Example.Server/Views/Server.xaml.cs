@@ -35,7 +35,7 @@ namespace AsyncClientServer.Example.Server
 		public Server()
 		{
 
-			AsyncSocket test = new AsyncSocketClient();
+			//AsyncSocket test = new AsyncSocketClient(ProtocolType.Udp);
 
 			InitializeComponent();
 
