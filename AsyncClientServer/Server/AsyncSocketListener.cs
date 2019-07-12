@@ -77,7 +77,7 @@ namespace AsyncClientServer.Server
 				}
 				catch (ObjectDisposedException ode)
 				{
-					InvokeErrorThrown(ode.Message);
+					InvokeErrorThrown(ode);
 				}
 				catch (SocketException se)
 				{
@@ -129,11 +129,11 @@ namespace AsyncClientServer.Server
 			}
 			catch (ObjectDisposedException ode)
 			{
-				InvokeErrorThrown(ode.Message);
+				InvokeErrorThrown(ode);
 			}
 			catch (SocketException se)
 			{
-                this.InvokeErrorThrown(se.Message);
+                this.InvokeErrorThrown(se);
 			}
 
 		}
@@ -215,7 +215,7 @@ namespace AsyncClientServer.Server
 			catch (Exception ex)
 			{
 				state.Reset();
-				InvokeErrorThrown(ex.Message);
+				InvokeErrorThrown(ex);
 				StartReceiving(state);
 			}
 		}

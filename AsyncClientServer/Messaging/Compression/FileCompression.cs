@@ -12,8 +12,9 @@ namespace AsyncClientServer.Messaging.Compression
 		/// <para>Has to return the FileInfo of the compressed file in order to work.</para>
 		/// </summary>
 		/// <param name="fileToCompress"></param>
+		/// <param name="tempPath"></param>
 		/// <returns></returns>
-		public abstract FileInfo Compress(FileInfo fileToCompress);
+		public abstract FileInfo Compress(FileInfo fileToCompress, string tempPath);
 
 
 		/// <summary>

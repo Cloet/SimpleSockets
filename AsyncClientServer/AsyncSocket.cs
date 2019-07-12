@@ -94,7 +94,7 @@ namespace AsyncClientServer
 			try
 			{
 				//Gets a temp path for the zip file.
-				string tempPath = Path.GetTempFileName();
+				string tempPath = TempPath + Path.GetFileName(Path.GetTempFileName());
 
 				//Check if the current temp file exists, if so delete it.
 				File.Delete(tempPath);
@@ -114,7 +114,6 @@ namespace AsyncClientServer
 				}
 
 				await StreamFileAndSendBytesAsync(folderToSend, remoteFolderLocation, encryptFolder, id);
-				//await SendFileAsynchronous(folderToSend, remoteFolderLocation, encryptFolder, close, id);
 
 				//Deletes the compressed folder if not encryption occured.
 				if (File.Exists(folderToSend))
@@ -350,7 +349,9 @@ namespace AsyncClientServer
 		{
 			try
 			{
-				return await Task.Run(() => FileCompressor.Compress(new FileInfo(Path.GetFullPath(path))).FullName, Token);
+				return await Task.Run(() => 
+					FileCompressor.Compress(new FileInfo(Path.GetFullPath(path)), TempPath).FullName
+					, Token);
 			}
 			catch (Exception ex)
 			{
@@ -386,10 +387,42 @@ namespace AsyncClientServer
 		//Contains messages
 		protected BlockingQueue<Message> BlockingMessageQueue = new BlockingQueue<Message>();
 
-		protected MessageEncryption _messageEncryption;
-		protected FileCompression _fileCompressor;
-		protected FolderCompression _folderCompressor;
-		
+		private string _tempPath;
+		private MessageEncryption _messageEncryption;
+		private FileCompression _fileCompressor;
+		private FolderCompression _folderCompressor;
+
+		/// <summary>
+		/// The path where files will be stored for extraction, compression, encryption end decryption.
+		/// if the given value is invalid it will default to %TEMP%
+		/// </summary>
+		public string TempPath {
+			get => string.IsNullOrEmpty(_tempPath) ? Path.GetTempPath() : _tempPath;
+			set
+			{
+				try
+				{
+					var temp = new FileInfo(value);
+					if (temp.Directory != null)
+					{
+						_tempPath = temp.Directory.FullName + Path.DirectorySeparatorChar;
+						if (!Directory.Exists(_tempPath))
+							Directory.CreateDirectory(_tempPath);
+
+						return;
+					}
+
+					throw new ArgumentException("Invalid path was given.");
+
+				}
+				catch (Exception ex)
+				{
+					throw new ArgumentException(ex.Message, TempPath, ex);
+				}
+			}
+
+		}
+
 		/// <summary>
 		/// Used to compress files before sending
 		/// </summary>

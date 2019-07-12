@@ -284,7 +284,7 @@ namespace AsyncClientServer.Client
 			catch (Exception ex)
 			{
 				state.Reset();
-				InvokeErrorThrown(ex.Message);
+				InvokeErrorThrown(ex);
 				StartReceiving(state);
 			}
 		}

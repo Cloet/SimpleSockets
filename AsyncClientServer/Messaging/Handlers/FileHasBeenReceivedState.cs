@@ -39,15 +39,15 @@ namespace AsyncClientServer.Messaging.Handlers
 			{
 				if (Path.GetPathRoot(source) == Path.GetPathRoot(destPath))
 				{
-					if (!Directory.Exists(destPath))
-						Directory.CreateDirectory(destPath);
+					//if (!Directory.Exists(destPath))
+						//Directory.CreateDirectory(destPath);
 
 					Directory.Move(source, destPath);
 				}
 				else
 				{
-					if (!Directory.Exists(destPath))
-						Directory.CreateDirectory(destPath);
+					//if (!Directory.Exists(destPath))
+						//Directory.CreateDirectory(destPath);
 
 					//Now Create all of the directories
 					foreach (string dirPath in Directory.GetDirectories(source, "*",SearchOption.AllDirectories))

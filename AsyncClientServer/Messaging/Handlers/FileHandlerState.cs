@@ -11,8 +11,13 @@ namespace AsyncClientServer.Messaging.Handlers
 
 		public FileHandlerState(ISocketState state, SocketClient client, ServerListener listener) : base(state, client,listener)
 		{
+			if (client == null)
+				_tempPath = listener.TempPath;
+			if (listener == null)
+				_tempPath = client.TempPath;
 		}
 
+		private readonly string _tempPath;
 		private string _tempFilePath = string.Empty;
 
 		//Checks if the file already exists and deletes when it has to.
@@ -44,7 +49,7 @@ namespace AsyncClientServer.Messaging.Handlers
 			if (_tempFilePath == string.Empty)
 			{
 				FileInfo temp = new FileInfo(State.Header);
-				_tempFilePath = Path.GetTempPath() + temp.Name;
+				_tempFilePath = _tempPath + temp.Name;
 			}
 
 			//Checks if it is the first write and if the file has to be deleted.

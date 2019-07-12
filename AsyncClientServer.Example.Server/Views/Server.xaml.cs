@@ -14,6 +14,7 @@ using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Media.Media3D;
 using System.Windows.Shapes;
 using AsyncClientServer.Client;
 using AsyncClientServer.Example.Server.ViewModel;
@@ -64,6 +65,7 @@ namespace AsyncClientServer.Example.Server
 			_listener.FileReceived += new FileFromClientReceivedHandler(FileReceived);
 			_listener.ServerHasStarted += new ServerHasStartedHandler(ServerHasStarted);
 			_listener.MessageFailed += new DataTransferToClientFailedHandler(MessageFailed);
+			_listener.ServerErrorThrown += new ServerErrorThrownHandler(ErrorThrown);
 		}
 
 
@@ -100,6 +102,11 @@ namespace AsyncClientServer.Example.Server
 
 		private void ServerHasStarted()
 		{
+		}
+
+		private void ErrorThrown(Exception exception)
+		{
+			MessageBox.Show(exception.Message, "Error");
 		}
 
 		private void MessageFailed(int id, byte[] messageData, string exceptionMessage)

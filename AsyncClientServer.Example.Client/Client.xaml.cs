@@ -15,6 +15,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using AsyncClientServer.Client;
+using AsyncClientServer.Server;
 using Application = System.Windows.Application;
 using MessageBox = System.Windows.MessageBox;
 
@@ -33,10 +34,18 @@ namespace AsyncClientServer.Example.Client
 			InitializeComponent();
 
 			//_client = new AsyncSocketSslClient(@"", "");
-			
-			_client = new AsyncSocketClient();
-			BindEvents();
-			Task.Run(() => StartClient());
+
+			try
+			{
+				_client = new AsyncSocketClient();
+				_client.TempPath = @"D:\TestFolder\";
+				BindEvents();
+				Task.Run(() => StartClient());
+			}
+			catch (Exception ex)
+			{
+				MessageBox.Show(ex.Message);
+			}
 		}
 
 		private void StartClient()
@@ -48,6 +57,7 @@ namespace AsyncClientServer.Example.Client
 		{
 			_client.ProgressFileReceived += new ProgressFileTransferHandler(Progress);
 			_client.Connected += new ConnectedHandler(ConnectedToServer);
+			_client.ClientErrorThrown += new ClientErrorThrownHandler(ErrorThrown);
 			_client.MessageReceived += new ClientMessageReceivedHandler(ServerMessageReceived);
 			_client.MessageSubmitted += new ClientMessageSubmittedHandler(ClientMessageSubmitted);
 			_client.FileReceived += new FileFromServerReceivedHandler(FileReceived);
@@ -86,6 +96,12 @@ namespace AsyncClientServer.Example.Client
 		private void CustomHeader(SocketClient a, string msg, string header)
 		{
 			AppendRichtTextBoxLog(header + ": " + msg);
+		}
+
+
+		private void ErrorThrown(SocketClient socketClient, Exception error)
+		{
+			AppendRichtTextBoxLog("Error: " + error.Message);
 		}
 
 		private void ConnectedToServer(SocketClient a)
@@ -192,7 +208,7 @@ namespace AsyncClientServer.Example.Client
 
 			try
 			{
-				Task.Run(() => _client.SendFolderAsync(source, destination, false));
+				Task.Run(() => _client.SendFolder(source, destination, false));
 			}
 			catch (Exception ex)
 			{
@@ -232,7 +248,7 @@ namespace AsyncClientServer.Example.Client
 
 			try
 			{
-				Task.Run(() => _client.SendFileAsync(source, destination, false));
+				Task.Run(() => _client.SendFile(source, destination, false));
 			}
 			catch (Exception ex)
 			{

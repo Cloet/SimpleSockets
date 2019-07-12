@@ -110,7 +110,7 @@ namespace AsyncClientServer.Client
 				}
 				catch (Exception ex)
 				{
-					InvokeErrorThrown(ex.Message);
+					InvokeErrorThrown(ex);
 				}
 			}, Token);
 
@@ -422,7 +422,7 @@ namespace AsyncClientServer.Client
 			{
 				state.Reset();
 				DisposeSslStream();
-				InvokeErrorThrown(ex.Message);
+				InvokeErrorThrown(ex);
 				StartReceiving(state);
 			}
 		}

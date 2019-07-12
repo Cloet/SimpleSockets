@@ -77,7 +77,7 @@ namespace AsyncClientServer.Server
 	/// Triggered when an error is thrown
 	/// </summary>
 	/// <param name="exceptionMessage"></param>
-	public delegate void ServerErrorThrownHandler(string exceptionMessage);
+	public delegate void ServerErrorThrownHandler(Exception exception);
 
 	/// <summary>
 	/// Event that is triggered when the server has started
@@ -109,7 +109,7 @@ namespace AsyncClientServer.Server
 		public event FileTransferProgressHandler ProgressFileReceived;
 		public event ServerHasStartedHandler ServerHasStarted;
 		public event DataTransferToClientFailedHandler MessageFailed;
-		public event ServerErrorThrownHandler ErrorThrown;
+		public event ServerErrorThrownHandler ServerErrorThrown;
 
 		/// <summary>
 		/// Get dictionary of clients
@@ -362,7 +362,7 @@ namespace AsyncClientServer.Server
 			}
 			catch (Exception ex)
 			{
-                this.InvokeErrorThrown(ex.Message);
+                InvokeErrorThrown(ex);
 			}
 
             return false;
@@ -419,7 +419,7 @@ namespace AsyncClientServer.Server
 
 			if (state == null)
 			{
-                this.InvokeErrorThrown("Client does not exist.");
+                InvokeErrorThrown(new Exception("Client does not exist."));
 			}
 
 			try
@@ -482,7 +482,7 @@ namespace AsyncClientServer.Server
 			}
 			catch (Exception ex)
 			{
-                this.InvokeErrorThrown(ex.Message);
+                this.InvokeErrorThrown(ex);
 			}
 		}
 
@@ -558,9 +558,9 @@ namespace AsyncClientServer.Server
 			MessageSubmitted?.Invoke(id, close);
 		}
 
-		protected void InvokeErrorThrown(string exception)
+		protected void InvokeErrorThrown(Exception exception)
 		{
-			ErrorThrown?.Invoke(exception);
+			ServerErrorThrown?.Invoke(exception);
 		}
 
 		protected void InvokeMessageFailed(int id, byte[] messageData, string exception)
@@ -1011,7 +1011,8 @@ namespace AsyncClientServer.Server
 			try
 			{
 				var file = location;
-				var buffer = new byte[10485760];
+				var buffer = new byte[4096];
+				MemoryStream memStream = null;
 				bool firstRead = true;
 				List<int> clientIds = new List<int>();
 
@@ -1078,11 +1079,28 @@ namespace AsyncClientServer.Server
 						}
 
 
-						foreach (var key in clientIds)
+
+						//Use memorystream as temp buffer
+						//otherwise there will be too much separate message sent.
+						//And if buffer is to big the data will end up in the LOH.
+						if (memStream == null)
 						{
-							SendBytesPartial(data, key);
+							memStream = new MemoryStream();
 						}
 
+						memStream.Write(data, 0, data.Length);
+
+
+						if (memStream.Length >= buffer.Length * 2560)
+						{
+							foreach (var key in clientIds)
+							{
+								SendBytesPartial(data, key);
+							}
+							memStream.Close();
+							memStream = null;
+						}
+						
 					}
 
 				}
@@ -1102,7 +1120,7 @@ namespace AsyncClientServer.Server
 
 		protected async Task CreateAsyncFileMessageBroadcast(string fileLocation, string remoteSaveLocation, bool compressFile, bool encryptFile, bool close)
 		{
-			var file = Path.GetFullPath(fileLocation);
+			var file = TempPath + Path.GetFileName(Path.GetTempFileName());
 
 			IList<int> clients;
 
@@ -1152,7 +1170,7 @@ namespace AsyncClientServer.Server
 			IList<int> clients;
 
 			//Gets a temp path for the zip file.
-			string tempPath = Path.GetTempFileName();
+			string tempPath = TempPath + Path.GetFileName(Path.GetTempFileName());
 
 			//Check if the current temp file exists, if so delete it.
 			File.Delete(tempPath);

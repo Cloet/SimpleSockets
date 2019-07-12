@@ -10,9 +10,6 @@ namespace AsyncClientServer.Messaging.Handlers
 {
 	internal class InitialHandlerState : SocketStateState
 	{
-		//The types of messages that can be send.
-		private readonly string[] _messageTypes = { "COMMAND", "MESSAGE", "OBJECT" };
-
 		public InitialHandlerState(ISocketState state, SocketClient client, ServerListener listener) : base(state, client,listener)
 		{
 		}
@@ -76,7 +73,7 @@ namespace AsyncClientServer.Messaging.Handlers
 			}
 
 			//If it is a message set state to new MessageHandlerState.
-			if (_messageTypes.Contains(State.Header) || (State.Header.EndsWith("</h>") && State.Header.StartsWith("<h>")))
+			if (State.Header == "MESSAGE" || (State.Header.EndsWith("</h>") && State.Header.StartsWith("<h>")))
 			{
 				State.CurrentState = new MessageHandlerState(State, Client,Server);
 				State.CurrentState.Receive(receive - 8 - State.HeaderSize);

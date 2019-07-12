@@ -11,15 +11,16 @@ namespace AsyncClientServer.Messaging.Compression
 		/// Compress a file and return the FileInfo of the new file.
 		/// </summary>
 		/// <param name="fileToCompress"></param>
+		/// <param name="tempPath"></param>
 		/// <returns></returns>
-		public override FileInfo Compress(FileInfo fileToCompress)
+		public override FileInfo Compress(FileInfo fileToCompress, string tempPath)
 		{
 			try
 			{
 				if (fileToCompress.Extension == Extension)
 					throw new ArgumentException(fileToCompress.Name + " is already compressed.");
 
-				FileInfo compressedFile = new FileInfo(Path.GetTempPath() + Path.DirectorySeparatorChar +
+				FileInfo compressedFile = new FileInfo(tempPath + Path.DirectorySeparatorChar +
 				                                       fileToCompress.Name + Extension);
 
 				using (FileStream originalFileStream = fileToCompress.OpenRead())
