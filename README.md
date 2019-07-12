@@ -2,7 +2,8 @@
 
 [![NuGet version](https://badge.fury.io/nu/AsyncClientServer.svg)](https://badge.fury.io/nu/AsyncClientServer)
 
-C# Library using sockets to connect client to server using Asynchronous programming.
+.NET Library using sockets to connect client to server using Asynchronous programming.
+The library is written in .NET Standard 2.0
 
 ## SSL
 ### Creating a certificate
