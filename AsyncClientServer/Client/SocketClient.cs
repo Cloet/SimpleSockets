@@ -446,6 +446,44 @@ namespace AsyncClientServer.Client
 		*===========================================*/
 
 		/// <summary>
+		/// Sends a file to the server.
+		/// </summary>
+		/// <param name="fileLocation"></param>
+		/// <param name="remoteSaveLocation"></param>
+		/// <param name="close"></param>
+		public void SendFile(string fileLocation, string remoteSaveLocation, bool close)
+		{
+			try
+			{
+				SendFile(fileLocation, remoteSaveLocation, false, true, close);
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message, ex);
+			}
+		}
+
+		/// <summary>
+		/// Sends a file to the server.
+		/// </summary>
+		/// <param name="fileLocation"></param>
+		/// <param name="remoteSaveLocation"></param>
+		/// <param name="encryptFile"></param>
+		/// <param name="compressFile"></param>
+		/// <param name="close"></param>
+		public void SendFile(string fileLocation, string remoteSaveLocation, bool encryptFile, bool compressFile,bool close)
+		{
+			try
+			{
+				Task.Run(() => SendFileAsync(fileLocation, remoteSaveLocation, encryptFile, compressFile, close));
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message, ex);
+			}
+		}
+
+		/// <summary>
 		/// Send a file to server asynchronous.
 		/// <para/>The close parameter indicates if the client should close after sending or not.
 		/// <para>Simple way of sending large files over sockets</para>
@@ -455,7 +493,7 @@ namespace AsyncClientServer.Client
 		/// <param name="encryptFile"></param>
 		/// <param name="compressFile"></param>
 		/// <param name="close"></param>
-		public async Task SendFile(string fileLocation, string remoteSaveLocation, bool encryptFile, bool compressFile, bool close)
+		public async Task SendFileAsync(string fileLocation, string remoteSaveLocation, bool encryptFile, bool compressFile, bool close)
 		{
 			try
 			{
@@ -478,9 +516,9 @@ namespace AsyncClientServer.Client
 		/// <param name="fileLocation"></param>
 		/// <param name="remoteFileLocation"></param>
 		/// <param name="close"></param>
-		public async Task SendFile(string fileLocation, string remoteFileLocation, bool close)
+		public async Task SendFileAsync(string fileLocation, string remoteFileLocation, bool close)
 		{
-			await SendFile(fileLocation, remoteFileLocation, false, true, close);
+			await SendFileAsync(fileLocation, remoteFileLocation, false, true, close);
 		}
 		#endregion
 
@@ -501,7 +539,43 @@ namespace AsyncClientServer.Client
 		/// <param name="remoteFolderLocation"></param>
 		/// <param name="encryptFolder"></param>
 		/// <param name="close"></param>
-		public async Task SendFolder(string folderLocation, string remoteFolderLocation, bool encryptFolder, bool close)
+		public void SendFolder(string folderLocation, string remoteFolderLocation, bool encryptFolder, bool close)
+		{
+			try
+			{
+				Task.Run(() => SendFolderAsync(folderLocation, remoteFolderLocation, encryptFolder, close));
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.Message, ex);
+			}
+		}
+
+		/// <summary>
+		/// Sends a folder to the server asynchronous.
+		/// <para/>The close parameter indicates if the client should close after sending or not.
+		/// <para>The folder will be compressed to a .zip file before sending.</para>
+		/// <para>Simple way of sending a folder over sockets</para>
+		/// </summary>
+		/// <param name="folderLocation"></param>
+		/// <param name="remoteFolderLocation"></param>
+		/// <param name="close"></param>
+		public void SendFolder(string folderLocation, string remoteFolderLocation, bool close)
+		{
+			SendFolder(folderLocation, remoteFolderLocation, false, close);
+		}
+
+		/// <summary>
+		/// Sends a folder to the server asynchronous.
+		/// <para/>The close parameter indicates if the client should close after sending or not.
+		/// <para>The folder will be compressed to a .zip file before sending.</para>
+		/// <para>Simple way of sending a folder over sockets</para>
+		/// </summary>
+		/// <param name="folderLocation"></param>
+		/// <param name="remoteFolderLocation"></param>
+		/// <param name="encryptFolder"></param>
+		/// <param name="close"></param>
+		public async Task SendFolderAsync(string folderLocation, string remoteFolderLocation, bool encryptFolder, bool close)
 		{
 
 			try
@@ -523,9 +597,9 @@ namespace AsyncClientServer.Client
 		/// <param name="folderLocation"></param>
 		/// <param name="remoteFolderLocation"></param>
 		/// <param name="close"></param>
-		public async Task SendFolder(string folderLocation, string remoteFolderLocation, bool close)
+		public async Task SendFolderAsync(string folderLocation, string remoteFolderLocation, bool close)
 		{
-			await SendFolder(folderLocation, remoteFolderLocation, false, close);
+			await SendFolderAsync(folderLocation, remoteFolderLocation, false, close);
 		}
 		#endregion
 
