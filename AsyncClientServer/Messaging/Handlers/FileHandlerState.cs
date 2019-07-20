@@ -129,7 +129,7 @@ namespace AsyncClientServer.Messaging.Handlers
 
 			//Tracks the progress
 			if (Client == null)
-				Server.InvokeFileTransferProgress(State.Id, State.Read,State.MessageSize);
+				Server.InvokeFileTransferProgress(State.Id, State.Read, State.MessageSize);
 			else
 				Client.InvokeFileTransferProgress(State.Read, State.MessageSize);
 

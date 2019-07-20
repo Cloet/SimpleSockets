@@ -25,7 +25,7 @@ namespace Winform.Server
 
 		private void Server_Load(object sender, EventArgs e)
 		{
-			_listener = new AsyncSocketListener();
+			_listener = new AsyncSocketListener {AllowReceivingFiles = true};
 			BindEvents();
 			_listener.StartListening(13000);
 
@@ -34,16 +34,16 @@ namespace Winform.Server
 		private void BindEvents()
 		{
 			//Events
-			_listener.ProgressFileReceived += new FileTransferProgressHandler(Progress);
-			_listener.MessageReceived += new MessageReceivedHandler(MessageReceived);
-			_listener.MessageSubmitted += new MessageSubmittedHandler(MessageSubmitted);
-			_listener.CustomHeaderReceived += new CustomHeaderMessageReceivedHandler(CustomHeaderReceived);
-			_listener.ClientDisconnected += new ClientDisconnectedHandler(ClientDisconnected);
-			_listener.ClientConnected += new ClientConnectedHandler(ClientConnected);
-			_listener.FileReceived += new FileFromClientReceivedHandler(FileReceived);
-			_listener.ServerHasStarted += new ServerHasStartedHandler(ServerHasStarted);
-			_listener.MessageFailed += new DataTransferToClientFailedHandler(MessageFailed);
-			_listener.ServerErrorThrown += new ServerErrorThrownHandler(ErrorThrown);
+			_listener.ProgressFileTransfer += Progress;
+			_listener.MessageReceived += MessageReceived;
+			_listener.MessageSubmitted += MessageSubmitted;
+			_listener.CustomHeaderReceived += CustomHeaderReceived;
+			_listener.ClientDisconnected += ClientDisconnected;
+			_listener.ClientConnected += ClientConnected;
+			_listener.FileReceived += FileReceived;
+			_listener.ServerHasStarted += ServerHasStarted;
+			_listener.MessageFailed += MessageFailed;
+			_listener.ServerErrorThrown += ErrorThrown;
 		}
 
 		//*****Begin Events************///
@@ -83,10 +83,10 @@ namespace Winform.Server
 			WriteLine("Stacktrace: " + exception.StackTrace);
 		}
 
-		private void MessageFailed(int id, byte[] messageData, string exceptionMessage)
+		private void MessageFailed(int id, byte[] messageData, Exception exception)
 		{
 			WriteLine("The server has failed to deliver a message to client " + id);
-			WriteLine("Error message : " + exceptionMessage);
+			WriteLine("Error message : " + exception.Message);
 		}
 
 		private void ClientConnected(int id, ISocketInfo clientState)

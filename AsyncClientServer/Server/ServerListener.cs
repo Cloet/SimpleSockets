@@ -19,73 +19,6 @@ namespace AsyncClientServer.Server
 {
 
 	/// <summary>
-	/// Event that is triggered when a message is received
-	/// </summary>
-	/// <param name="id"></param>
-	/// <param name="msg"></param>
-	public delegate void MessageReceivedHandler(int id, string msg);
-
-	/// <summary>
-	/// Event that is triggered when a custom header message is received
-	/// </summary>
-	/// <param name="id"></param>
-	/// <param name="msg"></param>
-	public delegate void CustomHeaderMessageReceivedHandler(int id, string msg, string header);
-
-	/// <summary>
-	/// Event that is triggered a message is sent to the server
-	/// </summary>
-	/// <param name="id"></param>
-	/// <param name="close"></param>
-	public delegate void MessageSubmittedHandler(int id, bool close);
-
-	/// <summary>
-	/// Event that is triggered when the client has disconnected
-	/// </summary>
-	/// <param name="id"></param>
-	public delegate void ClientDisconnectedHandler(int id);
-
-	/// <summary>
-	/// Event that is triggered when a client has connected;
-	/// </summary>
-	/// <param name="id"></param>
-	public delegate void ClientConnectedHandler(int id, ISocketInfo clientInfo);
-
-	/// <summary>
-	/// Event that is triggered when the server receives a file
-	/// </summary>
-	/// <param name="id"></param>
-	/// <param name="filepath"></param>
-	public delegate void FileFromClientReceivedHandler(int id, string filepath);
-
-	/// <summary>
-	/// Event that is triggered when a part of the message is received.
-	/// </summary>
-	/// <param name="id"></param>
-	/// <param name="bytes"></param>
-	/// <param name="messageSize"></param>
-	public delegate void FileTransferProgressHandler(int id, int bytes, int messageSize);
-
-	/// <summary>
-	/// Triggered when a message was unable to complete it's transmission.
-	/// </summary>
-	/// <param name="id"></param>
-	/// <param name="messageData"></param>
-	/// <param name="exceptionMessage"></param>
-	public delegate void DataTransferToClientFailedHandler(int id, byte[] messageData, string exceptionMessage);
-
-	/// <summary>
-	/// Triggered when an error is thrown
-	/// </summary>
-	/// <param name="exceptionMessage"></param>
-	public delegate void ServerErrorThrownHandler(Exception exception);
-
-	/// <summary>
-	/// Event that is triggered when the server has started
-	/// </summary>
-	public delegate void ServerHasStartedHandler();
-
-	/// <summary>
 	/// Base class for ServerListener.
 	/// <para>Use AsyncSocketListener or AsyncSocketSslListener.</para>
 	/// </summary>
@@ -99,18 +32,68 @@ namespace AsyncClientServer.Server
 		protected readonly ManualResetEvent CanAcceptConnections = new ManualResetEvent(false);
 		protected Socket Listener { get; set; }
 		protected bool Disposed { get; set; }
-		
-		//Events
-		public event MessageReceivedHandler MessageReceived;
-		public event CustomHeaderMessageReceivedHandler CustomHeaderReceived;
-		public event MessageSubmittedHandler MessageSubmitted;
-		public event ClientDisconnectedHandler ClientDisconnected;
-		public event ClientConnectedHandler ClientConnected;
-		public event FileFromClientReceivedHandler FileReceived;
-		public event FileTransferProgressHandler ProgressFileReceived;
-		public event ServerHasStartedHandler ServerHasStarted;
-		public event DataTransferToClientFailedHandler MessageFailed;
-		public event ServerErrorThrownHandler ServerErrorThrown;
+
+
+		#region Events
+
+		/// <summary>
+		/// Event that is triggered when the server receives a Message.
+		/// Format is ID:MESSAGE
+		/// </summary>
+		public event Action<int, string> MessageReceived;
+
+		/// <summary>
+		/// Event that is triggered when the server receives a Message with a custom header.
+		/// Format is ID:MESSAGE:HEADER
+		/// </summary>
+		public event Action<int, string, string> CustomHeaderReceived;
+
+		/// <summary>
+		/// Event that is triggered when the server successfully has submitted a transmission of data.
+		/// Format is ID:CLOSE
+		/// The bool represents if the server has terminated after the message.
+		/// </summary>
+		public event Action<int, bool> MessageSubmitted;
+
+		/// <summary>
+		/// Event that is triggered when a client disconnects from the server.
+		/// Format is ID
+		/// </summary>
+		public event Action<int> ClientDisconnected;
+
+		/// <summary>
+		/// Event that is triggered when a client connects to the server
+		/// ID:CLIENTINFO
+		/// </summary>
+		public event Action<int, ISocketInfo> ClientConnected;
+
+		/// <summary>
+		/// Event that is triggered when the server has received a file.
+		/// ID:PATH
+		/// </summary>
+		public event Action<int, string> FileReceived;
+
+		/// <summary>
+		/// Event that is triggered when the server receives a part of a file.
+		/// ID:BYTES:TOTALFILESIZE
+		/// </summary>
+		public event Action<int, int, int> ProgressFileTransfer;
+
+		/// <summary>
+		/// Event that triggers when the server has successfully started
+		/// </summary>
+		public event Action ServerHasStarted;
+
+		/// <summary>
+		/// Event that is triggered when the server has failed to sent a sequence of bytes.
+		/// </summary>
+		public event Action<int, byte[], Exception> MessageFailed;
+
+		/// <summary>
+		/// Event that is triggered when exceptions are thrown within the server
+		/// </summary>
+		public event Action<Exception> ServerErrorThrown;
+		#endregion
 
 		/// <summary>
 		/// Get dictionary of clients
@@ -143,7 +126,6 @@ namespace AsyncClientServer.Server
 		/// </summary>
 		public IList<IPAddress> BlackList { get; set; }
 		
-
 		/// <summary>
 		/// Base constructor
 		/// </summary>
@@ -158,6 +140,7 @@ namespace AsyncClientServer.Server
 			BlackList = new List<IPAddress>();
 
 			IsRunning = false;
+			AllowReceivingFiles = false;
 
 			MessageEncryption = new Aes256();
 			FileCompressor = new GZipCompression();
@@ -551,7 +534,7 @@ namespace AsyncClientServer.Server
 
 		internal void InvokeFileTransferProgress(int id, int bytesReceived, int messageSize)
 		{
-			ProgressFileReceived?.Invoke(id, bytesReceived, messageSize);
+			ProgressFileTransfer?.Invoke(id, bytesReceived, messageSize);
 		}
 
 		protected void InvokeMessageSubmitted(int id, bool close)
@@ -559,12 +542,12 @@ namespace AsyncClientServer.Server
 			MessageSubmitted?.Invoke(id, close);
 		}
 
-		protected void InvokeErrorThrown(Exception exception)
+		internal void InvokeErrorThrown(Exception exception)
 		{
 			ServerErrorThrown?.Invoke(exception);
 		}
 
-		protected void InvokeMessageFailed(int id, byte[] messageData, string exception)
+		protected void InvokeMessageFailed(int id, byte[] messageData, Exception exception)
 		{
 			MessageFailed?.Invoke(id, messageData, exception);
 		}

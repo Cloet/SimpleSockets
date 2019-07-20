@@ -38,7 +38,7 @@ namespace AsyncClientServer.Example.Client
 			try
 			{
 				_client = new AsyncSocketClient();
-				_client.TempPath = @"D:\TestFolder\";
+				_client.AllowReceivingFiles = true;
 				BindEvents();
 				Task.Run(() => StartClient());
 			}
@@ -55,15 +55,15 @@ namespace AsyncClientServer.Example.Client
 
 		private void BindEvents()
 		{
-			_client.ProgressFileReceived += new ProgressFileTransferHandler(Progress);
-			_client.Connected += new ConnectedHandler(ConnectedToServer);
-			_client.ClientErrorThrown += new ClientErrorThrownHandler(ErrorThrown);
-			_client.MessageReceived += new ClientMessageReceivedHandler(ServerMessageReceived);
-			_client.MessageSubmitted += new ClientMessageSubmittedHandler(ClientMessageSubmitted);
-			_client.FileReceived += new FileFromServerReceivedHandler(FileReceived);
-			_client.Disconnected += new DisconnectedFromServerHandler(Disconnected);
-			_client.MessageFailed += new DataTransferFailedHandler(MessageFailed);
-			_client.CustomHeaderReceived += new ClientCustomHeaderReceivedHandler(CustomHeader);
+			_client.ProgressFileReceived += Progress;
+			_client.ConnectedToServer += ConnectedToServer;
+			_client.ClientErrorThrown += ErrorThrown;
+			_client.MessageReceived += ServerMessageReceived;
+			_client.MessageSubmitted += ClientMessageSubmitted;
+			_client.FileReceived += FileReceived;
+			_client.DisconnectedFromServer += Disconnected;
+			_client.MessageFailed += MessageFailed;
+			_client.CustomHeaderReceived += CustomHeader;
 		}
 
 		//Converts DateTime to a string according to cultureInfo. (uses CurrentCulture.)
@@ -137,7 +137,7 @@ namespace AsyncClientServer.Example.Client
 			AppendRichtTextBoxLog("Client has submitted a message.");
 		}
 
-		private void MessageFailed(SocketClient tcpClient, byte[] messageData, string exceptionMessage)
+		private void MessageFailed(SocketClient tcpClient, byte[] messageData, Exception exception)
 		{
 		}
 

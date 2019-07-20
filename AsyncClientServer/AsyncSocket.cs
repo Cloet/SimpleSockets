@@ -393,6 +393,12 @@ namespace AsyncClientServer
 		private FolderCompression _folderCompressor;
 
 		/// <summary>
+		/// The socket will not accept files from other sockets when this value is False.
+		/// Defaults to False.
+		/// </summary>
+		public bool AllowReceivingFiles { get; set; }
+
+		/// <summary>
 		/// The path where files will be stored for extraction, compression, encryption end decryption.
 		/// if the given value is invalid it will default to %TEMP%
 		/// </summary>

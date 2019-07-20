@@ -13,66 +13,6 @@ using AsyncClientServer.Messaging.Cryptography;
 namespace AsyncClientServer.Client
 {
 
-	/// <summary>
-	/// Event that triggers when a client is connected to server
-	/// </summary>
-	/// <param name="tcpClient"></param>
-	public delegate void ConnectedHandler(SocketClient tcpClient);
-
-	/// <summary>
-	/// Event that is triggered when the client has disconnected from the server.
-	/// </summary>
-	public delegate void DisconnectedFromServerHandler(SocketClient tcpClient, string ipServer, int port);
-
-	/// <summary>
-	/// Event that triggers when client receives a message
-	/// </summary>
-	/// <param name="tcpClient"></param>
-	/// <param name="msg"></param>
-	public delegate void ClientMessageReceivedHandler(SocketClient tcpClient, string msg);
-
-	/// <summary>
-	/// Event that is triggered when client receives a custom header message.
-	/// </summary>
-	/// <param name="tcpClient"></param>
-	/// <param name="msg"></param>
-	public delegate void ClientCustomHeaderReceivedHandler(SocketClient tcpClient, string msg, string header);
-
-	/// <summary>
-	/// Event that triggers when client sends a message
-	/// </summary>
-	/// <param name="tcpClient"></param>
-	/// <param name="close"></param>
-	public delegate void ClientMessageSubmittedHandler(SocketClient tcpClient, bool close);
-
-	/// <summary>
-	/// Event that is triggered when a file is received from the server, returns the new file path
-	/// </summary>
-	/// <param name="tcpClient"></param>
-	/// <param name="path"></param>
-	public delegate void FileFromServerReceivedHandler(SocketClient tcpClient, string path);
-
-	/// <summary>
-	/// Event that is triggered when a message failed to send
-	/// </summary>
-	/// <param name="tcpClient"></param>
-	/// <param name="exceptionMessage"></param>
-	public delegate void DataTransferFailedHandler(SocketClient tcpClient,byte[] messageData, string exceptionMessage);
-
-	/// <summary>
-	/// Triggered when an error is thrown
-	/// </summary>
-	/// <param name="exceptionMessage"></param>
-	public delegate void ClientErrorThrownHandler(SocketClient socketClient, Exception exceptionMessage);
-
-	/// <summary>
-	/// Event that is triggered when a file is received from the server and show the progress.
-	/// </summary>
-	/// <param name="tcpClient"></param>
-	/// <param name="bytesReceived"></param>
-	/// <param name="messageSize"></param>
-	public delegate void ProgressFileTransferHandler(SocketClient tcpClient, int bytesReceived, int messageSize);
-
 	public abstract class SocketClient : AsyncSocket
 	{
 		//Protected variabeles
@@ -83,23 +23,69 @@ namespace AsyncClientServer.Client
 		protected IPEndPoint Endpoint;
 		protected static System.Timers.Timer KeepAliveTimer;
 		private bool _disconnectedInvoked;
-		
+
+		#region Events
 
 		/// <summary>
 		/// This is how many seconds te client waits to try and reconnect to the server
 		/// </summary>
 		public int ReconnectInSeconds { get; protected set; }
 
-		//Events
-		public event ClientErrorThrownHandler ClientErrorThrown;
-		public event ConnectedHandler Connected;
-		public event ClientMessageReceivedHandler MessageReceived;
-		public event ClientCustomHeaderReceivedHandler CustomHeaderReceived;
-		public event ClientMessageSubmittedHandler MessageSubmitted;
-		public event FileFromServerReceivedHandler FileReceived;
-		public event ProgressFileTransferHandler ProgressFileReceived;
-		public event DisconnectedFromServerHandler Disconnected;
-		public event DataTransferFailedHandler MessageFailed;
+		
+		/// <summary>
+		/// Event that triggers when a client is connected to server
+		/// </summary>
+		public event Action<SocketClient> ConnectedToServer; 
+
+		/// <summary>
+		/// Event that is triggered when a client receives a message from a server
+		/// Format = SOCKETCLIENT:MESSAGE
+		/// </summary>
+		public event Action<SocketClient, string> MessageReceived;
+
+		/// <summary>
+		/// Event that is triggered when a client receives a custom message from a server
+		/// Format = SOCKETCLIENT:MESSAGE:HEADER
+		/// </summary>
+		public event Action<SocketClient, string, string> CustomHeaderReceived;
+
+		/// <summary>
+		/// Event that is triggered when a client receives a message from a server
+		/// Format = SOCKETCLIENT:CLOSE
+		/// The boolean indicates if the client has terminated after the message.
+		/// </summary>
+		public event Action<SocketClient, bool> MessageSubmitted;
+
+		/// <summary>
+		/// Event that is triggered when a client receives a file from a server
+		/// Format = SOCKETCLIENT:PATH
+		/// </summary>
+		public event Action<SocketClient, string> FileReceived;
+
+		/// <summary>
+		/// Event that is triggered when a client receives a part of a file from the server
+		/// Format = SOCKETCLIENT:BYTES:TOTALMESSAGE
+		/// </summary>
+		public event Action<SocketClient, int, int> ProgressFileReceived;
+
+		/// <summary>
+		/// Event that is triggered when the client has disconnected from the server.
+		/// Format = SOCKETCLIENT:IP:PORT
+		/// </summary>
+		public event Action<SocketClient, string, int> DisconnectedFromServer;
+
+		/// <summary>
+		/// Event that is triggered when a client fails to send a message to the server
+		/// Format = SOCKETCLIENT:MESSAGEBYTES,EXCEPTION
+		/// </summary>
+		public event Action<SocketClient, byte[], Exception> MessageFailed;
+
+		/// <summary>
+		/// Event that is triggered when a client gives an error.
+		/// </summary>
+		public event Action<SocketClient, Exception> ClientErrorThrown;
+
+		#endregion
 
 		/// <summary>
 		/// Constructor
@@ -113,6 +99,7 @@ namespace AsyncClientServer.Client
 			KeepAliveTimer.Enabled = false;
 
 			IsRunning = false;
+			AllowReceivingFiles = false;
 
 			MessageEncryption = new Aes256();
 			FileCompressor = new GZipCompression();
@@ -157,6 +144,7 @@ namespace AsyncClientServer.Client
 				throw new Exception("Error trying to get a valid IPAddress from string : " + ip, ex);
 			}
 		}
+
 
 		/// <summary>
 		/// Check if client is connected to server
@@ -322,7 +310,7 @@ namespace AsyncClientServer.Client
 
 		internal void InvokeMessage(string text)
 		{
-			MessageReceived?.Invoke(this,  text);
+			MessageReceived?.Invoke(this, text);
 		}
 
 		protected void InvokeMessageSubmitted(bool close)
@@ -348,7 +336,7 @@ namespace AsyncClientServer.Client
 		protected void InvokeConnected(SocketClient a)
 		{
 			IsRunning = true;
-			Connected?.Invoke(a);
+			ConnectedToServer?.Invoke(a);
 			_disconnectedInvoked = false;
 		}
 
@@ -356,17 +344,17 @@ namespace AsyncClientServer.Client
 		{
 			if (_disconnectedInvoked == false)
 			{
-				Disconnected?.Invoke(a, a.Ip, a.Port);
+				DisconnectedFromServer?.Invoke(a, a.Ip, a.Port);
 				_disconnectedInvoked = true;
 			}
 		}
 
-		protected void InvokeMessageFailed(byte[] messageData, string exception)
+		protected void InvokeMessageFailed(byte[] messageData, Exception exception)
 		{
 			MessageFailed?.Invoke(this, messageData, exception);
 		}
 
-		protected void InvokeErrorThrown(Exception exception)
+		internal void InvokeErrorThrown(Exception exception)
 		{
 			ClientErrorThrown?.Invoke(this, exception);
 		}

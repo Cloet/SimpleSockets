@@ -237,7 +237,7 @@ namespace AsyncClientServer.Client
 					DisposeSslStream();
 					InvokeDisconnected(this);
 					Close();
-					InvokeMessageFailed(bytes, "Server socket is not connected.");
+					InvokeMessageFailed(bytes, new Exception("Server socket is not connected."));
 				}
 				else
 				{
@@ -247,7 +247,7 @@ namespace AsyncClientServer.Client
 			}
 			catch (Exception ex)
 			{
-				InvokeMessageFailed(bytes, ex.Message);
+				InvokeMessageFailed(bytes, ex);
 			}
 		}
 
@@ -261,7 +261,7 @@ namespace AsyncClientServer.Client
 				{
 					DisposeSslStream();
 					Close();
-					InvokeMessageFailed(bytes, "Server socket is not connected.");
+					InvokeMessageFailed(bytes, new Exception("Server socket is not connected."));
 				}
 				else
 				{
@@ -270,7 +270,7 @@ namespace AsyncClientServer.Client
 			}
 			catch (Exception ex)
 			{
-				InvokeMessageFailed(bytes, ex.Message);
+				InvokeMessageFailed(bytes, ex);
 			}
 		}
 
@@ -289,7 +289,7 @@ namespace AsyncClientServer.Client
 			}
 			catch (Exception ex)
 			{
-				InvokeMessageFailed(message.MessageBytes, ex.Message);
+				InvokeMessageFailed(message.MessageBytes, ex);
 			}
 
 		}

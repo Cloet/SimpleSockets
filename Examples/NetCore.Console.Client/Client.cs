@@ -14,8 +14,11 @@ namespace NetCore.Console.Client
 		private static void Main(string[] args)
 		{
 			_client = new AsyncSocketClient();
+			_client.AllowReceivingFiles = true;
+
 			BindEvents();
 			_client.StartClient("127.0.0.1", 13000);
+			
 
 			while (true)
 			{
@@ -27,6 +30,12 @@ namespace NetCore.Console.Client
 				System.Console.Clear();
 			}
 
+		}
+
+		private static bool MessageReveivedFunc(string arg1, SocketClient arg2)
+		{
+			WriteLine("Test : " + arg1 + " client: " + arg2.Ip);
+			return true;
 		}
 
 		private static void Options()
@@ -117,15 +126,15 @@ namespace NetCore.Console.Client
 
 		private static void BindEvents()
 		{
-			_client.ProgressFileReceived += new ProgressFileTransferHandler(Progress);
-			_client.Connected += new ConnectedHandler(ConnectedToServer);
-			_client.ClientErrorThrown += new ClientErrorThrownHandler(ErrorThrown);
-			_client.MessageReceived += new ClientMessageReceivedHandler(ServerMessageReceived);
-			_client.MessageSubmitted += new ClientMessageSubmittedHandler(ClientMessageSubmitted);
-			_client.FileReceived += new FileFromServerReceivedHandler(FileReceived);
-			_client.Disconnected += new DisconnectedFromServerHandler(Disconnected);
-			_client.MessageFailed += new DataTransferFailedHandler(MessageFailed);
-			_client.CustomHeaderReceived += new ClientCustomHeaderReceivedHandler(CustomHeader);
+			_client.ProgressFileReceived += Progress;
+			_client.ConnectedToServer += ConnectedToServer;
+			_client.ClientErrorThrown += ErrorThrown;
+			_client.MessageReceived += ServerMessageReceived;
+			_client.MessageSubmitted += ClientMessageSubmitted;
+			_client.FileReceived += FileReceived;
+			_client.DisconnectedFromServer += Disconnected;
+			_client.MessageFailed += MessageFailed;
+			_client.CustomHeaderReceived += CustomHeader;
 		}
 
 		private static void CustomHeader(SocketClient a, string msg, string header)
@@ -187,10 +196,10 @@ namespace NetCore.Console.Client
 			WriteLine("The client has submitted a message to the server.");
 		}
 
-		private static void MessageFailed(SocketClient tcpClient, byte[] messageData, string exceptionMessage)
+		private static void MessageFailed(SocketClient tcpClient, byte[] messageData, Exception exception)
 		{
 			WriteLine("The client has failed to send a message.");
-			WriteLine("Error: " + exceptionMessage);
+			WriteLine("Error: " + exception);
 		}
 
 		#endregion

@@ -138,7 +138,7 @@ namespace AsyncClientServer.Client
 			}
 			catch (Exception ex)
 			{
-				InvokeMessageFailed(bytes, ex.Message);
+				InvokeMessageFailed(bytes, ex);
 			}
 		}
 
@@ -181,7 +181,7 @@ namespace AsyncClientServer.Client
 			}
 			catch (Exception ex)
 			{
-				InvokeMessageFailed(message.MessageBytes, ex.Message);
+				InvokeMessageFailed(message.MessageBytes, ex);
 			}
 
 		}
@@ -199,7 +199,7 @@ namespace AsyncClientServer.Client
 			}
 			catch (Exception ex)
 			{
-				InvokeMessageFailed(bytes, ex.Message);
+				InvokeMessageFailed(bytes, ex);
 			}
 		}
 

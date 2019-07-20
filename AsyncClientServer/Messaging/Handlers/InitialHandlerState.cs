@@ -80,10 +80,19 @@ namespace AsyncClientServer.Messaging.Handlers
 				return;
 			}
 
-			//If it's a file then set state to new FileHandlerState.
-			State.CurrentState = new FileHandlerState(State, Client,Server);
-			State.CurrentState.Receive(receive - 8 - State.HeaderSize);
+			bool acceptFile = true;
 
+			//If it's a file then set state to new FileHandlerState.
+			if (Client == null)
+				acceptFile = Server.AllowReceivingFiles;
+			if (Server == null)
+				acceptFile = Client.AllowReceivingFiles;
+
+			if (acceptFile)
+			{
+				State.CurrentState = new FileHandlerState(State, Client, Server);
+				State.CurrentState.Receive(receive - 8 - State.HeaderSize);
+			}
 		}
 
 

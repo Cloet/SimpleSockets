@@ -256,7 +256,7 @@ namespace AsyncClientServer.Server
 			}
 			catch (Exception ex)
 			{
-				InvokeMessageFailed(id, bytes, ex.Message);
+				InvokeMessageFailed(id, bytes, ex);
 			}
 		}
 
@@ -277,14 +277,14 @@ namespace AsyncClientServer.Server
 					//Sets client with id to disconnected
 					ClientDisconnectedInvoke(state.Id);
 					Close(state.Id);
-					InvokeMessageFailed(id, bytes, "Message failed to send because the destination socket is not connected.");
+					InvokeMessageFailed(id, bytes, new Exception("Message failed to send because the destination socket is not connected."));
 				}
 
 				BlockingMessageQueue.Enqueue(new Message(bytes, MessageType.Partial, state));
 			}
 			catch (Exception ex)
 			{
-				InvokeMessageFailed(id, bytes, ex.Message);
+				InvokeMessageFailed(id, bytes, ex);
 			}
 		}
 
@@ -299,7 +299,7 @@ namespace AsyncClientServer.Server
 			}
 			catch (Exception ex)
 			{
-				InvokeMessageFailed(message.SocketState.Id, message.MessageBytes, ex.Message);
+				InvokeMessageFailed(message.SocketState.Id, message.MessageBytes, ex);
 			}
 		}
 
