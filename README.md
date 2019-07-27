@@ -54,6 +54,24 @@ The client or server sends a byte array, this array consists of:
 ### Reason for using framing
 Using framed message makes sure multiples message can be correctly handles by the server or client and have the ability to distinguish what type of message is received.
 
+## MessageContracts
+This way you can create your own MessageTypes.
+You have to implement the interface IMessageContract and add the contract to both your server and client.
+```C
+**Server
+      //Create a new MessageContract, MessageA and add it to the server.
+      //Bind OnmessageReceived of the Contract to receive the message sent from the clients.
+			_messageAContract = new MessageA("MessageAHeader");
+			_listener.AddMessageContract(_messageAContract);
+			_messageAContract.OnMessageReceived += MessageAContractOnOnMessageReceived;
+**Client
+			//Create the MessageContract implementation and add to the client
+			_messageAContract = new MessageA("MessageAHeader");
+			_client.AddMessageContract(_messageAContract);
+			_messageAContract.OnMessageReceived += MessageAContractOnOnMessageReceived;
+```
+
+
 ## Usage
 ### Server
 
@@ -107,7 +125,7 @@ void MessageFailed(int id, byte[] messageData, string exceptionMessage);
 void CustomHeaderReceived(int id, string msg, string header);
 ```
 
-Methods used to send messages to server
+Methods used to send messages to clients
 ```C#
 //Send
 public void SendMessage(int id, string message, bool encryptMessage, bool close);
@@ -130,6 +148,10 @@ public void SendCustomHeaderMessage(int id, string message, string header, bool 
 public async Task SendCustomHeaderMessageAsync(int id, string message, string header, bool close);
 public async Task SendCustomHeaderMessageAsync(int id, string message, string header, bool encrypt, bool close);
 
+public void SendMessageContract(int id, IMessageContract contract, bool encryptContract, bool close);
+public void SendMessageContract(int id, IMessageContract contract, bool close);
+public async Task SendMessageContractAsync(int id, IMessageContract contract, bool encryptContract, bool close);
+public async Task SendMessageContractAsync(int id, IMessageContract contract, bool close);
 ```
 
 
@@ -183,7 +205,7 @@ void ClientMessageSubmitted(ITcpClient tcpClient, bool close);
 void MessageFailed(ITcpClient tcpClient, byte[] messageData, string exceptionMessage)
 ```
 
-Methods used to send messages to clients
+Methods used to send messages to server
 ```C#
 //Send to server
 public void SendMessage(string message, bool encryptMessage, bool close);
@@ -201,11 +223,15 @@ public void SendFolder(string folderLocation, string remoteFolderLocation, bool 
 public async Task SendFolderAsync(string folderLocation, string remoteFolderLocation, bool encryptFolder, bool close);
 public async Task SendFolderAsync(string folderLocation, string remoteFolderLocation, bool close);
 
-public void SendCustomHeaderMessage(string message, string header, bool close):
+public void SendCustomHeaderMessage(string message, string header, bool close);
 public void SendCustomHeaderMessage(string message, string header, bool encrypt, bool close);
-public async Task SendCustomHeaderMessageAsync(string message, string header, bool close):
+public async Task SendCustomHeaderMessageAsync(string message, string header, bool close);
 public async Task SendCustomHeaderMessageAsync(string message, string header, bool encrypt, bool close);
 
+public void SendMessageContract(IMessageContract contract, bool encryptContract, bool close);
+public void SendMessageContract(IMessageContract contract, bool close);
+public async Task SendMessageContractAsync(IMessageContract contract, bool encryptContract, bool close);
+public async Task SendMessageContractAsync(IMessageContract contract, bool close);
 ```
 
 Broadcast messages for server
