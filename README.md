@@ -36,6 +36,9 @@ To change the salt or key use 'ChangeSalt()' or 'ChangeKey()' method in Client o
 ### Using your own encryption
 You can use your own encryption and decryption by creating a new class that extends "Encryption" in AsyncClientServer and then changing the MessageEncrypter of the server and client.
 
+## File Transfer
+By default the client and/or server does not allow receiving files => AllowReceivingFiles = False by default.
+If you want your socket to receive files set this to true.
 
 ## Framing
 ### How the message are framed.
