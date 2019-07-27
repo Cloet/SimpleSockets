@@ -1,9 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 
-namespace NetCore.Console.Client
+namespace NetCore.Console.Server
 {
 	/// <summary>
 	/// An ASCII progress bar

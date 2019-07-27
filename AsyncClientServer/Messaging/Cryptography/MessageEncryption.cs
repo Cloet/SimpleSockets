@@ -1,4 +1,6 @@
-﻿namespace AsyncClientServer.Messaging.Cryptography
+﻿using System.Text;
+
+namespace AsyncClientServer.Messaging.Cryptography
 {
 	public abstract class MessageEncryption
 	{
@@ -10,14 +12,36 @@
 		/// </summary>
 		/// <param name="plainText"></param>
 		/// <returns>The encrypted bytes</returns>
-		public abstract byte[] EncryptStringToBytes(string plainText);
+		public byte[] EncryptStringToBytes(string plainText)
+		{
+			byte[] toEncrypt = Encoding.UTF8.GetBytes(plainText);
+			return EncryptBytes(toEncrypt);
+		}
 
 		/// <summary>
 		/// Decrypt bytes to string.
 		/// </summary>
 		/// <param name="cipherText"></param>
 		/// <returns>The decrypted string.</returns>
-		public abstract string DecryptStringFromBytes(byte[] cipherText);
+		public string DecryptStringFromBytes(byte[] cipherText)
+		{
+			byte[] decryptedBytes = DecryptBytes(cipherText);
+			return Encoding.UTF8.GetString(decryptedBytes);
+		}
+
+		/// <summary>
+		/// Encrypt bytes to bytes
+		/// </summary>
+		/// <param name="bytes"></param>
+		/// <returns>The encrypted bytes</returns>
+		public abstract byte[] EncryptBytes(byte[] bytes);
+
+		/// <summary>
+		/// Decrypt bytes to bytes.
+		/// </summary>
+		/// <param name="cipherText"></param>
+		/// <returns>The decrypted string.</returns>
+		public abstract byte[] DecryptBytes(byte[] cipherText);
 
 		/// <summary>
 		/// Encrypts a file from its path and a plain password.

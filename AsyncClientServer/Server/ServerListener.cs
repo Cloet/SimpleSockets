@@ -13,6 +13,7 @@ using System.Timers;
 using AsyncClientServer.Messaging;
 using AsyncClientServer.Messaging.Compression;
 using AsyncClientServer.Messaging.Cryptography;
+using AsyncClientServer.Messaging.MessageContract;
 using AsyncClientServer.Messaging.Metadata;
 
 namespace AsyncClientServer.Server
@@ -870,8 +871,75 @@ namespace AsyncClientServer.Server
 
 		#endregion
 
+		#region MessageContract
+
+		/*==========================================
+		*
+		*	MESSAGECONTRACT
+		*
+		*===========================================*/
+
+		/// <summary>
+		/// Send a MessageContract to corresponding client.
+		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
+		/// <para>Id is not zero-based!</para>
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="contract"></param>
+		/// <param name="encryptContract"></param>
+		/// <param name="close"></param>
+		public void SendMessageContract(int id, IMessageContract contract, bool encryptContract, bool close)
+		{
+			byte[] data = CreateByteMessageContract(contract, encryptContract);
+			SendBytes(id, data, close);
+		}
+
+		/// <summary>
+		/// Sends a MessageContract to the corresponding client.
+		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
+		/// <para>This method encrypts the message that will be send.</para>
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="contract"></param>
+		/// <param name="close"></param>
+		public void SendMessageContract(int id, IMessageContract contract, bool close)
+		{
+			SendMessageContract(id, contract, false, true);
+		}
+
+		/// <summary>
+		/// Send a message to corresponding client asynchronous.
+		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
+		/// <para>Id is not zero-based!</para>
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="contract"></param>
+		/// <param name="encryptContract"></param>
+		/// <param name="close"></param>
+		public async Task SendMessageContractAsync(int id, IMessageContract contract, bool encryptContract, bool close)
+		{
+			await Task.Run(() => SendMessageContract(id, contract, encryptContract, close));
+		}
+
+		/// <summary>
+		/// Sends a message to the corresponding client asynchronous.
+		/// <para/>The close parameter indicates if the client should close after the server has sent a message or not.
+		/// <para>This method encrypts the message that will be send.</para>
+		/// </summary>
+		/// <param name="id"></param>
+		/// <param name="contract"></param>
+		/// <param name="close"></param>
+		/// <returns>Boolean, True when the message was sent successfully, False when an Error Occurred. (Errors will be invoked to MessageFailed.)</returns>
+		public async Task SendMessageContractAsync(int id, IMessageContract contract, bool close)
+		{
+			await Task.Run(() => SendMessageContract(id, contract, close));
+		}
+
+
+		#endregion
+
 		#region Broadcast
-		
+
 		///////////////
 		//Broadcasts//
 		//////////////
@@ -881,7 +949,7 @@ namespace AsyncClientServer.Server
 		*	FILE
 		*
 		*===========================================*/
-		
+
 		/// <summary>
 		/// Sends a file to all clients asynchronous
 		/// <para/>The close parameter indicates if all the clients should close after the server has sent the message or not.
@@ -1270,5 +1338,6 @@ namespace AsyncClientServer.Server
 
 		#endregion
 
+		
 	}
 }

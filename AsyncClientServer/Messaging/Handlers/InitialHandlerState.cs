@@ -60,7 +60,7 @@ namespace AsyncClientServer.Messaging.Handlers
 					return;
 				}
 
-				//Check if kthe message/file is encrypted and sets the header
+				//Check if the message/file is encrypted and sets the header
 				CheckIfEncryptedAndSetHeader();
 
 				//Get the bytes without the header and MessageSize and copy to new byte array.
@@ -73,7 +73,7 @@ namespace AsyncClientServer.Messaging.Handlers
 			}
 
 			//If it is a message set state to new MessageHandlerState.
-			if (State.Header == "MESSAGE" || (State.Header.EndsWith("</h>") && State.Header.StartsWith("<h>")))
+			if (State.Header == "MESSAGE" || (State.Header.EndsWith("</h>") && State.Header.StartsWith("<h>")) || (State.Header.EndsWith("</MC>") && State.Header.StartsWith("<MC>")))
 			{
 				State.CurrentState = new MessageHandlerState(State, Client,Server);
 				State.CurrentState.Receive(receive - 8 - State.HeaderSize);
@@ -121,8 +121,8 @@ namespace AsyncClientServer.Messaging.Handlers
 					//Get the header without the "ENCRYPTED_" String, then set the state to Encrypted.
 					byte[] newHeader = new byte[headerBytes.Length - 10];
 					Array.Copy(headerBytes, 10, newHeader, 0, newHeader.Length);
-					State.Header = Encrypter.DecryptStringFromBytes(newHeader);
 					State.Encrypted = true;
+					State.Header = Encrypter.DecryptStringFromBytes(newHeader);
 				}
 			}
 

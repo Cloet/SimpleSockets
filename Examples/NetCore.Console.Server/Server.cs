@@ -3,20 +3,32 @@ using System.Collections.Generic;
 using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Threading;
+using AsyncClientServer;
 using AsyncClientServer.Messaging.Metadata;
 using AsyncClientServer.Server;
-using NetCore.Console.Client;
+using NetCore.Console.Server.MessageContracts;
 
 namespace NetCore.Console.Server
 {
 	public class Server
 	{
 		private static ServerListener _listener;
+		private static MessageA _messageAContract;
+		private static bool _encrypt;
+
 		private static void Main(string[] args)
 		{
+			_encrypt = false;
 			_listener = new AsyncSocketListener {AllowReceivingFiles = true};
+
+			_messageAContract = new MessageA("MessageAHeader");
+			_listener.AddMessageContract(_messageAContract);
+			_messageAContract.OnMessageReceived += MessageAContractOnOnMessageReceived;
+
 			BindEvents();
 			_listener.StartListening(13000);
+
+
 
 			while (true)
 			{
@@ -30,6 +42,12 @@ namespace NetCore.Console.Server
 
 		}
 
+		// Handles the MessageContractA
+		private static void MessageAContractOnOnMessageReceived(AsyncSocket socket, int clientId, object message, string header)
+		{
+			WriteLine("Server received a MessageContract from the client with id " + clientId + " the header is : " + header + " and the message reads: " + message.ToString());
+		}
+
 
 		private static void Options()
 		{
@@ -41,6 +59,7 @@ namespace NetCore.Console.Server
 				WriteLine("    - Custom    (C)");
 				WriteLine("    - File      (F)");
 				WriteLine("    - Directory (D)");
+				WriteLine("    - Contract  (B)");
 				Write("Enter your chosen type: ");
 
 				var option = System.Console.ReadLine();
@@ -59,6 +78,9 @@ namespace NetCore.Console.Server
 							break;
 						case "D":
 							SendFolder();
+							break;
+						case "B":
+							SendMessageContract();
 							break;
 						default:
 							Options();
@@ -106,7 +128,19 @@ namespace NetCore.Console.Server
 			Write("Enter your message you want to send to the server...  ");
 			var message = System.Console.ReadLine();
 
-			_listener.SendMessage(id, message, false);
+			_listener.SendMessage(id, message,_encrypt, false);
+		}
+
+		private static void SendMessageContract()
+		{
+			System.Console.Clear();
+			var id = ShowClients();
+
+
+			Write("Press enter to send a MessageContract...  ");
+			System.Console.ReadLine();
+
+			_listener.SendMessageContract(id, _messageAContract, _encrypt, false);
 		}
 
 		private static void SendCustom()
@@ -121,7 +155,7 @@ namespace NetCore.Console.Server
 			var message = System.Console.ReadLine();
 
 
-			_listener.SendCustomHeaderMessage(id,message, header, false);
+			_listener.SendCustomHeaderMessage(id,message, header,_encrypt, false);
 		}
 
 		private static void SendFile()
@@ -134,7 +168,7 @@ namespace NetCore.Console.Server
 
 			Write("Enter the path on the server where the file should be stored... ");
 			var targetPath = System.Console.ReadLine();
-			_listener.SendFile(id,path, targetPath, false);
+			_listener.SendFile(id,path, targetPath,_encrypt,true, false);
 		}
 
 		private static void SendFolder()
@@ -148,7 +182,7 @@ namespace NetCore.Console.Server
 			Write("Enter the path on the server where the folder should be stored... ");
 			var targetPath = System.Console.ReadLine();
 
-			_listener.SendFolder(id,path, targetPath, false);
+			_listener.SendFolder(id,path, targetPath,_encrypt, false);
 		}
 
 		#region Events

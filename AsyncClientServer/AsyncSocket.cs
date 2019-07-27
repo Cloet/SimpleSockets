@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.IO.MemoryMappedFiles;
 using System.Linq;
@@ -9,6 +10,7 @@ using System.Threading.Tasks;
 using AsyncClientServer.Messaging;
 using AsyncClientServer.Messaging.Compression;
 using AsyncClientServer.Messaging.Cryptography;
+using AsyncClientServer.Messaging.MessageContract;
 using AsyncClientServer.Messaging.Metadata;
 
 namespace AsyncClientServer
@@ -238,8 +240,58 @@ namespace AsyncClientServer
 			}
 		}
 
-		
+
 		#region Byte Array Creation
+
+		private byte[] CreateByteArray(byte[] bytes, string header, bool encrypt)
+		{
+			try
+			{
+				byte[] messageArray = null;
+				byte[] headerArray = null;
+
+				if (encrypt)
+				{
+					//Header
+					byte[] encryptedPrefix = Encoding.UTF8.GetBytes("ENCRYPTED_");
+					byte[] encryptedHeader = MessageEncryption.EncryptStringToBytes(header);
+
+					headerArray = new byte[encryptedHeader.Length + encryptedPrefix.Length];
+
+					encryptedPrefix.CopyTo(headerArray, 0);
+					encryptedHeader.CopyTo(headerArray, 10);
+
+					messageArray = MessageEncryption.EncryptBytes(bytes);
+				}
+				else
+				{
+					headerArray = Encoding.UTF8.GetBytes(header);
+					messageArray = bytes;
+				}
+
+
+				//Message
+				byte[] messageData = messageArray;
+				byte[] headerBytes = headerArray;
+				byte[] headerLen = BitConverter.GetBytes(headerBytes.Length);
+				byte[] messageLength = BitConverter.GetBytes(messageData.Length);
+
+
+				var data = new byte[4 + 4 + headerBytes.Length + messageData.Length];
+
+				messageLength.CopyTo(data, 0);
+				headerLen.CopyTo(data, 4);
+				headerBytes.CopyTo(data, 8);
+				messageData.CopyTo(data, 8 + headerBytes.Length);
+
+				return data;
+
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(ex.ToString());
+			}
+		}
 
 		//Writes a message to byte array
 		private byte[] CreateByteArray(string message, string header, bool encrypt)
@@ -316,6 +368,17 @@ namespace AsyncClientServer
 		protected byte[] CreateByteCustomHeader(string message, string header, bool encrypt)
 		{
 			return CreateByteArray(message, "<h>" + header + "</h>", encrypt);
+		}
+
+		/// <summary>
+		/// Creates an array of bytes for a MessageContract.
+		/// </summary>
+		/// <param name="contract"></param>
+		/// <param name="encrypt"></param>
+		/// <returns></returns>
+		protected byte[] CreateByteMessageContract(IMessageContract contract, bool encrypt)
+		{
+			return CreateByteArray(contract.SerializeToBytes(), "<MC>" + contract.MessageHeader + "</MC>", encrypt);
 		}
 
 
@@ -397,6 +460,11 @@ namespace AsyncClientServer
 		/// Defaults to False.
 		/// </summary>
 		public bool AllowReceivingFiles { get; set; }
+
+		/// <summary>
+		/// Custom message contracts
+		/// </summary>
+		private IList<IMessageContract> _messageContracts = new List<IMessageContract>();
 
 		/// <summary>
 		/// The path where files will be stored for extraction, compression, encryption end decryption.
@@ -498,6 +566,63 @@ namespace AsyncClientServer
 		/// Dispose of the socket
 		/// </summary>
 		public abstract void Dispose();
+
+		/// <summary>
+		/// Creates a new message handler
+		/// </summary>
+		/// <param name="contract"></param>
+		public void AddMessageContract(IMessageContract contract)
+		{
+			if (string.IsNullOrEmpty(contract.MessageHeader))
+				throw new ArgumentNullException(contract.MessageHeader);
+
+			foreach (var c in _messageContracts)
+			{
+				if (c.MessageHeader == contract.MessageHeader)
+					throw new ArgumentException("A contract with the Header : " + c.MessageHeader + " already exists. The MessageHeader has to be unique.");
+			}
+
+			_messageContracts.Add(contract);
+		}
+
+		/// <summary>
+		/// Gets a MessageHeader with a specified MessageHeader.
+		/// </summary>
+		/// <param name="contractHeader"></param>
+		/// <returns></returns>
+		public IMessageContract GetMessageContract(string contractHeader)
+		{
+			if (string.IsNullOrEmpty(contractHeader))
+				throw new ArgumentNullException(contractHeader);
+
+			return _messageContracts.FirstOrDefault(c => c.MessageHeader == contractHeader);
+		}
+
+		/// <summary>
+		/// Removes a Message contract
+		/// </summary>
+		/// <param name="contract"></param>
+		public void RemoveMessageContract(IMessageContract contract)
+		{
+			if (string.IsNullOrEmpty(contract.MessageHeader))
+				throw new ArgumentNullException(contract.MessageHeader);
+
+			foreach (var c in _messageContracts)
+			{
+				if (c.MessageHeader != contract.MessageHeader) continue;
+				_messageContracts.Remove(c);
+				break;
+			}
+		}
+
+		/// <summary>
+		/// Returns the MessageContracts List.
+		/// </summary>
+		/// <returns></returns>
+		internal IList<IMessageContract> GetMessageContracts()
+		{
+			return _messageContracts;
+		}
 
 		/// <summary>
 		/// Change the buffer size of the server

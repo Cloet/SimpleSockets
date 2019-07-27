@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Timers;
 using AsyncClientServer.Messaging.Compression;
 using AsyncClientServer.Messaging.Cryptography;
+using AsyncClientServer.Messaging.MessageContract;
 
 namespace AsyncClientServer.Client
 {
@@ -426,6 +427,61 @@ namespace AsyncClientServer.Client
 		}
 		#endregion
 
+		#region MessageContract
+		/*=================================
+		*
+		*	MESSAGECONTRACT
+		*
+		*===========================================*/
+
+		/// <summary>
+		/// Send a MessageContract to the server
+		/// <para/>The close parameter indicates if the client should close after sending or not.
+		/// </summary>
+		/// <param name="contract"></param>
+		/// <param name="encryptContract"></param>
+		/// <param name="close"></param>
+		public void SendMessageContract(IMessageContract contract, bool encryptContract, bool close)
+		{
+			byte[] data = CreateByteMessageContract(contract, encryptContract);
+			SendBytes(data, close);
+		}
+
+		/// <summary>
+		/// Send a MessageContract to the server
+		/// <para/>The close parameter indicates if the client should close after sending or not.
+		/// </summary>
+		/// <param name="contract"></param>
+		/// <param name="close"></param>
+		public void SendMessageContract(IMessageContract contract, bool close)
+		{
+			SendMessageContract(contract, false, close);
+		}
+
+		/// <summary>
+		/// Send a MessageContract to the server asynchronous.
+		/// <para/>The close parameter indicates if the client should close after sending or not.
+		/// </summary>
+		/// <param name="contract"></param>
+		/// <param name="encryptContract"></param>
+		/// <param name="close"></param>
+		public async Task SendMessageContractAsync(IMessageContract contract, bool encryptContract, bool close)
+		{
+			await Task.Run(() => SendMessageContract(contract, encryptContract, close));
+		}
+
+		/// <summary>
+		/// Send a MessageContract to the server asynchronous.
+		/// <para/>The close parameter indicates if the client should close after sending or not.
+		/// </summary>
+		/// <param name="contract"></param>
+		/// <param name="close"></param>
+		public async Task SendMessageContractAsync(IMessageContract contract, bool close)
+		{
+			await Task.Run(() => SendMessageContract(contract, close));
+		}
+		#endregion
+
 		#region File
 		/*=================================
 		*
@@ -646,6 +702,7 @@ namespace AsyncClientServer.Client
 		#endregion
 
 		#endregion
+
 
 	}
 }

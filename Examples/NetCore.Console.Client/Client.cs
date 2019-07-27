@@ -2,7 +2,9 @@
 using System.Reflection.Metadata.Ecma335;
 using System.Threading;
 using System.Threading.Tasks;
+using AsyncClientServer;
 using AsyncClientServer.Client;
+using NetCore.Console.Client.MessageContracts;
 
 namespace NetCore.Console.Client
 {
@@ -10,11 +12,19 @@ namespace NetCore.Console.Client
 	{
 
 		private static SocketClient _client;
+		private static bool _encrypt;
+		private static MessageA _messageAContract;
 
 		private static void Main(string[] args)
 		{
-			_client = new AsyncSocketClient();
-			_client.AllowReceivingFiles = true;
+			_encrypt = false;
+			_client = new AsyncSocketClient {AllowReceivingFiles = true};
+
+			//Create the MessageContract implementation and add to the client
+			_messageAContract = new MessageA("MessageAHeader");
+			_client.AddMessageContract(_messageAContract);
+			//Bind MessageContract Event
+			_messageAContract.OnMessageReceived += MessageAContractOnOnMessageReceived;
 
 			BindEvents();
 			_client.StartClient("127.0.0.1", 13000);
@@ -32,11 +42,13 @@ namespace NetCore.Console.Client
 
 		}
 
-		private static bool MessageReveivedFunc(string arg1, SocketClient arg2)
+		//Event for MessageContract (MessageA)
+		//The clientId is only used on the server side. Here it will return -1
+		private static void MessageAContractOnOnMessageReceived(AsyncSocket client,int clientId, object message, string header)
 		{
-			WriteLine("Test : " + arg1 + " client: " + arg2.Ip);
-			return true;
+			WriteLine("MessageContract received with header: " + header + " and with message " + message.ToString());
 		}
+
 
 		private static void Options()
 		{
@@ -48,6 +60,7 @@ namespace NetCore.Console.Client
 				WriteLine("    - Custom    (C)");
 				WriteLine("    - File      (F)");
 				WriteLine("    - Directory (D)");
+				WriteLine("    - Contract  (B)");
 				Write("Enter your chosen type: ");
 
 				var option = System.Console.ReadLine();
@@ -67,6 +80,9 @@ namespace NetCore.Console.Client
 						case "D":
 							SendFolder();
 							break;
+						case "B":
+							SendMessageContract();
+							break;
 						default:
 							Options();
 							break;
@@ -84,7 +100,16 @@ namespace NetCore.Console.Client
 			Write("Enter your message you want to send to the server...  ");
 			var message = System.Console.ReadLine();
 
-			_client.SendMessage(message, false);
+			_client.SendMessage(message, _encrypt, false);
+		}
+
+		private static void SendMessageContract()
+		{
+			System.Console.Clear();
+			Write("Press enter to send a MessageContract...  ");
+			System.Console.ReadLine();
+
+			_client.SendMessageContract(_messageAContract, _encrypt, false);
 		}
 
 		private static void SendCustom()
@@ -96,7 +121,7 @@ namespace NetCore.Console.Client
 			Write("Enter the message you want to send...  ");
 			var message = System.Console.ReadLine();
 
-			_client.SendCustomHeaderMessage(message, header, false);
+			_client.SendCustomHeaderMessage(message, header, _encrypt, false);
 		}
 
 		private static void SendFile()
@@ -107,7 +132,7 @@ namespace NetCore.Console.Client
 
 			Write("Enter the path on the server where the file should be stored... ");
 			var targetPath = System.Console.ReadLine();
-			_client.SendFile(path, targetPath, false);
+			_client.SendFile(path, targetPath,_encrypt,true, false);
 		}
 
 		private static void SendFolder()
@@ -118,7 +143,7 @@ namespace NetCore.Console.Client
 
 			Write("Enter the path on the server where the folder should be stored... ");
 			var targetPath = System.Console.ReadLine();
-			_client.SendFolder(path, targetPath, false);
+			_client.SendFolder(path, targetPath,_encrypt, false);
 		}
 
 

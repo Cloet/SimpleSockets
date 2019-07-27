@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text;
 using AsyncClientServer.Client;
+using AsyncClientServer.Messaging.MessageContract;
 using AsyncClientServer.Messaging.Metadata;
 using AsyncClientServer.Server;
 
@@ -35,20 +37,24 @@ namespace AsyncClientServer.Messaging.Handlers
 				if (State.Header == "MESSAGE")
 					Server.InvokeMessageReceived(State.Id, text);
 				else if (State.Header.EndsWith("</h>") && State.Header.StartsWith("<h>"))
-					Server.InvokeCustomHeaderReceived(State.Id, text, ReplaceHeader(State.Header));
+					Server.InvokeCustomHeaderReceived(State.Id, text, ReplaceHeader(State.Header,"<h>","</h>"));
+				else if (State.Header.EndsWith("</MC>") && State.Header.StartsWith("<MC>"))
+					HandleMessageBroker(receivedMessageBytes);
 				else
 					throw new Exception("Incorrect header received.");
 
 
 				return;
 			}
-
+			
 			if (Server == null)
 			{
 				if (State.Header == "MESSAGE")
 					Client.InvokeMessage(text);
 				else if (State.Header.EndsWith("</h>") && State.Header.StartsWith("<h>"))
-					Client.InvokeCustomHeaderReceived(text, ReplaceHeader(State.Header));
+					Client.InvokeCustomHeaderReceived(text, ReplaceHeader(State.Header, "<h>", "</h>"));
+				else if (State.Header.EndsWith("</MC>") && State.Header.StartsWith("<MC>"))
+					HandleMessageBroker(receivedMessageBytes);
 				else
 					throw new Exception("Incorrect header received.");
 
@@ -59,11 +65,41 @@ namespace AsyncClientServer.Messaging.Handlers
 
 		}
 
-
-		private string ReplaceHeader(string txt)
+		private void HandleMessageBroker(byte[] receivedBytes)
 		{
-			string header = ReplaceFirst(txt, "<h>", "");
-			header = ReplaceLast(header, "</h>", "");
+			var header = ReplaceHeader(State.Header, "<MC>", "</MC>");
+
+			if (Client == null)
+			{
+				var contract = GetCorrespondingMessageContract(Server.GetMessageContracts(), header);
+				contract?.RaiseOnMessageReceived(Server,State.Id,contract.DeserializeToObject(receivedBytes), header);
+
+				return;
+			}
+
+			if (Server == null)
+			{
+				var contract = GetCorrespondingMessageContract(Client.GetMessageContracts(), header);
+				contract?.RaiseOnMessageReceived(Client,-1,contract.DeserializeToObject(receivedBytes), header);
+			}
+
+		}
+
+		private IMessageContract GetCorrespondingMessageContract(IList<IMessageContract> contracts, string header)
+		{
+			foreach (var contract in contracts)
+			{
+				if (contract.MessageHeader == header)
+					return contract;
+			}
+
+			return null;
+		}
+
+		private string ReplaceHeader(string txt, string beginTag, string endTag)
+		{
+			string header = ReplaceFirst(txt, beginTag, "");
+			header = ReplaceLast(header, endTag, "");
 			return header;
 		}
 

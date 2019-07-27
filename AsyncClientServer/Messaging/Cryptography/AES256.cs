@@ -31,24 +31,21 @@ namespace AsyncClientServer.Messaging.Cryptography
 		private byte[] _IV;
 
 
-		//String
+		////String
 
-		/// <summary>
-		/// Encrypt a string to bytes
-		/// </summary>
-		/// <param name="plainText"></param>
-		/// <returns></returns>
-		public override byte[] EncryptStringToBytes(string plainText)
+		public override byte[] EncryptBytes(byte[] bytes)
 		{
 			// Check arguments.
-			if (string.IsNullOrEmpty(plainText))
-				throw new ArgumentNullException(nameof(plainText));
+			if (bytes== null || bytes.Length <= 0)
+				throw new ArgumentNullException(nameof(bytes));
 			byte[] encrypted;
+
+			string plaintext = Encoding.UTF8.GetString(bytes);
 
 			// Create an Aes object
 			// with the specified key and IV.
 			using (Aes aesAlg = Aes.Create())
-			{
+			{ 
 				aesAlg.Key = _key;
 				aesAlg.IV = _IV;
 
@@ -60,11 +57,11 @@ namespace AsyncClientServer.Messaging.Cryptography
 				{
 					using (CryptoStream csEncrypt = new CryptoStream(msEncrypt, encryptor, CryptoStreamMode.Write))
 					{
-
+						
 						using (StreamWriter swEncrypt = new StreamWriter(csEncrypt))
 						{
 							//Write all data to the stream.
-							swEncrypt.Write(plainText);
+							swEncrypt.Write(plaintext);
 						}
 						encrypted = msEncrypt.ToArray();
 					}
@@ -74,28 +71,17 @@ namespace AsyncClientServer.Messaging.Cryptography
 
 			// Return the encrypted bytes from the memory stream.
 			return encrypted;
-
 		}
 
-		/// <summary>
-		/// Decrypt bytes to string
-		/// </summary>
-		/// <param name="cipherText"></param>
-		/// <returns></returns>
-		public override string DecryptStringFromBytes(byte[] cipherText)
+		public override byte[] DecryptBytes(byte[] cipherBytes)
 		{
-
 			try
 			{
 				// Check arguments.
-				if (cipherText == null || cipherText.Length <= 0)
-					throw new ArgumentNullException(nameof(cipherText));
+				if (cipherBytes == null || cipherBytes.Length <= 0)
+					throw new ArgumentNullException(nameof(cipherBytes));
 
-				byte[] decryptedBytes = new byte[cipherText.Length];
-
-				// Declare the string used to hold
-				// the decrypted text.
-				string plaintext = null;
+				string plaintext;
 
 				// Create an Aes object
 				// with the specified key and IV.
@@ -108,7 +94,7 @@ namespace AsyncClientServer.Messaging.Cryptography
 					ICryptoTransform decryptor = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);
 
 					// Create the streams used for decryption.
-					using (MemoryStream msDecrypt = new MemoryStream(cipherText))
+					using (MemoryStream msDecrypt = new MemoryStream(cipherBytes))
 					{
 						using (CryptoStream csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read))
 						{
@@ -123,14 +109,13 @@ namespace AsyncClientServer.Messaging.Cryptography
 
 				}
 
-				return plaintext;
+				return Encoding.UTF8.GetBytes(plaintext);
 			}
 			catch (Exception ex)
 			{
 				throw new Exception(ex.Message, ex);
 			}
 		}
-
 
 
 		//Files
