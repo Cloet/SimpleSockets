@@ -58,17 +58,17 @@ Using framed message makes sure multiples message can be correctly handles by th
 This way you can create your own MessageTypes.
 You have to implement the interface IMessageContract and add the contract to both your server and client.
 ```C
-**Server
-      //Create a new MessageContract, MessageA and add it to the server.
-      //Bind OnmessageReceived of the Contract to receive the message sent from the clients.
-			_messageAContract = new MessageA("MessageAHeader");
-			_listener.AddMessageContract(_messageAContract);
-			_messageAContract.OnMessageReceived += MessageAContractOnOnMessageReceived;
-**Client
-			//Create the MessageContract implementation and add to the client
-			_messageAContract = new MessageA("MessageAHeader");
-			_client.AddMessageContract(_messageAContract);
-			_messageAContract.OnMessageReceived += MessageAContractOnOnMessageReceived;
+//**Server
+//Create a new MessageContract, MessageA and add it to the server.
+//Bind OnmessageReceived of the Contract to receive the message sent from the clients.
+_messageAContract = new MessageA("MessageAHeader");
+_listener.AddMessageContract(_messageAContract);
+_messageAContract.OnMessageReceived += MessageAContractOnOnMessageReceived;
+//**Client
+//Create the MessageContract implementation and add to the client
+_messageAContract = new MessageA("MessageAHeader");
+_client.AddMessageContract(_messageAContract);
+_messageAContract.OnMessageReceived += MessageAContractOnOnMessageReceived;
 ```
 
 
