@@ -27,8 +27,8 @@ namespace AsyncClientServer.Messaging.Cryptography
 			_IV = IV;
 		}
 
-		private byte[] _key;
-		private byte[] _IV;
+		private readonly byte[] _key;
+		private readonly byte[] _IV;
 
 
 		////String
@@ -40,25 +40,27 @@ namespace AsyncClientServer.Messaging.Cryptography
 				throw new ArgumentNullException(nameof(bytes));
 			byte[] encrypted;
 
-			string plaintext = Encoding.UTF8.GetString(bytes);
+			var plaintext = Encoding.UTF8.GetString(bytes);
 
 			// Create an Aes object
 			// with the specified key and IV.
-			using (Aes aesAlg = Aes.Create())
-			{ 
+			using (var aesAlg = Aes.Create())
+			{
+				if (aesAlg == null) throw new Exception("Unable to create AES object...");
+
 				aesAlg.Key = _key;
 				aesAlg.IV = _IV;
 
-				// Create an encryptor to perform the stream transform.
-				ICryptoTransform encryptor = aesAlg.CreateEncryptor(aesAlg.Key, aesAlg.IV);
+				// Create an encryption to perform the stream transform.
+				var encryption = aesAlg.CreateEncryptor(aesAlg.Key, aesAlg.IV);
 
 				// Create the streams used for encryption.
-				using (MemoryStream msEncrypt = new MemoryStream())
+				using (var msEncrypt = new MemoryStream())
 				{
-					using (CryptoStream csEncrypt = new CryptoStream(msEncrypt, encryptor, CryptoStreamMode.Write))
+					using (var csEncrypt = new CryptoStream(msEncrypt, encryption, CryptoStreamMode.Write))
 					{
 						
-						using (StreamWriter swEncrypt = new StreamWriter(csEncrypt))
+						using (var swEncrypt = new StreamWriter(csEncrypt))
 						{
 							//Write all data to the stream.
 							swEncrypt.Write(plaintext);
@@ -85,20 +87,23 @@ namespace AsyncClientServer.Messaging.Cryptography
 
 				// Create an Aes object
 				// with the specified key and IV.
-				using (Aes aesAlg = Aes.Create())
+				using (var aesAlg = Aes.Create())
 				{
+
+					if (aesAlg == null) throw new Exception("Unable to create AES object...");
+
 					aesAlg.Key = _key;
 					aesAlg.IV = _IV;
 
-					// Create a decryptor to perform the stream transform.
-					ICryptoTransform decryptor = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);
+					// Create a decryption to perform the stream transform.
+					var decryption = aesAlg.CreateDecryptor(aesAlg.Key, aesAlg.IV);
 
 					// Create the streams used for decryption.
-					using (MemoryStream msDecrypt = new MemoryStream(cipherBytes))
+					using (var msDecrypt = new MemoryStream(cipherBytes))
 					{
-						using (CryptoStream csDecrypt = new CryptoStream(msDecrypt, decryptor, CryptoStreamMode.Read))
+						using (var csDecrypt = new CryptoStream(msDecrypt, decryption, CryptoStreamMode.Read))
 						{
-							using (StreamReader srDecrypt = new StreamReader(csDecrypt))
+							using (var srDecrypt = new StreamReader(csDecrypt))
 							{
 								// Read the decrypted bytes from the decrypting stream
 								// and place them in a string.
@@ -144,14 +149,15 @@ namespace AsyncClientServer.Messaging.Cryptography
 		/// Encrypts a file from its path and a plain password.
 		/// </summary>
 		/// <param name="inputFile"></param>
-		public override void FileEncrypt(string inputFile)
+		/// <param name="outputfile"></param>
+		public override FileInfo FileEncrypt(string inputFile, string outputfile)
 		{
 
 			//generate random salt
 			byte[] salt = GenerateRandomSalt();
 
 			//create output file name
-			FileStream fsCrypt = new FileStream(inputFile + Extension, FileMode.Create);
+			var fsCrypt = new FileStream(outputfile, FileMode.Create);
 
 			//convert password string to byte array
 			byte[] passwordBytes = _key;
@@ -172,16 +178,16 @@ namespace AsyncClientServer.Messaging.Cryptography
 			// write salt to the begining of the output file, so in this case can be random every time
 			fsCrypt.Write(salt, 0, salt.Length);
 
-			CryptoStream cs = new CryptoStream(fsCrypt, AES.CreateEncryptor(), CryptoStreamMode.Write);
+			var cs = new CryptoStream(fsCrypt, AES.CreateEncryptor(), CryptoStreamMode.Write);
 
-			FileStream fsIn = new FileStream(inputFile, FileMode.Open);
+			var fsIn = new FileStream(inputFile, FileMode.Open);
 
 			//create a buffer (1mb) so only this amount will allocate in the memory and not the whole file
-			byte[] buffer = new byte[1048576];
-			int read;
+			var buffer = new byte[1048576];
 
 			try
 			{
+				int read;
 				while ((read = fsIn.Read(buffer, 0, buffer.Length)) > 0)
 				{
 					cs.Write(buffer, 0, read);
@@ -199,6 +205,8 @@ namespace AsyncClientServer.Messaging.Cryptography
 				cs.Close();
 				fsCrypt.Close();
 			}
+
+			return new FileInfo(outputfile);
 		}
 
 		/// <summary>
@@ -206,7 +214,7 @@ namespace AsyncClientServer.Messaging.Cryptography
 		/// </summary>
 		/// <param name="inputFile"></param>
 		/// <param name="outputFile"></param>
-		public override void FileDecrypt(string inputFile, string outputFile)
+		public override FileInfo FileDecrypt(string inputFile, string outputFile)
 		{
 			byte[] passwordBytes = _key;
 			byte[] salt = new byte[32];
@@ -214,32 +222,30 @@ namespace AsyncClientServer.Messaging.Cryptography
 			FileStream fsCrypt = new FileStream(inputFile, FileMode.Open);
 			fsCrypt.Read(salt, 0, salt.Length);
 
-			RijndaelManaged AES = new RijndaelManaged();
-			AES.KeySize = 256;
-			AES.BlockSize = 128;
+			var AES = new RijndaelManaged {KeySize = 256, BlockSize = 128};
 			var key = new Rfc2898DeriveBytes(passwordBytes, salt, 50000);
 			AES.Key = key.GetBytes(AES.KeySize / 8);
 			AES.IV = key.GetBytes(AES.BlockSize / 8);
 			AES.Padding = PaddingMode.PKCS7;
 			AES.Mode = CipherMode.CFB;
 
-			CryptoStream cs = new CryptoStream(fsCrypt, AES.CreateDecryptor(), CryptoStreamMode.Read);
+			var cs = new CryptoStream(fsCrypt, AES.CreateDecryptor(), CryptoStreamMode.Read);
 
-			FileStream fsOut = new FileStream(outputFile, FileMode.Create);
+			var fsOut = new FileStream(outputFile, FileMode.Create);
 
-			int read;
-			byte[] buffer = new byte[1048576];
+			var buffer = new byte[1048576];
 
 			try
 			{
+				int read;
 				while ((read = cs.Read(buffer, 0, buffer.Length)) > 0)
 				{
 					fsOut.Write(buffer, 0, read);
 				}
 			}
-			catch (CryptographicException ex_CryptographicException)
+			catch (CryptographicException exCryptographicException)
 			{
-				throw new CryptographicException(ex_CryptographicException.Message, ex_CryptographicException);
+				throw new CryptographicException(exCryptographicException.Message, exCryptographicException);
 			}
 			catch (Exception ex)
 			{
@@ -259,6 +265,8 @@ namespace AsyncClientServer.Messaging.Cryptography
 				fsOut.Close();
 				fsCrypt.Close();
 			}
+
+			return new FileInfo(outputFile);
 		}
 
 	}

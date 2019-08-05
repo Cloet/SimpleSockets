@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.IO;
+using System.Text;
 
 namespace AsyncClientServer.Messaging.Cryptography
 {
@@ -48,14 +49,15 @@ namespace AsyncClientServer.Messaging.Cryptography
 		/// <para>The file has to be saved at the same location as the inputfile</para>
 		/// </summary>
 		/// <param name="inputFile"></param>
-		public abstract void FileEncrypt(string inputFile);
+		/// <param name="outputFile"></param>
+		public abstract FileInfo FileEncrypt(string inputFile, string outputFile);
 
 		/// <summary>
 		/// Decrypts an encrypted file with the FileEncrypt method through its path and the plain password.
 		/// </summary>
 		/// <param name="inputFile"></param>
 		/// <param name="outputFile"></param>
-		public abstract void FileDecrypt(string inputFile, string outputFile);
+		public abstract FileInfo FileDecrypt(string inputFile, string outputFile);
 
 	}
 }

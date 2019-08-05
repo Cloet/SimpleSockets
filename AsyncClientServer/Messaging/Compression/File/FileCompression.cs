@@ -1,6 +1,6 @@
 ﻿using System.IO;
 
-namespace AsyncClientServer.Messaging.Compression
+namespace AsyncClientServer.Messaging.Compression.File
 {
 	public abstract class FileCompression
 	{

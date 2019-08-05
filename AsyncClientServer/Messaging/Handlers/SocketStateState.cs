@@ -1,5 +1,7 @@
 ﻿using AsyncClientServer.Client;
 using AsyncClientServer.Messaging.Compression;
+using AsyncClientServer.Messaging.Compression.File;
+using AsyncClientServer.Messaging.Compression.Folder;
 using AsyncClientServer.Messaging.Cryptography;
 using AsyncClientServer.Messaging.Metadata;
 using AsyncClientServer.Server;

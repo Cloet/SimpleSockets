@@ -1,4 +1,4 @@
-﻿namespace AsyncClientServer.Messaging.Compression
+﻿namespace AsyncClientServer.Messaging.Compression.Folder
 {
 	public abstract class FolderCompression
 	{

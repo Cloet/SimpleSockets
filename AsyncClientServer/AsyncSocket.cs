@@ -9,6 +9,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using AsyncClientServer.Messaging;
 using AsyncClientServer.Messaging.Compression;
+using AsyncClientServer.Messaging.Compression.File;
+using AsyncClientServer.Messaging.Compression.Folder;
+using AsyncClientServer.Messaging.Compression.Stream;
 using AsyncClientServer.Messaging.Cryptography;
 using AsyncClientServer.Messaging.MessageContract;
 using AsyncClientServer.Messaging.Metadata;
@@ -250,6 +253,10 @@ namespace AsyncClientServer
 				byte[] messageArray = null;
 				byte[] headerArray = null;
 
+				//Compress message bytes
+				//The header is not worth compressing.
+				bytes = ByteCompressor.CompressBytes(bytes);
+
 				if (encrypt)
 				{
 					//Header
@@ -296,52 +303,7 @@ namespace AsyncClientServer
 		//Writes a message to byte array
 		private byte[] CreateByteArray(string message, string header, bool encrypt)
 		{
-			try
-			{
-				byte[] messageArray = null;
-				byte[] headerArray = null;
-
-				if (encrypt)
-				{
-					//Header
-					byte[] encryptedPrefix = Encoding.UTF8.GetBytes("ENCRYPTED_");
-					byte[] encryptedHeader = MessageEncryption.EncryptStringToBytes(header);
-
-					headerArray = new byte[encryptedHeader.Length + encryptedPrefix.Length];
-
-					encryptedPrefix.CopyTo(headerArray, 0);
-					encryptedHeader.CopyTo(headerArray, 10);
-
-					messageArray = MessageEncryption.EncryptStringToBytes(message);
-				}
-				else
-				{
-					headerArray = Encoding.UTF8.GetBytes(header);
-					messageArray = Encoding.UTF8.GetBytes(message);
-				}
-
-
-				//Message
-				byte[] messageData = messageArray;
-				byte[] headerBytes = headerArray;
-				byte[] headerLen = BitConverter.GetBytes(headerBytes.Length);
-				byte[] messageLength = BitConverter.GetBytes(messageData.Length);
-
-
-				var data = new byte[4 + 4 + headerBytes.Length + messageData.Length];
-
-				messageLength.CopyTo(data, 0);
-				headerLen.CopyTo(data, 4);
-				headerBytes.CopyTo(data, 8);
-				messageData.CopyTo(data, 8 + headerBytes.Length);
-
-				return data;
-
-			}
-			catch (Exception ex)
-			{
-				throw new Exception(ex.ToString());
-			}
+			return CreateByteArray(Encoding.UTF8.GetBytes(message), header, encrypt);
 		}
 
 		/// <summary>
@@ -396,9 +358,9 @@ namespace AsyncClientServer
 			{
 				return await Task.Run(() =>
 				{
-					MessageEncryption.FileEncrypt(Path.GetFullPath(path));
-					path += MessageEncryption.Extension;
-					return path;
+					var outPath = path + MessageEncryption.Extension;
+					var info = MessageEncryption.FileEncrypt(Path.GetFullPath(path),outPath);
+					return info.FullName;
 				}, Token);
 			}
 			catch (Exception ex)
@@ -454,6 +416,7 @@ namespace AsyncClientServer
 		private MessageEncryption _messageEncryption;
 		private FileCompression _fileCompressor;
 		private FolderCompression _folderCompressor;
+		private ByteCompression _byteCompressor;
 
 		/// <summary>
 		/// The socket will not accept files from other sockets when this value is False.
@@ -464,7 +427,7 @@ namespace AsyncClientServer
 		/// <summary>
 		/// Custom message contracts
 		/// </summary>
-		private IList<IMessageContract> _messageContracts = new List<IMessageContract>();
+		private readonly IList<IMessageContract> _messageContracts = new List<IMessageContract>();
 
 		/// <summary>
 		/// The path where files will be stored for extraction, compression, encryption end decryption.
@@ -495,6 +458,21 @@ namespace AsyncClientServer
 				}
 			}
 
+		}
+
+		/// <summary>
+		/// Used to compress/decompress bytes before sending
+		/// </summary>
+		public ByteCompression ByteCompressor
+		{
+			internal get => _byteCompressor;
+			set
+			{
+				if (IsRunning)
+					throw new Exception("The byte compressor cannot be changed while the socket is running.");
+
+				_byteCompressor = value ?? throw new ArgumentNullException(nameof(value));
+			}
 		}
 
 		/// <summary>

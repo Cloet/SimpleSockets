@@ -2,7 +2,7 @@
 using System.IO;
 using System.IO.Compression;
 
-namespace AsyncClientServer.Messaging.Compression
+namespace AsyncClientServer.Messaging.Compression.Folder
 {
 	internal class ZipCompression: FolderCompression
 	{
@@ -37,7 +37,7 @@ namespace AsyncClientServer.Messaging.Compression
 			try
 			{
 				//Check if the file exists.
-				if (!File.Exists(sourceZipPath))
+				if (!System.IO.File.Exists(sourceZipPath))
 					throw new ArgumentException("The zip file does not exist.");
 
 				//Extract all entries from the archive.

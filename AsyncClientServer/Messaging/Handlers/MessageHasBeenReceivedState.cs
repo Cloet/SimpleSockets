@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using AsyncClientServer.Client;
+using AsyncClientServer.Messaging.Compression.Stream;
 using AsyncClientServer.Messaging.MessageContract;
 using AsyncClientServer.Messaging.Metadata;
 using AsyncClientServer.Server;
@@ -25,6 +26,12 @@ namespace AsyncClientServer.Messaging.Handlers
 			var text = string.Empty;
 
 			byte[] receivedMessageBytes = State.ReceivedBytes;
+
+			//Decompress message bytes
+			if (Client == null)
+				receivedMessageBytes = Server.ByteCompressor.DecompressBytes(receivedMessageBytes);
+			if (Server == null)
+				receivedMessageBytes = Client.ByteCompressor.DecompressBytes(receivedMessageBytes);
 
 			//Check if the bytes are encrypted or not.
 			if (State.Encrypted)

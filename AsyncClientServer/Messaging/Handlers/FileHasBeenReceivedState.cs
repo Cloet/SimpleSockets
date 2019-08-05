@@ -87,7 +87,8 @@ namespace AsyncClientServer.Messaging.Handlers
 				newFileName = info.FullName.Remove(info.FullName.Length - info.Extension.Length);
 
 				//Decrypts the file and save at new location. Deletes the encrypted file after decrypting.
-				Encrypter.FileDecrypt(_tempFilePath, newFileName);
+				var fileInfo = Encrypter.FileDecrypt(_tempFilePath, newFileName);
+				newFileName = fileInfo.FullName;
 				File.Delete(_tempFilePath);
 			}
 

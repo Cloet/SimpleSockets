@@ -2,7 +2,7 @@
 using System.IO;
 using System.IO.Compression;
 
-namespace AsyncClientServer.Messaging.Compression
+namespace AsyncClientServer.Messaging.Compression.File
 {
 	internal class GZipCompression: FileCompression
 	{
@@ -25,10 +25,10 @@ namespace AsyncClientServer.Messaging.Compression
 
 				using (FileStream originalFileStream = fileToCompress.OpenRead())
 				{
-					if ((File.GetAttributes(fileToCompress.FullName) &
+					if ((System.IO.File.GetAttributes(fileToCompress.FullName) &
 					     FileAttributes.Hidden) != FileAttributes.Hidden & fileToCompress.Extension != Extension)
 					{
-						using (FileStream compressedFileStream = File.Create(compressedFile.FullName))
+						using (FileStream compressedFileStream = System.IO.File.Create(compressedFile.FullName))
 						{
 							using (GZipStream compressionStream =
 								new GZipStream(compressedFileStream, CompressionLevel.Fastest))
@@ -59,14 +59,14 @@ namespace AsyncClientServer.Messaging.Compression
 			{
 				using (FileStream originalFileStream = fileToDecompress.OpenRead())
 				{
-					if ((File.GetAttributes(fileToDecompress.FullName) &
+					if ((System.IO.File.GetAttributes(fileToDecompress.FullName) &
 						 FileAttributes.Hidden) != FileAttributes.Hidden)
 					{
 
 						string currentFileName = fileToDecompress.FullName;
 						string newFileName = currentFileName.Remove(currentFileName.Length - fileToDecompress.Extension.Length);
 
-						using (FileStream decompressedFileStream = File.Create(newFileName))
+						using (FileStream decompressedFileStream = System.IO.File.Create(newFileName))
 						{
 							using (GZipStream decompressionStream =
 								new GZipStream(originalFileStream, CompressionMode.Decompress))

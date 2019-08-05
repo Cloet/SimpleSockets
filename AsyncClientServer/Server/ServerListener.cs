@@ -12,6 +12,9 @@ using System.Threading.Tasks;
 using System.Timers;
 using AsyncClientServer.Messaging;
 using AsyncClientServer.Messaging.Compression;
+using AsyncClientServer.Messaging.Compression.File;
+using AsyncClientServer.Messaging.Compression.Folder;
+using AsyncClientServer.Messaging.Compression.Stream;
 using AsyncClientServer.Messaging.Cryptography;
 using AsyncClientServer.Messaging.MessageContract;
 using AsyncClientServer.Messaging.Metadata;
@@ -143,6 +146,7 @@ namespace AsyncClientServer.Server
 			IsRunning = false;
 			AllowReceivingFiles = false;
 
+			ByteCompressor = new DeflateByteCompression();
 			MessageEncryption = new Aes256();
 			FileCompressor = new GZipCompression();
 			FolderCompressor = new ZipCompression();
