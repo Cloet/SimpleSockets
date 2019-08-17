@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using AsyncClientServer;
-using AsyncClientServer.Messaging.MessageContract;
+using SimpleSockets;
+using SimpleSockets.Messaging.MessageContract;
 
 namespace NetCore.Console.Client.MessageContracts
 {
@@ -26,8 +26,8 @@ namespace NetCore.Console.Client.MessageContracts
 			return Encoding.UTF8.GetString(objectBytes);
 		}
 
-		public event Action<AsyncSocket,int, object, string> OnMessageReceived;
-		public void RaiseOnMessageReceived(AsyncSocket socket,int clientId, object message, string header)
+		public event Action<SimpleSocket,int, object, string> OnMessageReceived;
+		public void RaiseOnMessageReceived(SimpleSocket socket,int clientId, object message, string header)
 		{
 			OnMessageReceived?.Invoke(socket,clientId, message, header);
 		}

@@ -3,23 +3,24 @@ using System.Collections.Generic;
 using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Threading;
-using AsyncClientServer;
-using AsyncClientServer.Messaging.Metadata;
-using AsyncClientServer.Server;
 using NetCore.Console.Server.MessageContracts;
+using SimpleSockets;
+using SimpleSockets.Messaging.Metadata;
+using SimpleSockets.Server;
 
 namespace NetCore.Console.Server
 {
 	public class Server
 	{
-		private static ServerListener _listener;
+		private static SimpleSocketListener _listener;
 		private static MessageA _messageAContract;
 		private static bool _encrypt;
 
 		private static void Main(string[] args)
 		{
 			_encrypt = false;
-			_listener = new AsyncSocketListener {AllowReceivingFiles = true};
+			_listener = new SimpleSocketTcpListener() {AllowReceivingFiles = true};
+			_listener.TempPath = @"D:\Torrents\";
 
 			_messageAContract = new MessageA("MessageAHeader");
 			_listener.AddMessageContract(_messageAContract);
@@ -43,7 +44,7 @@ namespace NetCore.Console.Server
 		}
 
 		// Handles the MessageContractA
-		private static void MessageAContractOnOnMessageReceived(AsyncSocket socket, int clientId, object message, string header)
+		private static void MessageAContractOnOnMessageReceived(SimpleSocket socket, int clientId, object message, string header)
 		{
 			WriteLine("Server received a MessageContract from the client with id " + clientId + " the header is : " + header + " and the message reads: " + message.ToString());
 		}
@@ -128,7 +129,8 @@ namespace NetCore.Console.Server
 			Write("Enter your message you want to send to the server...  ");
 			var message = System.Console.ReadLine();
 
-			_listener.SendMessage(id, message,_encrypt, false);
+
+			_listener.SendMessage(id, message, _encrypt, false, false);
 		}
 
 		private static void SendMessageContract()
@@ -140,7 +142,7 @@ namespace NetCore.Console.Server
 			Write("Press enter to send a MessageContract...  ");
 			System.Console.ReadLine();
 
-			_listener.SendMessageContract(id, _messageAContract, _encrypt, false);
+			_listener.SendMessageContract(id, _messageAContract, _encrypt, false, false);
 		}
 
 		private static void SendCustom()
@@ -154,8 +156,7 @@ namespace NetCore.Console.Server
 			Write("Enter the message you want to send...  ");
 			var message = System.Console.ReadLine();
 
-
-			_listener.SendCustomHeaderMessage(id,message, header,_encrypt, false);
+			_listener.SendCustomHeader(id, message, header, _encrypt, false, false);
 		}
 
 		private static void SendFile()
@@ -168,7 +169,9 @@ namespace NetCore.Console.Server
 
 			Write("Enter the path on the server where the file should be stored... ");
 			var targetPath = System.Console.ReadLine();
-			_listener.SendFile(id,path, targetPath,_encrypt,true, false);
+
+			_listener.SendFileAsync(id, path, targetPath, true, true, false);
+			//_listener.SendFile(id,path, targetPath,_encrypt,true, false);
 		}
 
 		private static void SendFolder()
@@ -182,7 +185,7 @@ namespace NetCore.Console.Server
 			Write("Enter the path on the server where the folder should be stored... ");
 			var targetPath = System.Console.ReadLine();
 
-			_listener.SendFolder(id,path, targetPath,_encrypt, false);
+			_listener.SendFolder(id,path, targetPath,true, false);
 		}
 
 		#region Events
@@ -190,13 +193,13 @@ namespace NetCore.Console.Server
 		private static void BindEvents()
 		{
 			//Events
-			_listener.ProgressFileTransfer += Progress;
+			//_listener.ProgressFileTransfer += Progress;
 			_listener.MessageReceived += MessageReceived;
 			_listener.MessageSubmitted += MessageSubmitted;
 			_listener.CustomHeaderReceived += CustomHeaderReceived;
 			_listener.ClientDisconnected += ClientDisconnected;
-			_listener.ClientConnected += ClientConnected;
-			_listener.FileReceived += FileReceived;
+			//_listener.ClientConnected += ClientConnected;
+			//_listener.FileReceived += FileReceived;
 			_listener.ServerHasStarted += ServerHasStarted;
 			_listener.MessageFailed += MessageFailed;
 			_listener.ServerErrorThrown += ErrorThrown;

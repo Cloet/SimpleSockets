@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\AsyncClientServer\AsyncClientServer.csproj" />
+    <ProjectReference Include="..\..\SimpleSockets\SimpleSockets.csproj" />
   </ItemGroup>
 
 </Project>
