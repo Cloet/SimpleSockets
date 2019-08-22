@@ -230,6 +230,12 @@ namespace SimpleSockets.Client
 
 				var receive = state.Listener.EndReceive(result);
 
+				if (state.UnhandledBytes != null && state.UnhandledBytes.Length > 0)
+				{
+					receive += state.UnhandledBytes.Length;
+					state.UnhandledBytes = null;
+				}
+
 				//Does header check
 				if (state.Flag == 0)
 				{
@@ -248,7 +254,7 @@ namespace SimpleSockets.Client
 					state.SimpleMessage.ReadBytesAndBuildMessage(receive);
 				}
 
-				Receive(state);
+				Receive(state, state.Buffer.Length);
 			}
 			catch (Exception ex)
 			{
