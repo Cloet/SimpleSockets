@@ -4,7 +4,7 @@
 	/// Used to return client info to the end user, restricting a lot of the properties used in
 	/// ISocketState to which the user does not need access
 	/// </summary>
-	public interface ISocketInfo
+	public interface IClientInfo
 	{
 
 		/// <summary>
@@ -12,6 +12,26 @@
 		/// </summary>
 		int Id { get; }
 		
+		/// <summary>
+		/// The name of the client
+		/// </summary>
+		string ClientName { get; }
+
+		/// <summary>
+		/// Unique identifier.
+		/// </summary>
+		string Guid { get; }
+
+		/// <summary>
+		/// The operating system the client is running on.
+		/// </summary>
+		string OsVersion { get; }
+
+		/// <summary>
+		/// The UserDomainName of the client.
+		/// </summary>
+		string UserDomainName { get; }
+
 		/// <summary>
 		/// The remote IPv4 of the client.
 		/// </summary>

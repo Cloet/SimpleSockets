@@ -19,11 +19,47 @@ using SimpleSockets.Messaging.Metadata;
 
 namespace SimpleSockets.Server
 {
+
+	#region Delegates
+
+	public delegate void MessageReceivedDelegate(IClientInfo client, string message);
+
+	public delegate void CustomHeaderReceivedDelegate(IClientInfo client, string message, string header);
+
+	public delegate void BytesReceivedDelegate(IClientInfo client, byte[] messageData);
+
+	public delegate void ObjectReceivedDelegate(IClientInfo client, object obj, Type type);
+
+	public delegate void MessageUpdateFileTransferDelegate(IClientInfo client, string origin, string remoteLoc,double percentageDone, MessageState state);
+
+	public delegate void MessageUpdateDelegate(IClientInfo client, string origin, string remoteLoc, MessageType messageType,MessageState messageState);
+
+	public delegate void FileReceiverDelegate(IClientInfo client, int currentPart, int totalPart, string output,MessageState messageState);
+
+	public delegate void FolderReceiverDelegate(IClientInfo client, int currentPart, int totalPart, string output,MessageState messageState);
+
+	public delegate void MessageSubmittedDelegate(IClientInfo client, bool close);
+
+	public delegate void ClientDisconnectedDelegate(IClientInfo client);
+
+	public delegate void ClientConnectedDelegate(IClientInfo clientInfo);
+
+	public delegate void ServerHasStartedDelegate();
+
+	public delegate void MessageFailedDelegate(IClientInfo client, byte[] messageData, Exception ex);
+
+	public delegate void ServerErrorThrownDelegate(Exception ex);
+
+	public delegate void ServerLogsDelegate(string log);
+
+
+	#endregion
+
 	public abstract class SimpleSocketListener: SimpleSocket
 	{
 
 		private static System.Timers.Timer _keepAliveTimer;
-		internal IDictionary<int, ISocketState> ConnectedClients = new Dictionary<int, ISocketState>();
+		internal IDictionary<int, IClientMetadata> ConnectedClients = new Dictionary<int, IClientMetadata>();
 
 		protected int Limit = 500;
 		protected readonly ManualResetEvent CanAcceptConnections = new ManualResetEvent(false);
@@ -49,86 +85,89 @@ namespace SimpleSockets.Server
 		/// Event that is triggered when the server receives a Message.
 		/// Format is ID:MESSAGE
 		/// </summary>
-		public event Action<int, string> MessageReceived;
+		public event MessageReceivedDelegate MessageReceived;
 
 		/// <summary>
 		/// Event that is triggered when the server receives a Message with a custom header.
 		/// Format is ID:MESSAGE:HEADER
 		/// </summary>
-		public event Action<int, string, string> CustomHeaderReceived;
+		public event CustomHeaderReceivedDelegate CustomHeaderReceived;
 
 		/// <summary>
 		/// Event that is triggered when the server receives bytes from a client.
 		/// Format = Id:Bytes
 		/// </summary>
-		public event Action<int, byte[]> BytesReceived;
+		public event BytesReceivedDelegate BytesReceived;
 
 		/// <summary>
 		/// Event that is triggered when the server receives an object from a client
 		/// Format = Id:Object:ObjectType
 		/// </summary>
-		public event Action<int, object, Type> ObjectReceived;
+		public event ObjectReceivedDelegate ObjectReceived;
 
 		/// <summary>
 		/// Event that is triggered when the server receives an update on a filetransfer.
 		/// This is invoked when sending a File/Folder.
 		/// Format = Id:Origin:RemoteLoc:PercentDone:State
 		/// </summary>
-		public event Action<int, string, string, double, MessageState> MessageUpdateFileTransfer;
+		public event MessageUpdateFileTransferDelegate MessageUpdateFileTransfer;
 
 		/// <summary>
 		/// Event that is triggered when sending a message, giving an update of the state.
 		/// Format = Id:message:header:MessageType:State
 		/// </summary>
-		public event Action<int, string, string, MessageType, MessageState> MessageUpdate;
+		public event MessageUpdateDelegate MessageUpdate;
 
 		/// <summary>
 		/// Gives progress of current filetransfer.
 		/// Format: Id:CurrentPart,TotalParts,location,State
 		/// </summary>
-		public event Action<int, int, int, string, MessageState> FileReceiver;
+		public event FileReceiverDelegate FileReceiver;
 
 		/// <summary>
 		/// Gives progress of current filetransfer.
 		/// Format: Id:CurrentPart,TotalParts,location,State
 		/// </summary>
-		public event Action<int, int, int, string, MessageState> FolderReceiver;
+		public event FolderReceiverDelegate FolderReceiver;
 
 		/// <summary>
 		/// Event that is triggered when the server successfully has submitted a transmission of data.
 		/// Format is ID:CLOSE
 		/// The bool represents if the server has terminated after the message.
 		/// </summary>
-		public event Action<int, bool> MessageSubmitted;
+		public event MessageSubmittedDelegate MessageSubmitted;
 
 		/// <summary>
 		/// Event that is triggered when a client disconnects from the server.
 		/// Format is ID
 		/// </summary>
-		public event Action<int> ClientDisconnected;
+		public event ClientDisconnectedDelegate ClientDisconnected;
 
 		/// <summary>
 		/// Event that is triggered when a client connects to the server
 		/// ID:ClientInfo
 		/// </summary>
-		public event Action<int, ISocketInfo> ClientConnected;
+		public event ClientConnectedDelegate ClientConnected;
 		
 		/// <summary>
 		/// Event that triggers when the server has successfully started
 		/// </summary>
-		public event Action ServerHasStarted;
+		public event ServerHasStartedDelegate ServerHasStarted;
 
 		/// <summary>
 		/// Event that is triggered when the server has failed to sent a sequence of bytes.
 		/// </summary>
-		public event Action<int, byte[], Exception> MessageFailed;
+		public event MessageFailedDelegate MessageFailed;
 
 		/// <summary>
 		/// Event that is triggered when exceptions are thrown within the server
 		/// </summary>
-		public event Action<Exception> ServerErrorThrown;
+		public event ServerErrorThrownDelegate ServerErrorThrown;
 
-		public event Action<string> ServerLogs;
+		/// <summary>
+		/// Event that Logs messages
+		/// </summary>
+		public event ServerLogsDelegate ServerLogs;
 
 		#endregion
 		
@@ -214,7 +253,7 @@ namespace SimpleSockets.Server
 		}
 
 		//Check if the server should allow the client that is attempting to connect.
-		internal bool IsConnectionAllowed(ISocketState state)
+		internal bool IsConnectionAllowed(IClientMetadata state)
 		{
 			if (WhiteList.Count > 0)
 			{
@@ -250,7 +289,7 @@ namespace SimpleSockets.Server
 		}
 
 		// Gets a socket from the clients dictionary by his Id.
-		internal ISocketState GetClient(int id)
+		internal IClientMetadata GetClient(int id)
 		{
 			return ConnectedClients.TryGetValue(id, out var state) ? state : null;
 		}
@@ -259,7 +298,7 @@ namespace SimpleSockets.Server
 		/// Get dictionary of clients
 		/// </summary>
 		/// <returns></returns>
-		internal IDictionary<int, ISocketState> GetClients()
+		internal IDictionary<int, IClientMetadata> GetClients()
 		{
 			return ConnectedClients;
 		}
@@ -268,9 +307,19 @@ namespace SimpleSockets.Server
 		/// Returns all currently connected clients
 		/// </summary>
 		/// <returns></returns>
-		public IDictionary<int, ISocketInfo> GetConnectedClients()
+		public IDictionary<int, IClientInfo> GetConnectedClients()
 		{
-			return ConnectedClients.ToDictionary(x => x.Key, x => (ISocketInfo)x.Value);
+			return ConnectedClients.ToDictionary(x => x.Key, x => (IClientInfo)x.Value);
+		}
+
+		/// <summary>
+		/// Get metadata of a client with a particular ID
+		/// </summary>
+		/// <param name="id"></param>
+		/// <returns></returns>
+		public IClientInfo GetClientFromId(int id)
+		{
+			return ConnectedClients.TryGetValue(id, out var state) ? state : null;
 		}
 
 		#endregion
@@ -283,9 +332,11 @@ namespace SimpleSockets.Server
 		/// <param name="id"></param>
 		public void CheckClient(int id)
 		{
+			if (id <= 0) throw new ArgumentOutOfRangeException(nameof(id));
 			if (!IsConnected(id))
 			{
-				ClientDisconnected?.Invoke(id);
+				var client = GetClient(id);
+				ClientDisconnected?.Invoke(client);
 				ConnectedClients.Remove(id);
 			}
 		}
@@ -325,40 +376,7 @@ namespace SimpleSockets.Server
 		{
 			StartListening(null, port, limit);
 		}
-
-
-		/// <summary>
-		/// Stops the server from listening
-		/// </summary>
-		public void StopListening()
-		{
-			TokenSource.Cancel();
-			IsRunning = false;
-
-			foreach (var id in ConnectedClients.Keys.ToList())
-			{
-				Close(id);
-			}
-
-			Listener.Close();
-		}
-
-		/// <summary>
-		/// Resumes listening
-		/// </summary>
-		public void ResumeListening()
-		{
-			if (IsRunning)
-				throw new Exception("The server is already running.");
-
-			if (string.IsNullOrEmpty(Ip))
-				throw new ArgumentException("This method should only be used after using 'StopListening()'");
-			if (Port == 0)
-				throw new ArgumentException("This method should only be used after using 'StopListening()'");
-
-			StartListening(Ip, Port, Limit);
-		}
-
+		
 		/// <summary>
 		/// returns if a certain client is connected
 		/// </summary>
@@ -368,7 +386,7 @@ namespace SimpleSockets.Server
 		{
 			try
 			{
-				if (this.GetClient(id) is ISocketState state && state.Listener is Socket socket)
+				if (this.GetClient(id) is IClientMetadata state && state.Listener is Socket socket)
 				{
 					return !((socket.Poll(1000, SelectMode.SelectRead) && (socket.Available == 0)) || !socket.Connected);
 				}
@@ -404,7 +422,7 @@ namespace SimpleSockets.Server
 						Close(id);
 					}
 
-					ConnectedClients = new Dictionary<int, ISocketState>();
+					ConnectedClients = new Dictionary<int, IClientMetadata>();
 					TokenSource.Dispose();
 					Disposed = true;
 					GC.SuppressFinalize(this);
@@ -451,8 +469,9 @@ namespace SimpleSockets.Server
 			{
 				lock (ConnectedClients)
 				{
+					var client = GetClient(id);
 					ConnectedClients.Remove(id);
-					ClientDisconnected?.Invoke(id);
+					ClientDisconnected?.Invoke(client);
 				}
 			}
 		}
@@ -499,54 +518,54 @@ namespace SimpleSockets.Server
 		#region Global-Event-Invokers
 
 		//Invoke Message Received
-		protected internal override void RaiseMessageReceived(int id, string message)
+		protected internal override void RaiseMessageReceived(IClientInfo client, string message)
 		{
-			MessageReceived?.Invoke(id, message);
+			MessageReceived?.Invoke(client, message);
 		}
 
-		protected internal override void RaiseMessageContractReceived(int id, IMessageContract contract, byte[] data)
+		protected internal override void RaiseMessageContractReceived(IClientInfo client, IMessageContract contract, byte[] data)
 		{
-			contract.RaiseOnMessageReceived(this, id, contract.DeserializeToObject(data), contract.MessageHeader);
+			contract.RaiseOnMessageReceived(this,client, contract.DeserializeToObject(data), contract.MessageHeader);
 		}
 
-		protected internal override void RaiseCustomHeaderReceived(int id, string header, string message)
+		protected internal override void RaiseCustomHeaderReceived(IClientInfo client, string header, string message)
 		{
-			CustomHeaderReceived?.Invoke(id, message, header);
+			CustomHeaderReceived?.Invoke(client, message, header);
 		}
 
-		protected internal override void RaiseBytesReceived(int id, byte[] data)
+		protected internal override void RaiseBytesReceived(IClientInfo client, byte[] data)
 		{
-			BytesReceived?.Invoke(id, data);
+			BytesReceived?.Invoke(client, data);
 		}
 
-		protected internal override void RaiseFileReceiver(int id, int currentPart, int totalParts, string partPath, MessageState status)
+		protected internal override void RaiseFileReceiver(IClientInfo client, int currentPart, int totalParts, string partPath, MessageState status)
 		{
-			FileReceiver?.Invoke(id, currentPart, totalParts, partPath, status);
+			FileReceiver?.Invoke(client, currentPart, totalParts, partPath, status);
 		}
 
-		protected internal override void RaiseFolderReceiver(int id, int currentPart, int totalParts, string partPath, MessageState status)
+		protected internal override void RaiseFolderReceiver(IClientInfo client, int currentPart, int totalParts, string partPath, MessageState status)
 		{
-			FolderReceiver?.Invoke(id, currentPart, totalParts, partPath, status);
+			FolderReceiver?.Invoke(client, currentPart, totalParts, partPath, status);
 		}
 
-		protected internal override void RaiseObjectReceived(int id, object obj, Type objectType)
+		protected internal override void RaiseObjectReceived(IClientInfo client, object obj, Type objectType)
 		{
-			ObjectReceived?.Invoke(id, obj, objectType);
+			ObjectReceived?.Invoke(client, obj, objectType);
 		}
 
-		protected internal override void RaiseMessageUpdateStateFileTransfer(int id,string origin, string remoteSaveLoc,double percentageDone, MessageState state)
+		protected internal override void RaiseMessageUpdateStateFileTransfer(IClientInfo client, string origin, string remoteSaveLoc,double percentageDone, MessageState state)
 		{
-			MessageUpdateFileTransfer?.Invoke(id, origin, remoteSaveLoc, percentageDone, state);
+			MessageUpdateFileTransfer?.Invoke(client, origin, remoteSaveLoc, percentageDone, state);
 		}
 
-		protected internal override void RaiseMessageUpdate(int id,string msg, string header, MessageType msgType,MessageState state)
+		protected internal override void RaiseMessageUpdate(IClientInfo client, string msg, string header, MessageType msgType,MessageState state)
 		{
-			MessageUpdate?.Invoke(id, msg, header, msgType, state);
+			MessageUpdate?.Invoke(client, msg, header, msgType, state);
 		}
 
-		protected internal override void RaiseMessageFailed(int id, byte[] payLoad, Exception ex)
+		protected internal override void RaiseMessageFailed(IClientInfo client, byte[] payLoad, Exception ex)
 		{
-			MessageFailed?.Invoke(id, payLoad, ex);
+			MessageFailed?.Invoke(client, payLoad, ex);
 		}
 
 		protected internal override void RaiseLog(string message)
@@ -565,9 +584,9 @@ namespace SimpleSockets.Server
 			ServerErrorThrown?.Invoke(ex);
 		}
 
-		protected void RaiseMessageSubmitted(int id,bool close)
+		protected void RaiseMessageSubmitted(IClientInfo client,bool close)
 		{
-			MessageSubmitted?.Invoke(id, close);
+			MessageSubmitted?.Invoke(client, close);
 		}
 
 		protected void RaiseServerHasStarted()
@@ -576,14 +595,14 @@ namespace SimpleSockets.Server
 			ServerHasStarted?.Invoke();
 		}
 
-		protected void RaiseClientConnected(int id, ISocketInfo clientInfo)
+		protected void RaiseClientConnected(IClientInfo clientInfo)
 		{
-			ClientConnected?.Invoke(id, clientInfo);
+			ClientConnected?.Invoke(clientInfo);
 		}
 
-		protected void RaiseClientDisconnected(int id)
+		protected void RaiseClientDisconnected(IClientInfo client)
 		{
-			ClientDisconnected?.Invoke(id);
+			ClientDisconnected?.Invoke(client);
 		}
 
 		#endregion
@@ -594,10 +613,12 @@ namespace SimpleSockets.Server
 
 		public void SendMessage(int id, string message, bool compress = false, bool encrypt = false, bool close = false)
 		{
+			var client = GetClient(id);
 			var messageBuilder = new SimpleMessage(MessageType.Message, this, Debug)
 				.CompressMessage(compress)
 				.EncryptMessage(encrypt)
-				.SetMessage(message);
+				.SetMessage(message)
+				.SetSendClient(client);
 
 			messageBuilder.Build();
 			SendToSocket(messageBuilder.PayLoad, close, false, id);
@@ -605,10 +626,12 @@ namespace SimpleSockets.Server
 
 		public async Task SendMessageAsync(int id, string message, bool compress = false, bool encrypt = false,bool close = false)
 		{
+			var client = GetClient(id);
 			var builder = new SimpleMessage(MessageType.Message, this, Debug)
 				.CompressMessage(compress)
 				.EncryptMessage(encrypt)
-				.SetMessage(message);
+				.SetMessage(message)
+				.SetSendClient(client);
 
 			await builder.BuildAsync();
 			SendToSocket(builder.PayLoad, close, false, id);
@@ -620,10 +643,12 @@ namespace SimpleSockets.Server
 
 		public void SendBytes(int id, byte[] data, bool compress = false, bool encrypt = false, bool close = false)
 		{
+			var client = GetClient(id);
 			var messageBuilder = new SimpleMessage(MessageType.Bytes, this, Debug)
 				.CompressMessage(compress)
 				.EncryptMessage(encrypt)
-				.SetBytes(data);
+				.SetBytes(data)
+				.SetSendClient(client);
 
 			messageBuilder.Build();
 			SendToSocket(messageBuilder.PayLoad, close, false, id);
@@ -631,10 +656,12 @@ namespace SimpleSockets.Server
 
 		public async Task SendBytesAsync(int id, byte[] data, bool compress = false, bool encrypt = false, bool close = false)
 		{
+			var client = GetClient(id);
 			var builder = new SimpleMessage(MessageType.Bytes, this, Debug)
 				.CompressMessage(compress)
 				.EncryptMessage(encrypt)
-				.SetBytes(data);
+				.SetBytes(data)
+				.SetSendClient(client);
 
 			await builder.BuildAsync();
 			SendToSocket(builder.PayLoad, close, false, id);
@@ -646,11 +673,13 @@ namespace SimpleSockets.Server
 
 		public void SendMessageContract(int id, IMessageContract contract, bool compress = false, bool encrypt = false,bool close = false)
 		{
+			var client = GetClient(id);
 			var builder = new SimpleMessage(MessageType.MessageContract, this, Debug)
 				.CompressMessage(compress)
 				.EncryptMessage(encrypt)
 				.SetHeaderString(contract.MessageHeader)
-				.SetBytes(contract.SerializeToBytes());
+				.SetBytes(contract.SerializeToBytes())
+				.SetSendClient(client);
 
 			builder.Build();
 			SendToSocket(builder.PayLoad, close, false, id);
@@ -658,11 +687,13 @@ namespace SimpleSockets.Server
 
 		public async Task SendMessageContractAsync(int id, IMessageContract contract, bool compress = false, bool encrypt = false, bool close = false)
 		{
+			var client = GetClient(id);
 			var builder = new SimpleMessage(MessageType.MessageContract, this, Debug)
 				.CompressMessage(compress)
 				.EncryptMessage(encrypt)
 				.SetHeaderString(contract.MessageHeader)
-				.SetBytes(contract.SerializeToBytes());
+				.SetBytes(contract.SerializeToBytes())
+				.SetSendClient(client);
 
 			await builder.BuildAsync();
 			SendToSocket(builder.PayLoad, close, false, id);
@@ -674,11 +705,13 @@ namespace SimpleSockets.Server
 
 		public void SendCustomHeader(int id, string message, string header, bool compress = false, bool encrypt = false,bool close = false)
 		{
+			var client = GetClient(id);
 			var builder = new SimpleMessage(MessageType.CustomHeader, this, Debug)
 				.CompressMessage(compress)
 				.EncryptMessage(encrypt)
 				.SetHeaderString(header)
-				.SetMessage(message);
+				.SetMessage(message)
+				.SetSendClient(client);
 
 			builder.Build();
 			SendToSocket(builder.PayLoad, close, false, id);
@@ -686,11 +719,13 @@ namespace SimpleSockets.Server
 
 		public void SendCustomHeader(int id, byte[] data, byte[] header, bool compress = false, bool encrypt = false,bool close = false)
 		{
+			var client = GetClient(id);
 			var builder = new SimpleMessage(MessageType.CustomHeader, this, Debug)
 				.CompressMessage(compress)
 				.EncryptMessage(encrypt)
 				.SetHeader(header)
-				.SetBytes(data);
+				.SetBytes(data)
+				.SetSendClient(client);
 
 			builder.Build();
 			SendToSocket(builder.PayLoad, close, false, id);
@@ -698,11 +733,13 @@ namespace SimpleSockets.Server
 
 		public async Task SendCustomHeaderAsync(int id, string message, string header, bool compress = false, bool encrypt = false, bool close = false)
 		{
+			var client = GetClient(id);
 			var builder = new SimpleMessage(MessageType.CustomHeader, this, Debug)
 				.CompressMessage(compress)
 				.EncryptMessage(encrypt)
 				.SetHeaderString(header)
-				.SetMessage(message);
+				.SetMessage(message)
+				.SetSendClient(client);
 
 			await builder.BuildAsync();
 			SendToSocket(builder.PayLoad, close, false, id);
@@ -710,11 +747,13 @@ namespace SimpleSockets.Server
 
 		public async Task SendCustomHeaderAsync(int id, byte[] data, byte[] header, bool compress = false, bool encrypt = false, bool close = false)
 		{
+			var client = GetClient(id);
 			var builder = new SimpleMessage(MessageType.CustomHeader, this, Debug)
 				.CompressMessage(compress)
 				.EncryptMessage(encrypt)
 				.SetHeader(header)
-				.SetBytes(data);
+				.SetBytes(data)
+				.SetSendClient(client);
 
 			await builder.BuildAsync();
 			SendToSocket(builder.PayLoad, close, false, id);
@@ -726,12 +765,14 @@ namespace SimpleSockets.Server
 
 		public async Task SendFileAsync(int id, string fileLocation, string remoteFileLocation,bool compress = true, bool encrypt = false, bool close = false)
 		{
-			await StreamFileFolderAsync(fileLocation, remoteFileLocation, compress, encrypt, close, id, MessageType.File);
+			var client = GetClient(id);
+			await StreamFileFolderAsync(fileLocation, remoteFileLocation, compress, encrypt, close,MessageType.File, client);
 		}
 
 		public void SendFile(int id, string fileLocation, string remoteFileLocation, bool compress = true, bool encrypt = false, bool close = false)
 		{
-			StreamFileFolder(fileLocation, remoteFileLocation, encrypt, compress, close, id, MessageType.File);
+			var client = GetClient(id);
+			StreamFileFolder(fileLocation, remoteFileLocation, encrypt, compress, close, MessageType.File, client);
 		}
 
 		#endregion
@@ -740,12 +781,14 @@ namespace SimpleSockets.Server
 
 		public async Task SendFolderAsync(int id, string folderLocation, string remoteSaveLocation, bool encrypt = false, bool close = false)
 		{
-			await StreamFileFolderAsync(folderLocation, remoteSaveLocation, encrypt, true, close, id,MessageType.Folder);
+			var client = GetClient(id);
+			await StreamFileFolderAsync(folderLocation, remoteSaveLocation, encrypt, true, close,MessageType.Folder, client);
 		}
 
 		public void SendFolder(int id, string folderLocation, string remoteSaveLocation,bool encrypt = false, bool close = false)
 		{
-			StreamFileFolder(folderLocation, remoteSaveLocation, encrypt, true, close, id, MessageType.Folder);
+			var client = GetClient(id);
+			StreamFileFolder(folderLocation, remoteSaveLocation, encrypt, true, close, MessageType.Folder, client);
 		}
 
 		#endregion
@@ -757,10 +800,12 @@ namespace SimpleSockets.Server
 			if (ObjectSerializer == null)
 				throw new Exception("No ObjectSerializer is currently set.");
 
+			var client = GetClient(id);
 			var builder = new SimpleMessage(MessageType.Object, this, Debug)
 				.CompressMessage(compress)
 				.EncryptMessage(encrypt)
-				.SetBytes(ObjectSerializer.SerializeObjectToBytes(obj));
+				.SetBytes(ObjectSerializer.SerializeObjectToBytes(obj))
+				.SetSendClient(client);
 
 			await builder.BuildAsync();
 
@@ -772,10 +817,12 @@ namespace SimpleSockets.Server
 			if (ObjectSerializer == null)
 				throw new Exception("No ObjectSerializer is currently set.");
 
+			var client = GetClient(id);
 			var builder = new SimpleMessage(MessageType.Object, this, Debug)
 				.CompressMessage(compress)
 				.EncryptMessage(encrypt)
-				.SetBytes(ObjectSerializer.SerializeObjectToBytes(obj));
+				.SetBytes(ObjectSerializer.SerializeObjectToBytes(obj))
+				.SetSendClient(client);
 
 			builder.Build();
 

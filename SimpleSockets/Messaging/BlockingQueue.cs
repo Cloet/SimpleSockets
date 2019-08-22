@@ -52,7 +52,6 @@ namespace SimpleSockets.Messaging
 
 		public void Close()
 		{
-
 			lock (_queue)
 			{
 				if (!_closing)

@@ -1,4 +1,5 @@
 ﻿using System;
+using SimpleSockets.Messaging.Metadata;
 
 namespace SimpleSockets.Messaging.MessageContract
 {
@@ -25,17 +26,17 @@ namespace SimpleSockets.Messaging.MessageContract
 
 		/// <summary>
 		/// OnMessageReceived will handle receiving messages.
-		/// Format = Socket:ClientID,MessageObject:Header
+		/// Format = Socket:Client,MessageObject:Header
 		/// </summary>
-		event Action<SimpleSocket,int, object, string> OnMessageReceived;
+		event Action<SimpleSocket,IClientInfo, object, string> OnMessageReceived;
 
 		/// <summary>
 		/// This needs to invoke 'OnMessageReceived'
 		/// </summary>
 		/// <param name="socket"></param>
-		/// <param name="clientId"></param>
+		/// <param name="client"></param>
 		/// <param name="message"></param>
 		/// <param name="header"></param>
-		void RaiseOnMessageReceived(SimpleSocket socket,int clientId, object message, string header);
+		void RaiseOnMessageReceived(SimpleSocket socket,IClientInfo client, object message, string header);
 	}
 }

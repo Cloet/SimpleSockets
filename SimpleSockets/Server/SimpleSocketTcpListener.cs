@@ -83,13 +83,13 @@ namespace SimpleSockets.Server
 			CanAcceptConnections.Set();
 			try
 			{
-				ISocketState state;
+				IClientMetadata state;
 
 				lock (ConnectedClients)
 				{
 					var id = !ConnectedClients.Any() ? 1 : ConnectedClients.Keys.Max() + 1;
 
-					state = new SocketState(((Socket)result.AsyncState).EndAccept(result), id);
+					state = new ClientMetadata(((Socket)result.AsyncState).EndAccept(result), id);
 
 
 					//If the server shouldn't accept the IP do nothing.
@@ -109,7 +109,7 @@ namespace SimpleSockets.Server
 						ConnectedClients.Add(id, state);
 					}
 
-					RaiseClientConnected(id, state);
+					RaiseClientConnected(state);
 				}
 
 				Receive(state, 0);
@@ -127,7 +127,7 @@ namespace SimpleSockets.Server
 
 		#region Receiving
 
-		protected internal override void Receive(ISocketState state, int offset = 0)
+		protected internal override void Receive(IClientMetadata state, int offset = 0)
 		{
 			if (offset > 0)
 			{
@@ -146,7 +146,7 @@ namespace SimpleSockets.Server
 
 		protected override void ReceiveCallback(IAsyncResult result)
 		{
-			var state = (SocketState)result.AsyncState;
+			var state = (ClientMetadata)result.AsyncState;
 			try
 			{
 
@@ -155,7 +155,7 @@ namespace SimpleSockets.Server
 				//and remove from clients list
 				if (!IsConnected(state.Id))
 				{
-					RaiseClientDisconnected(state.Id);
+					RaiseClientDisconnected(state);
 					lock (ConnectedClients)
 					{
 						ConnectedClients.Remove(state.Id);
@@ -167,31 +167,31 @@ namespace SimpleSockets.Server
 
 					var receive = state.Listener.EndReceive(result);
 
+					if (state.UnhandledBytes != null && state.UnhandledBytes.Length > 0)
+					{
+						receive += state.UnhandledBytes.Length;
+						state.UnhandledBytes = null;
+					}
+
 					//Does header check
 					if (state.Flag == 0)
 					{
 						if (state.SimpleMessage == null)
 							state.SimpleMessage = new SimpleMessage(state, this, true);
-						if (receive < 6)
-						{
-							Receive(state, receive);
-							return;
-						}
-
 						state.SimpleMessage.ReadBytesAndBuildMessage(receive);
 					}else if (receive > 0)
 					{
 						state.SimpleMessage.ReadBytesAndBuildMessage(receive);
 					}
 
-					Receive(state);
+					Receive(state, state.Buffer.Length);
 				}
 			}
 			catch (Exception ex)
 			{
 				state.Reset();
 				RaiseErrorThrown(ex);
-				Receive(state);
+				Receive(state, state.Buffer.Length);
 			}
 		}
 		
@@ -207,10 +207,12 @@ namespace SimpleSockets.Server
 					message.State.Listener.BeginSend(message.Data, 0, message.Data.Length, SocketFlags.None, SendCallbackPartial, message.State);
 				else
 					message.State.Listener.BeginSend(message.Data, 0, message.Data.Length, SocketFlags.None, SendCallback, message.State);
+
+				message.Dispose();
 			}
 			catch (Exception ex)
 			{
-				RaiseMessageFailed(message.State.Id, message.Data, ex);
+				RaiseMessageFailed(message.State, message.Data, ex);
 			}
 		}
 
@@ -226,30 +228,30 @@ namespace SimpleSockets.Server
 			var state = GetClient(id);
 			try
 			{
-				if (state == null)
+				if (state != null)
 				{
-					throw new Exception("Client does not exist.");
+					if (!IsConnected(state.Id))
+					{
+						//Sets client with id to disconnected
+						RaiseClientDisconnected(state);
+						throw new Exception("Message failed to send because the destination socket is not connected.");
+					}
+					else
+					{
+						state.Close = close;
+						BlockingMessageQueue.Enqueue(new MessageWrapper(data, state, partial));
+					}
 				}
-
-				if (!IsConnected(state.Id))
-				{
-					//Sets client with id to disconnected
-					RaiseClientDisconnected(state.Id);
-					throw new Exception("Message failed to send because the destination socket is not connected.");
-				}
-
-				state.Close = close;
-				BlockingMessageQueue.Enqueue(new MessageWrapper(data, state, partial));
 			}
 			catch (Exception ex)
 			{
-				RaiseMessageFailed(id, data, ex);
+				RaiseMessageFailed(state, data, ex);
 			}
 		}
 
 		protected void SendCallbackPartial(IAsyncResult result)
 		{
-			var state = (ISocketState)result.AsyncState;
+			var state = (IClientMetadata)result.AsyncState;
 
 			try
 			{
@@ -272,7 +274,7 @@ namespace SimpleSockets.Server
 		//End the send and invoke MessageSubmitted event.
 		protected override void SendCallback(IAsyncResult result)
 		{
-			var state = (ISocketState)result.AsyncState;
+			var state = (IClientMetadata)result.AsyncState;
 
 			try
 			{
@@ -294,7 +296,7 @@ namespace SimpleSockets.Server
 			}
 			finally
 			{
-				RaiseMessageSubmitted(state.Id, state.Close);
+				RaiseMessageSubmitted(state, state.Close);
 			}
 		}
 

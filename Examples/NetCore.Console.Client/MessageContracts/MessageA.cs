@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using SimpleSockets;
 using SimpleSockets.Messaging.MessageContract;
+using SimpleSockets.Messaging.Metadata;
 
 namespace NetCore.Console.Client.MessageContracts
 {
@@ -26,10 +27,10 @@ namespace NetCore.Console.Client.MessageContracts
 			return Encoding.UTF8.GetString(objectBytes);
 		}
 
-		public event Action<SimpleSocket,int, object, string> OnMessageReceived;
-		public void RaiseOnMessageReceived(SimpleSocket socket,int clientId, object message, string header)
+		public event Action<SimpleSocket,IClientInfo, object, string> OnMessageReceived;
+		public void RaiseOnMessageReceived(SimpleSocket socket,IClientInfo client, object message, string header)
 		{
-			OnMessageReceived?.Invoke(socket,clientId, message, header);
+			OnMessageReceived?.Invoke(socket,client, message, header);
 		}
 	}
 }

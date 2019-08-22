@@ -9,7 +9,6 @@
     <Folder Include="Messaging\Compression\Folder\" />
     <Folder Include="Messaging\Compression\Stream\" />
     <Folder Include="Messaging\Cryptography\" />
-    <Folder Include="Messaging\Metadata\" />
   </ItemGroup>
 
 </Project>

@@ -6,6 +6,7 @@ using NetCore.Console.Client.MessageContracts;
 using SimpleSockets;
 using SimpleSockets.Client;
 using SimpleSockets.Messaging;
+using SimpleSockets.Messaging.Metadata;
 
 namespace NetCore.Console.Client
 {
@@ -14,13 +15,15 @@ namespace NetCore.Console.Client
 
 		private static SimpleSocketClient _client;
 		private static bool _encrypt;
+		private static bool _compress;
 		private static MessageA _messageAContract;
+		private static ProgressBar progress;
 
 		private static void Main(string[] args)
 		{
-			_encrypt = false;
+			_encrypt = true;
+			_compress = false;
 			_client = new SimpleSocketTcpClient() {AllowReceivingFiles = true};
-			_client.TempPath = @"D:\Torrents";
 
 			//Create the MessageContract implementation and add to the client
 			_messageAContract = new MessageA("MessageAHeader");
@@ -46,7 +49,7 @@ namespace NetCore.Console.Client
 
 		//Event for MessageContract (MessageA)
 		//The clientId is only used on the server side. Here it will return -1
-		private static void MessageAContractOnOnMessageReceived(SimpleSocket client,int clientId, object message, string header)
+		private static void MessageAContractOnOnMessageReceived(SimpleSocket client,IClientInfo clientInfo, object message, string header)
 		{
 			WriteLine("MessageContract received with header: " + header + " and with message " + message.ToString());
 		}
@@ -96,25 +99,25 @@ namespace NetCore.Console.Client
 			}
 		}
 
-		private static void SendMessage()
+		private static async void SendMessage()
 		{
 			System.Console.Clear();
 			Write("Enter your message you want to send to the server...  ");
 			var message = System.Console.ReadLine();
 
-			_client.SendMessage(message, _encrypt, false, false);
+			await _client.SendMessageAsync(message, _compress, _encrypt, false);
 		}
 
-		private static void SendMessageContract()
+		private static async void SendMessageContract()
 		{
 			System.Console.Clear();
 			Write("Press enter to send a MessageContract...  ");
 			System.Console.ReadLine();
 
-			_client.SendMessageContract(_messageAContract, _encrypt, false);
+			await _client.SendMessageContractAsync(_messageAContract, _compress, _encrypt);
 		}
 
-		private static void SendCustom()
+		private static async void SendCustom()
 		{
 			System.Console.Clear();
 			Write("Enter the header you want to use for the transmission...  ");
@@ -123,10 +126,10 @@ namespace NetCore.Console.Client
 			Write("Enter the message you want to send...  ");
 			var message = System.Console.ReadLine();
 
-			_client.SendCustomHeader(message, header, _encrypt, false);
+			await _client.SendCustomHeaderAsync(message, header, _compress, _encrypt);
 		}
 
-		private static void SendFile()
+		private static async void SendFile()
 		{
 			System.Console.Clear();
 			Write("Enter the path to the file you want to send to the server... ");
@@ -134,11 +137,10 @@ namespace NetCore.Console.Client
 
 			Write("Enter the path on the server where the file should be stored... ");
 			var targetPath = System.Console.ReadLine();
-			_client.SendFileAsync(path, targetPath, true,true,false);
-			//_client.SendFile(path, targetPath,_encrypt,true, false);
+			await _client.SendFileAsync(path, targetPath, _compress,_encrypt,false);
 		}
 
-		private static void SendFolder()
+		private static async void SendFolder()
 		{
 			System.Console.Clear();
 			Write("Enter the path to the folder you want to send to the server... ");
@@ -146,7 +148,7 @@ namespace NetCore.Console.Client
 
 			Write("Enter the path on the server where the folder should be stored... ");
 			var targetPath = System.Console.ReadLine();
-			_client.SendFolder(path, targetPath,true, false);
+			await _client.SendFolderAsync(path, targetPath,_encrypt, false);
 		}
 
 
@@ -169,6 +171,7 @@ namespace NetCore.Console.Client
 			_client.ObjectReceived += ClientOnObjectReceived;
 		}
 
+
 		private static void ClientOnObjectReceived(SimpleSocketClient a, object obj, Type objType)
 		{
 			WriteLine("Received an object of type = " + objType.FullName);
@@ -176,16 +179,40 @@ namespace NetCore.Console.Client
 
 		private static void ClientOnMessageUpdate(SimpleSocketClient a, string msg, string header, MessageType msgType, MessageState state)
 		{
-			WriteLine("Sending message to client: msg = " + msg + ", header = " + header);
+			//WriteLine("Sending message to client: msg = " + msg + ", header = " + header);
 		}
 
 		private static void ClientOnMessageUpdateFileTransfer(SimpleSocketClient a, string origin, string loc, double percentageDone, MessageState state)
 		{
-			WriteLine("Sending message to client: " + percentageDone);
+			//WriteLine("Sending message to client: " + percentageDone + "%");
 		}
 
 		private static void ClientOnFolderReceiver(SimpleSocketClient a, int currentPart, int totalParts, string loc, MessageState state)
 		{
+
+			if (state == MessageState.ReceivingData)
+			{
+				if (progress == null)
+				{
+					progress = new ProgressBar();
+					System.Console.Write("Receiving a Folder... ");
+				}
+
+				var progressDouble = ((double)currentPart / totalParts);
+
+				progress.Report(progressDouble);
+
+				if (progressDouble >= 1.00)
+				{
+					progress.Dispose();
+					progress = null;
+					Thread.Sleep(200);
+					WriteLine("Folder Received.");
+				}
+			}
+
+
+
 			if (state == MessageState.Decrypting)
 				WriteLine("Decrypting Folder this might take a while.");
 			if (state == MessageState.Decompressing)
@@ -195,11 +222,36 @@ namespace NetCore.Console.Client
 			if (state == MessageState.DecryptingDone)
 				WriteLine("Decrypting has finished.");
 			if (state == MessageState.Completed)
+			{
 				WriteLine("Folder received and stored at location: " + loc);
+			}
+
+
 		}
 
 		private static void ClientOnFileReceiver(SimpleSocketClient a, int currentPart, int totalParts, string loc, MessageState state)
 		{
+			if (state == MessageState.ReceivingData)
+			{
+				if (progress == null)
+				{
+					progress = new ProgressBar();
+					System.Console.Write("Receiving a File... ");
+				}
+
+				var progressDouble = ((double)currentPart / totalParts);
+
+				progress.Report(progressDouble);
+
+				if (progressDouble >= 1.00)
+				{
+					progress.Dispose();
+					progress = null;
+					Thread.Sleep(200);
+					WriteLine("File Transfer Complete");
+				}
+			}
+
 			if (state == MessageState.Decrypting)
 				WriteLine("Decrypting File this might take a while.");
 			if (state == MessageState.Decompressing)
@@ -234,36 +286,9 @@ namespace NetCore.Console.Client
 			WriteLine("Message received from the server: " + msg);
 		}
 
-		private static void FileReceived(SimpleSocket a, string file)
-		{
-			WriteLine("The client has received a File/Folder and has saved this File/Folder at path :  " + file);
-		}
-
 		private static void Disconnected(SimpleSocket a)
 		{
 			WriteLine("The client has disconnected from the server with ip " + a.Ip + "on port " + a.Port);
-		}
-
-		private static ProgressBar progress;
-		private static void Progress(SimpleSocket client, int bytes, int messageSize)
-		{
-			if (progress == null)
-			{
-				progress = new ProgressBar();
-				System.Console.Write("Receiving a file/folder... ");
-			}
-
-			var progressDouble = ((double)bytes / messageSize);
-
-			progress.Report(progressDouble);
-
-			if (progressDouble >= 1.00)
-			{
-				progress.Dispose();
-				progress = null;
-				Thread.Sleep(200);
-				WriteLine(" Done.");
-			}
 		}
 
 		private static void ClientMessageSubmitted(SimpleSocket a, bool close)

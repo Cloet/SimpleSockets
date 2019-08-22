@@ -6,11 +6,11 @@ using SimpleSockets.Messaging.Metadata;
 
 namespace SimpleSockets.Messaging
 {
-	public class MessageWrapper
+	public class MessageWrapper: IDisposable
 	{
 		public byte[] Data { get; set; }
 		public bool Partial { get; set; }
-		public ISocketState State { get; set; }
+		public IClientMetadata State { get; set; }
 
 		public MessageWrapper(byte[] data, bool partial)
 		{
@@ -18,11 +18,17 @@ namespace SimpleSockets.Messaging
 			Partial = partial;
 		}
 
-		public MessageWrapper(byte[] data, ISocketState state, bool partial)
+		public MessageWrapper(byte[] data, IClientMetadata state, bool partial)
 		{
 			Data = data;
 			State = state;
 			Partial = partial;
+		}
+
+		public void Dispose()
+		{
+			Data = null;
+			State = null;
 		}
 	}
 }

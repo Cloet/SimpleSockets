@@ -12,6 +12,8 @@ namespace SimpleSockets.Messaging
 		MessageContract =3,
 		File=4,
 		Folder=5,
-		Object=6
+		Object=6,
+		Auth=7,
+		BasicAuth=8
 	}
 }

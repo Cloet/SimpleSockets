@@ -23,8 +23,10 @@ namespace SimpleSockets
 
 		//CancellationToken used with Async Sockets
 		protected CancellationTokenSource TokenSource { get; set; }
-		protected internal CancellationToken Token { get; set; }
+		protected CancellationToken Token { get; set; }
 
+		//File Buffer
+		protected int FileBuffer { get; set; }
 
 		//Contains messages
 		internal BlockingQueue<MessageWrapper> BlockingMessageQueue = new BlockingQueue<MessageWrapper>();
@@ -73,6 +75,11 @@ namespace SimpleSockets
 		/// Indicates if the server or client is running.
 		/// </summary>
 		public bool IsRunning { get; set; }
+
+		/// <summary>
+		/// Gets if there are still messages pending for transmission.
+		/// </summary>
+		public bool PendingMessages => (BlockingMessageQueue.Count > 0);
 
 		/// <summary>
 		/// The path where files will be stored for extraction, compression, encryption and decryption.
@@ -185,17 +192,7 @@ namespace SimpleSockets
 		#region Methods
 
 		#region Public-Methods
-
-		public void Log(string log)
-		{
-			Console.WriteLine(log);
-		}
-
-		public void Log(Exception ex)
-		{
-			Console.WriteLine(ex.Message);
-		}
-
+		
 		/// <summary>
 		/// Disposes of the socket
 		/// </summary>
@@ -274,8 +271,10 @@ namespace SimpleSockets
 		{
 			if (bufferSize < 1024)
 				throw new ArgumentException("The buffer size cannot be less then 1024 bytes.");
+			if (bufferSize >= 85000)
+				RaiseLog("A buffer size larger then 85 000 bytes will allocate bytes to Large Object Heap. This will cause higher memory usage.");
 
-			SocketState.ChangeBufferSize(bufferSize);
+			ClientMetadata.ChangeBufferSize(bufferSize);
 		}
 
 		#endregion
@@ -285,7 +284,7 @@ namespace SimpleSockets
 		/// </summary>
 		/// <param name="state"></param>
 		/// <param name="offset"></param>
-		protected internal abstract void Receive(ISocketState state, int offset = 0);
+		protected internal abstract void Receive(IClientMetadata state, int offset = 0);
 
 		//Handles messages the server receives
 		protected abstract void ReceiveCallback(IAsyncResult result);
@@ -302,6 +301,8 @@ namespace SimpleSockets
 			IsRunning = false;
 			AllowReceivingFiles = false;
 			Debug = true;
+			//FileBuffer =  10485760; //Default 10 Mb buffer
+			FileBuffer = 4096;
 
 			ByteCompressor = new DeflateByteCompression();
 			MessageEncryption = new Aes256();
@@ -446,31 +447,47 @@ namespace SimpleSockets
 
 		#region Event-Raisers
 
-		protected internal abstract void RaiseMessageReceived(int id, string message);
+		protected internal abstract void RaiseMessageReceived(IClientInfo clientInfo, string message);
 
-		protected internal abstract void RaiseMessageContractReceived(int id, IMessageContract contract, byte[] data);
+		protected internal abstract void RaiseMessageContractReceived(IClientInfo clientInfo, IMessageContract contract, byte[] data);
 
-		protected internal abstract void RaiseCustomHeaderReceived(int id, string header, string message);
+		protected internal abstract void RaiseCustomHeaderReceived(IClientInfo clientInfo, string header, string message);
 
-		protected internal abstract void RaiseBytesReceived(int id, byte[] data);
+		protected internal abstract void RaiseBytesReceived(IClientInfo clientInfo, byte[] data);
 
-		protected internal abstract void RaiseFileReceiver(int id, int currentPart, int totalParts, string partPath, MessageState status);
+		protected internal abstract void RaiseFileReceiver(IClientInfo clientInfo, int currentPart, int totalParts, string partPath, MessageState status);
 
-		protected internal abstract void RaiseFolderReceiver(int id, int currentPart, int totalParts, string partPath, MessageState status);
+		protected internal abstract void RaiseFolderReceiver(IClientInfo clientInfo, int currentPart, int totalParts, string partPath, MessageState status);
 
-		protected internal abstract void RaiseObjectReceived(int id, object obj, Type objectType);
+		protected internal abstract void RaiseObjectReceived(IClientInfo clientInfo, object obj, Type objectType);
 
-		protected internal abstract void RaiseMessageUpdateStateFileTransfer(int id,string origin,string remoteSaveLoc,double percentageDone, MessageState state);
+		protected internal abstract void RaiseMessageUpdateStateFileTransfer(IClientInfo clientInfo, string origin,string remoteSaveLoc,double percentageDone, MessageState state);
 
-		protected internal abstract void RaiseMessageUpdate(int id,string msg, string header, MessageType msgType,MessageState state);
+		protected internal abstract void RaiseMessageUpdate(IClientInfo clientInfo, string msg, string header, MessageType msgType,MessageState state);
 
-		protected internal abstract void RaiseMessageFailed(int id, byte[] payLoad, Exception ex);
+		protected internal abstract void RaiseMessageFailed(IClientInfo clientInfo, byte[] payLoad, Exception ex);
 
 		protected internal abstract void RaiseLog(string message);
 
 		protected internal abstract void RaiseLog(Exception ex);
 
 		protected internal abstract void RaiseErrorThrown(Exception ex);
+
+		#endregion
+
+		#region Debugging
+
+		protected internal void Log(string log)
+		{
+			RaiseLog(log);
+			//Console.WriteLine(log);
+		}
+
+		protected internal void Log(Exception ex)
+		{
+			RaiseLog(ex);
+			//Console.WriteLine(ex.Message);
+		}
 
 		#endregion
 
@@ -493,25 +510,27 @@ namespace SimpleSockets
 		/// <param name="encrypt"></param>
 		/// <param name="compress"></param>
 		/// <param name="close"></param>
-		/// <param name="id"></param>
 		/// <param name="msgType"></param>
+		/// <param name="client"></param>
 		/// <returns></returns>
-		protected async Task StreamFileFolderAsync(string fileLocation, string remoteSaveLocation, bool encrypt, bool compress, bool close, int id, MessageType msgType)
+		protected async Task StreamFileFolderAsync(string fileLocation, string remoteSaveLocation, bool encrypt, bool compress, bool close, MessageType msgType, IClientInfo client = null)
 		{
 			try
 			{
-				RaiseMessageUpdateStateFileTransfer(id, fileLocation, remoteSaveLocation, 0, MessageState.Beginning);
+				
+				RaiseMessageUpdateStateFileTransfer(client, fileLocation, remoteSaveLocation, 0, MessageState.Beginning);
 				Log("Beginning sending file from path: " + fileLocation);
 
 				var fileInfo = new FileInfo(Path.GetFullPath(fileLocation));
 				var msgBuilder = new SimpleMessage(msgType, this, Debug)
 					.CompressMessage(compress)
 					.EncryptMessage(encrypt)
-					.SetHeaderString(remoteSaveLocation);
+					.SetHeaderString(remoteSaveLocation)
+					.SetSendClient(client);
 
 				if (compress || msgType == MessageType.Folder)
 				{
-					RaiseMessageUpdateStateFileTransfer(id, fileLocation, remoteSaveLocation, 0,MessageState.Compressing);
+					RaiseMessageUpdateStateFileTransfer(client, fileLocation, remoteSaveLocation, 0,MessageState.Compressing);
 					Log("Compressing file from path: " + fileLocation + " to TempPath: " + TempPath);
 
 					if (msgType == MessageType.Folder)
@@ -523,14 +542,14 @@ namespace SimpleSockets
 						fileInfo = await CompressFileAsync(fileInfo);
 					}
 
-					RaiseMessageUpdateStateFileTransfer(id, fileLocation, remoteSaveLocation, 0, MessageState.CompressingDone);
+					RaiseMessageUpdateStateFileTransfer(client, fileLocation, remoteSaveLocation, 0, MessageState.CompressingDone);
 					Log("File/Folder compressed to TempPath: " + TempPath);
 
 				}
 
 				if (encrypt)
 				{
-					RaiseMessageUpdateStateFileTransfer(id, fileLocation, remoteSaveLocation, 0, MessageState.Encrypting);
+					RaiseMessageUpdateStateFileTransfer(client, fileLocation, remoteSaveLocation, 0, MessageState.Encrypting);
 					Log("Encrypting file to TempPath: " + TempPath);
 
 					var prev = fileInfo.FullName;
@@ -542,7 +561,7 @@ namespace SimpleSockets
 						Log("Deleting compressed file at path: " + prev);
 					}
 
-					RaiseMessageUpdateStateFileTransfer(id, fileLocation, remoteSaveLocation, 0, MessageState.EncryptingDone);
+					RaiseMessageUpdateStateFileTransfer(client, fileLocation, remoteSaveLocation, 0, MessageState.EncryptingDone);
 					Log("File/Folder compressed to TempPath: " + TempPath);
 				}
 
@@ -550,7 +569,7 @@ namespace SimpleSockets
 				//Vars
 				var file = fileInfo.FullName;
 				var fileStreamBuffer = new byte[4096]; //When this buffer exceeds 85000 bytes -> buffer will be stored in LOH -> bad for memory usage.
-				var buffer = 10485760; //10 Mb buffer
+				var buffer = FileBuffer; //10 Mb buffer
 
 				MemoryStream memoryStream = null;
 
@@ -564,7 +583,7 @@ namespace SimpleSockets
 					msgBuilder = msgBuilder
 						.SetTotalParts(totalParts);
 
-					RaiseMessageUpdateStateFileTransfer(id, fileLocation, remoteSaveLocation, 0, MessageState.Transmitting);
+					RaiseMessageUpdateStateFileTransfer(client, fileLocation, remoteSaveLocation, 0, MessageState.Transmitting);
 
 					while ((read = await fileStream.ReadAsync(fileStreamBuffer, 0, fileStreamBuffer.Length, Token)) > 0)
 					{
@@ -589,7 +608,7 @@ namespace SimpleSockets
 								.BuildAsync();
 
 							currentPart++;
-							SendToSocket(msgBuilder.PayLoad, false, totalLength != 0, id);
+							SendToSocket(msgBuilder.PayLoad, false, totalLength != 0, client?.Id ?? -1);
 							Log("Sending part " + currentPart + " of a total of " + totalParts + " of file/folder: " + fileLocation);
 
 							memoryStream.Close();
@@ -605,7 +624,7 @@ namespace SimpleSockets
 							.SetHeaderString(remoteSaveLocation)
 							.BuildAsync();
 
-						SendToSocket(msgBuilder.PayLoad, false, false, id);
+						SendToSocket(msgBuilder.PayLoad, false, false, client?.Id ?? -1);
 						Log("Sending part " + currentPart + " of a total of " + totalParts + " of file/folder: " + fileLocation);
 						memoryStream.Close();
 						memoryStream = null;
@@ -621,7 +640,7 @@ namespace SimpleSockets
 				}
 					
 
-				RaiseMessageUpdateStateFileTransfer(id, fileLocation, remoteSaveLocation, 100, MessageState.Completed);
+				RaiseMessageUpdateStateFileTransfer(client, fileLocation, remoteSaveLocation, 100, MessageState.Completed);
 			}
 			catch (Exception ex)
 			{
@@ -638,24 +657,25 @@ namespace SimpleSockets
 		/// <param name="encrypt"></param>
 		/// <param name="compress"></param>
 		/// <param name="close"></param>
-		/// <param name="id"></param>
 		/// <param name="msgType"></param>
-		protected void StreamFileFolder(string fileLocation, string remoteSaveLocation, bool encrypt, bool compress, bool close, int id, MessageType msgType)
+		/// <param name="client"></param>
+		protected void StreamFileFolder(string fileLocation, string remoteSaveLocation, bool encrypt, bool compress, bool close, MessageType msgType, IClientInfo client = null)
 		{
 			try
 			{
-				RaiseMessageUpdateStateFileTransfer(id, fileLocation, remoteSaveLocation, 0, MessageState.Beginning);
+				RaiseMessageUpdateStateFileTransfer(client, fileLocation, remoteSaveLocation, 0, MessageState.Beginning);
 				Log("Beginning sending file from path: " + fileLocation);
 
 				var fileInfo = new FileInfo(Path.GetFullPath(fileLocation));
 				var msgBuilder = new SimpleMessage(msgType, this, Debug)
 					.CompressMessage(compress)
 					.EncryptMessage(encrypt)
-					.SetHeaderString(remoteSaveLocation);
+					.SetHeaderString(remoteSaveLocation)
+					.SetSendClient(client);
 
 				if (compress || msgType == MessageType.Folder)
 				{
-					RaiseMessageUpdateStateFileTransfer(id, fileLocation, remoteSaveLocation, 0, MessageState.Compressing);
+					RaiseMessageUpdateStateFileTransfer(client, fileLocation, remoteSaveLocation, 0, MessageState.Compressing);
 					Log("Compressing file from path: " + fileLocation + " to TempPath: " + TempPath);
 
 					if (msgType == MessageType.Folder)
@@ -667,14 +687,14 @@ namespace SimpleSockets
 						fileInfo = CompressFile(fileInfo);
 					}
 
-					RaiseMessageUpdateStateFileTransfer(id, fileLocation, remoteSaveLocation, 0, MessageState.CompressingDone);
+					RaiseMessageUpdateStateFileTransfer(client, fileLocation, remoteSaveLocation, 0, MessageState.CompressingDone);
 					Log("File/Folder compressed to TempPath: " + TempPath);
 
 				}
 
 				if (encrypt)
 				{
-					RaiseMessageUpdateStateFileTransfer(id, fileLocation, remoteSaveLocation, 0, MessageState.Encrypting);
+					RaiseMessageUpdateStateFileTransfer(client, fileLocation, remoteSaveLocation, 0, MessageState.Encrypting);
 					Log("Encrypting file to TempPath: " + TempPath);
 
 					var prev = fileInfo.FullName;
@@ -686,7 +706,7 @@ namespace SimpleSockets
 						Log("Deleting compressed file at path: " + prev);
 					}
 
-					RaiseMessageUpdateStateFileTransfer(id, fileLocation, remoteSaveLocation, 0, MessageState.EncryptingDone);
+					RaiseMessageUpdateStateFileTransfer(client, fileLocation, remoteSaveLocation, 0, MessageState.EncryptingDone);
 					Log("File/Folder compressed to TempPath: " + TempPath);
 				}
 
@@ -694,7 +714,7 @@ namespace SimpleSockets
 				//Vars
 				var file = fileInfo.FullName;
 				var fileStreamBuffer = new byte[4096]; //When this buffer exceeds 85000 bytes -> buffer will be stored in LOH -> bad for memory usage.
-				var buffer = 10485760; //10 Mb buffer
+				var buffer = FileBuffer; //10 Mb buffer
 
 				MemoryStream memoryStream = null;
 
@@ -708,7 +728,7 @@ namespace SimpleSockets
 					msgBuilder = msgBuilder
 						.SetTotalParts(totalParts);
 
-					RaiseMessageUpdateStateFileTransfer(id, fileLocation, remoteSaveLocation, 0, MessageState.Transmitting);
+					RaiseMessageUpdateStateFileTransfer(client, fileLocation, remoteSaveLocation, 0, MessageState.Transmitting);
 
 					while ((read = fileStream.Read(fileStreamBuffer, 0, fileStreamBuffer.Length)) > 0)
 					{
@@ -733,7 +753,7 @@ namespace SimpleSockets
 								.Build();
 
 							currentPart++;
-							SendToSocket(msgBuilder.PayLoad, false, totalLength != 0, id);
+							SendToSocket(msgBuilder.PayLoad, false, totalLength != 0, client?.Id ?? -1);
 							Log("Sending part " + currentPart + " of a total of " + totalParts + " of file/folder: " + fileLocation);
 
 							memoryStream.Close();
@@ -749,7 +769,7 @@ namespace SimpleSockets
 							.SetHeaderString(remoteSaveLocation)
 							.Build();
 
-						SendToSocket(msgBuilder.PayLoad, false, false, id);
+						SendToSocket(msgBuilder.PayLoad, false, false, client?.Id ?? -1);
 						Log("Sending part " + currentPart + " of a total of " + totalParts + " of file/folder: " + fileLocation);
 						memoryStream.Close();
 						memoryStream = null;
@@ -765,7 +785,7 @@ namespace SimpleSockets
 				}
 
 
-				RaiseMessageUpdateStateFileTransfer(id, fileLocation, remoteSaveLocation, 0, MessageState.Completed);
+				RaiseMessageUpdateStateFileTransfer(client, fileLocation, remoteSaveLocation, 0, MessageState.Completed);
 			}
 			catch (Exception ex)
 			{

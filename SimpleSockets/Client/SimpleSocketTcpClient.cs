@@ -26,6 +26,9 @@ namespace SimpleSockets.Client
 		public override void StartClient(string ipServer, int port, int reconnectInSeconds = 5)
 		{
 
+			if (Disposed)
+				return;
+
 			if (string.IsNullOrEmpty(ipServer))
 				throw new ArgumentNullException(nameof(ipServer));
 			if (port < 1 || port > 65535)
@@ -51,7 +54,7 @@ namespace SimpleSockets.Client
 			{
 				try
 				{
-					if (Token.IsCancellationRequested)
+					if (Token.IsCancellationRequested || Disposed)
 						return;
 
 					//Try and connect
@@ -85,6 +88,9 @@ namespace SimpleSockets.Client
 		
 		protected void OnConnectCallback(IAsyncResult result)
 		{
+			if (Disposed)
+				return;
+
 			var server = (Socket)result.AsyncState;
 
 			try
@@ -93,13 +99,17 @@ namespace SimpleSockets.Client
 				server.EndConnect(result);
 				ConnectedMre.Set();
 				KeepAliveTimer.Enabled = true;
-				var state = new SocketState(Listener);
+				var state = new ClientMetadata(Listener);
 				Receive(state);
+			}
+			catch (ObjectDisposedException ex)
+			{
+				RaiseErrorThrown(ex);
 			}
 			catch (SocketException)
 			{
 				Thread.Sleep(ReconnectInSeconds * 1000);
-				if (!Token.IsCancellationRequested)
+				if (!Token.IsCancellationRequested && !Disposed)
 					Listener.BeginConnect(Endpoint, OnConnectCallback, Listener);
 			}
 			catch (Exception ex)
@@ -118,6 +128,8 @@ namespace SimpleSockets.Client
 					Listener.BeginSend(message.Data, 0, message.Data.Length, SocketFlags.None, SendCallbackPartial,Listener);
 				else
 					Listener.BeginSend(message.Data, 0, message.Data.Length, SocketFlags.None, SendCallback, Listener);
+
+				message.Dispose();
 			}
 			catch (Exception ex)
 			{
@@ -175,7 +187,7 @@ namespace SimpleSockets.Client
 			}
 		}
 
-		protected override void SendToSocket(byte[] data, bool close, bool partial, int id = -1)
+		protected override void SendToSocket(byte[] data, bool close, bool partial = false, int id = -1)
 		{
 			CloseClient = close;
 			BlockingMessageQueue.Enqueue(new MessageWrapper(data, partial));
@@ -187,7 +199,7 @@ namespace SimpleSockets.Client
 
 		#region Receiving
 
-		protected internal override void Receive(ISocketState state, int offset = 0)
+		protected internal override void Receive(IClientMetadata state, int offset = 0)
 		{
 			if (offset > 0)
 			{
@@ -208,11 +220,11 @@ namespace SimpleSockets.Client
 		{
 			if (!IsConnected())
 			{
-				RaiseErrorThrown(new Exception("Socket is not connected."));
+				RaiseLog(new Exception("Socket is not connected, can't receive messages."));
 				return;
 			}
 
-			var state = (SocketState)result.AsyncState;
+			var state = (ClientMetadata)result.AsyncState;
 			try
 			{
 

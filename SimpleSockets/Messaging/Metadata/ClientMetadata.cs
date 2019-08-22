@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Net;
 using System.Net.Security;
@@ -12,10 +13,10 @@ namespace SimpleSockets.Messaging.Metadata
 	/// This class is used to keep track of certain values for server/client
 	/// <para>This is needed because the client and server work async</para>
 	/// <para>Implements
-	///<seealso cref="ISocketState"/>
+	///<seealso cref="IClientMetadata"/>
 	/// </para>
 	/// </summary>
-	internal class SocketState: ISocketState
+	internal class ClientMetadata: IClientMetadata
 	{
 
 		/* Contains the state information. */
@@ -23,22 +24,24 @@ namespace SimpleSockets.Messaging.Metadata
 		//8192 = 8kb
 		//16384 = 16kb
 		//131072 = 0.131072Mb
-		private static int _bufferSize = 524288;
+		//private static int _bufferSize = 524288; //Buffer Size bigger then 85000 will use LOH => can cause high memory usage
+		//private static int _bufferSize = 65536;
+		private static int _bufferSize = 4096;
 		private IList<byte> _receivedBytes = new List<byte>();
 
+		public string Guid { get; set; }
 		public string RemoteIPv4 { get; set; }
 		public string RemoteIPv6 { get; set; }
 
 		public string LocalIPv4 { get; set; }
 		public string LocalIPv6 { get; set; }
 
-
 		/// <summary>
 		/// Constructor for StateObject
 		/// </summary>
 		/// <param name="listener"></param>
 		/// <param name="id"></param>
-		internal SocketState(Socket listener, int id = -1)
+		internal ClientMetadata(Socket listener, int id = -1)
 		{
 			Listener = listener;
 
@@ -65,6 +68,9 @@ namespace SimpleSockets.Messaging.Metadata
 			}
 		}
 
+		/// <summary>
+		/// Used to create and deconstruct messages.
+		/// </summary>
 		internal SimpleMessage SimpleMessage { get; set; }
 
 		/// <summary>
@@ -73,6 +79,9 @@ namespace SimpleSockets.Messaging.Metadata
 		/// <param name="size"></param>
 		internal static void ChangeBufferSize(int size)
 		{
+			if (size < 1024)
+				throw new Exception("Buffer size can't be smaller then 1024 bytes.");
+
 			_bufferSize = size;
 		}
 
@@ -95,6 +104,21 @@ namespace SimpleSockets.Messaging.Metadata
 		/// Get the id
 		/// </summary>
 		public int Id { get; }
+
+		/// <summary>
+		/// Name of the client
+		/// </summary>
+		public string ClientName { get; set; }
+
+		/// <summary>
+		/// The operating system the client is running on.
+		/// </summary>
+		public string OsVersion { get; set; }
+
+		/// <summary>
+		/// The UserDomainName of the client.
+		/// </summary>
+		public string UserDomainName { get; set; }
 
 		/// <summary>
 		/// Return of set close boolean
@@ -165,6 +189,15 @@ namespace SimpleSockets.Messaging.Metadata
 		{
 			Buffer = bytes;
 		}
+
+		/// <summary>
+		/// Change the received bytes.
+		/// </summary>
+		/// <param name="bytes"></param>
+		public void ChangeReceivedBytes(byte[] bytes)
+		{
+			_receivedBytes = bytes.ToList();
+		}
 		
 		/// <summary>
 		/// Resets the stringBuilder and other properties
@@ -174,8 +207,6 @@ namespace SimpleSockets.Messaging.Metadata
 			_receivedBytes = new List<byte>();
 			Read = 0;
 			Flag = 0;
-			//SimpleMessage = null;
-			//ChangeBuffer(new byte[_bufferSize]);
 		}
 
 	}

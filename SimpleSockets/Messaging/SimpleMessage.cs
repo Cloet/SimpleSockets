@@ -1,13 +1,11 @@
-﻿using System;
+﻿using SimpleSockets.Messaging.MessageContract;
+using SimpleSockets.Messaging.Metadata;
+using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using SimpleSockets.Messaging.MessageContract;
-using SimpleSockets.Messaging.Metadata;
 
 namespace SimpleSockets.Messaging
 {
@@ -65,11 +63,12 @@ namespace SimpleSockets.Messaging
 
 		private readonly bool _debug;
 		private readonly SimpleSocket _socket;
-		private readonly SocketState _state;
+		private ClientMetadata _state;
 		private int _headerLength = 0;
 		private int _partNumber = -1;
 		private int _totalParts = -1;
 		private int _receivingMessageLength = 0;
+		private IClientInfo _sendClient = null;
 
 		/// <summary>
 		/// Constructor
@@ -92,7 +91,7 @@ namespace SimpleSockets.Messaging
 		/// <param name="state"></param>
 		/// <param name="socket"></param>
 		/// <param name="debug"></param>
-		internal SimpleMessage(SocketState state, SimpleSocket socket, bool debug = false)
+		internal SimpleMessage(ClientMetadata state, SimpleSocket socket, bool debug = false)
 		{
 			_debug = debug;
 			_state = state;
@@ -195,6 +194,17 @@ namespace SimpleSockets.Messaging
 			return this;
 		}
 
+		/// <summary>
+		/// Set the Id of the client to which the message will be sent.
+		/// </summary>
+		/// <param name="id"></param>
+		/// <returns></returns>
+		internal SimpleMessage SetSendClient(IClientInfo clientInfo)
+		{
+			_sendClient = clientInfo;
+			return this;
+		}
+
 		#endregion
 
 		#region Methods
@@ -261,8 +271,7 @@ namespace SimpleSockets.Messaging
 		/// <returns></returns>
 		private byte[] BuildHeader()
 		{
-			if (_debug)
-				Log("Building the messageHeader");
+			Log("Building the messageHeader");
 			int currIndex = 0;
 
 			var length = CalculateHeaderFieldsLength();
@@ -302,8 +311,7 @@ namespace SimpleSockets.Messaging
 				//currIndex += 4;
 			}
 
-			if (_debug)
-				Log("Header build completed.");
+			Log("Header build completed.");
 
 			return headerFieldBytes;
 		}
@@ -334,11 +342,9 @@ namespace SimpleSockets.Messaging
 
 				PayLoad = payLoadBytes;
 
-				if (_debug)
-				{
-					Log("Message has been built and has a length of " + PayLoad.Length);
-					Log("===============================================");
-				}
+
+				Log("Message has been built and has a length of " + PayLoad.Length);
+				Log("===============================================");
 
 				return true;
 			}
@@ -360,11 +366,10 @@ namespace SimpleSockets.Messaging
 			{
 				if (MessageType != MessageType.File && MessageType != MessageType.Folder)
 				{
-					_socket.RaiseMessageUpdate(_state.Id, Encoding.UTF8.GetString(Data),
-						Header.Length > 0 ? Encoding.UTF8.GetString(Header) : "", MessageType,
+					_socket.RaiseMessageUpdate(_sendClient, Encoding.UTF8.GetString(Data),
+						HeaderFields[2] ? Encoding.UTF8.GetString(Header) : "", MessageType,
 						MessageState.Compressing);
-					if (_debug)
-						_socket.Log("Compressing message...");
+					Log("Compressing message...");
 				}
 
 				if (HeaderFields[2])
@@ -377,17 +382,16 @@ namespace SimpleSockets.Messaging
 			{
 				if (MessageType != MessageType.File && MessageType != MessageType.Folder)
 				{
-					_socket.RaiseMessageUpdate(_state.Id, Encoding.UTF8.GetString(Data),
-						Header.Length > 0 ? Encoding.UTF8.GetString(Header) : "", MessageType,
+
+					_socket.RaiseMessageUpdate(_sendClient, Encoding.UTF8.GetString(Data),HeaderFields[2] ? Encoding.UTF8.GetString(Header) : "", MessageType,
 						MessageState.Encrypting);
-					if (_debug)
-						_socket.Log("Encrypting message...");
+					Log("Encrypting message...");
 				}
 
 				if (HeaderFields[2])
 					Header = _socket.EncryptBytes(Header);
 				if (MessageType != MessageType.File && MessageType != MessageType.Folder)
-					Data = _socket.CompressBytes(Data);
+					Data = _socket.EncryptBytes(Data);
 			}
 		}
 
@@ -397,11 +401,8 @@ namespace SimpleSockets.Messaging
 		/// <returns></returns>
 		internal bool Build()
 		{
-			if (_debug)
-			{
-				Log("===============================================");
-				Log("Building Message");
-			}
+			Log("===============================================");
+			Log("Building Message");
 			CompressEncryptHeader();
 			return BuildMsg();
 		}
@@ -415,11 +416,8 @@ namespace SimpleSockets.Messaging
 		/// </summary>
 		internal async Task<bool> BuildAsync()
 		{
-			if (_debug)
-			{
-				Log("===============================================");
-				Log("Building Message");
-			}
+			Log("===============================================");
+			Log("Building Message");
 
 			await CompressEncryptHeaderAsync();
 			return BuildMsg();
@@ -431,11 +429,10 @@ namespace SimpleSockets.Messaging
 			{
 				if (MessageType != MessageType.File && MessageType != MessageType.Folder)
 				{
-					_socket.RaiseMessageUpdate(_state.Id, Encoding.UTF8.GetString(Data),
-						Header.Length > 0 ? Encoding.UTF8.GetString(Header) : "", MessageType,
+					_socket.RaiseMessageUpdate(_sendClient, Encoding.UTF8.GetString(Data),
+						HeaderFields[2] ? Encoding.UTF8.GetString(Header) : "", MessageType,
 						MessageState.Compressing);
-					if (_debug)
-						_socket.Log("Compressing message...");
+					Log("Compressing message...");
 				}
 
 				if (HeaderFields[2])
@@ -448,17 +445,16 @@ namespace SimpleSockets.Messaging
 			{
 				if (MessageType != MessageType.File && MessageType != MessageType.Folder)
 				{
-					_socket.RaiseMessageUpdate(_state.Id, Encoding.UTF8.GetString(Data),
-						Header.Length > 0 ? Encoding.UTF8.GetString(Header) : "", MessageType,
+					_socket.RaiseMessageUpdate(_sendClient, Encoding.UTF8.GetString(Data),
+						HeaderFields[2] ? Encoding.UTF8.GetString(Header) : "", MessageType,
 						MessageState.Encrypting);
-					if (_debug)
-						_socket.Log("Encrypting message...");
+					Log("Encrypting message...");
 				}
 
 				if (HeaderFields[2])
 					Header = await _socket.EncryptBytesAsync(Header);
 				if (MessageType != MessageType.File && MessageType != MessageType.Folder)
-					Data = await _socket.CompressBytesAsync(Data);
+					Data = await _socket.EncryptBytesAsync(Data);
 			}
 		}
 
@@ -478,9 +474,16 @@ namespace SimpleSockets.Messaging
 		{
 			if (_state.Flag == 0)
 			{
+				DeconstructHeaderField(_state.Buffer[0]);
+				var length = CalculateHeaderFieldsLength();
+				if (_state.Buffer.Length < length)
+				{
+					//_socket.Receive(_state, receive);
+					return;
+				}
+
 				byte headerFieldByte = _state.Buffer[0];
 				DeconstructHeaderFields(headerFieldByte, _state.Buffer);
-				var length = CalculateHeaderFieldsLength();
 				byte[] remainingBytes = new byte[_state.Buffer.Length - length];
 				receive -= length;
 
@@ -491,14 +494,18 @@ namespace SimpleSockets.Messaging
 			}
 
 			if (_state.Buffer.Length < 1)
-				_socket.Receive(_state, receive);
+			{
+				//_socket.Receive(_state, receive);
+				return;
+			}
+
 
 			if (_state.Flag == 1)
 			{
 				var enoughBytes = DeconstructHeader();
 				if (!enoughBytes)
 				{
-					_socket.Receive(_state, receive);
+					//_socket.Receive(_state, receive);
 					return;
 				}
 				receive -= _headerLength;
@@ -554,10 +561,14 @@ namespace SimpleSockets.Messaging
 			return true;
 		}
 
-		private void DeconstructHeaderFields(byte headerFieldByte, byte[] buffer)
+		private void DeconstructHeaderField(byte headerFieldByte)
 		{
 			HeaderFields = new BitArray(8, false);
 			HeaderFields = ConvertByteToBitArray(headerFieldByte);
+		}
+
+		private void DeconstructHeaderFields(byte headerFieldByte, byte[] buffer)
+		{
 			
 			_receivingMessageLength = BitConverter.ToInt32(_state.Buffer, 1);
 			MessageType = (MessageType)_state.Buffer[5];
@@ -605,37 +616,41 @@ namespace SimpleSockets.Messaging
 			{
 				_state.Flag = -2;
 				Array.Copy(_state.Buffer, 0, bytes, 0, bytes.Length);
+				_state.ChangeBuffer(new byte[0]);
 			}
 			else
 			{
-				if (receive == _state.BufferSize)
+				if (_state.Buffer.Length == _state.BufferSize)
 				{
 					bytes = _state.Buffer;
 				}
 				else
 				{
-					bytes = new byte[receive];
-					Array.Copy(_state.Buffer, 0, bytes, 0, receive);
+					bytes = new byte[_state.Buffer.Length];
+					Array.Copy(_state.Buffer, 0, bytes, 0, bytes.Length);
 				}
+				_state.ChangeBuffer(new byte[0]);
 			}
 
 			if (MessageType == MessageType.File || MessageType == MessageType.Folder)
 			{
-				var file = Encoding.UTF8.GetString(Header);
-				file = GetTempPath(file);
-				CreateDeleteFile(file);
-
-				if (_partNumber == 0)
+				if (_socket.AllowReceivingFiles)
 				{
-					_socket.RaiseFileReceiver(_state.Id, _partNumber, _totalParts, file, MessageState.Beginning);
-				}
+					var file = Encoding.UTF8.GetString(Header);
+					file = GetTempPath(file);
+					CreateDeleteFile(file);
 
-				using (BinaryWriter writer = new BinaryWriter(File.Open(file, FileMode.Append)))
-				{
-					writer.Write(bytes, 0, bytes.Length);
-					writer.Close();
-				}
+					if (_partNumber == 0)
+					{
+						_socket.RaiseFileReceiver(_state, _partNumber, _totalParts, file, MessageState.Beginning);
+					}
 
+					using (BinaryWriter writer = new BinaryWriter(File.Open(file, FileMode.Append)))
+					{
+						writer.Write(bytes, 0, bytes.Length);
+						writer.Close();
+					}
+				}
 			}
 			else
 			{
@@ -644,16 +659,20 @@ namespace SimpleSockets.Messaging
 			
 			if (_state.Flag == -2)
 			{
+				bytes = null;
 				MessageHasBeenReceived();
 				_state.Reset();
 			}
-			else if (_state.Flag == -3)
+
+			if (_state.Flag == -3)
 			{
+				bytes = null;
 				MessageHasBeenReceived();
 				_state.Reset();
 				ReadBytesAndBuildMessage(_state.Buffer.Length);
 			}
 
+			//_socket.Receive(_state, 0);
 		}
 
 		private string GetTempPath(string path)
@@ -698,25 +717,64 @@ namespace SimpleSockets.Messaging
 
 		private void MessageHasBeenReceived()
 		{
+
+			if (MessageType != MessageType.Folder && MessageType != MessageType.File)
+			{
+				if (Encrypted)
+				{
+					_state.ChangeReceivedBytes(_socket.DecryptBytes(_state.ReceivedBytes));
+					if (HeaderFields[2])
+						Header = _socket.DecryptBytes(Header);
+				}
+
+				if (Compressed)
+				{
+					_state.ChangeReceivedBytes(_socket.DecompressBytes(_state.ReceivedBytes));
+					if (HeaderFields[2])
+						Header = _socket.DecompressBytes(Header);
+				}
+			}
+
 			//Invoke correct receiver.
 			switch (MessageType)
 			{
+
+				case MessageType.Auth:
+				{
+					var message = Encoding.UTF8.GetString(_state.ReceivedBytes);
+					var arr = message.Split('|');
+					_state.ClientName = arr[0];
+					_state.Guid = arr[1];
+					_state.UserDomainName = arr[2];
+					_state.OsVersion = arr[3];
+					break;
+				}
+				case MessageType.BasicAuth:
+				{
+					var message = Encoding.UTF8.GetString(_state.ReceivedBytes);
+					var arr = message.Split('|');
+					_state.Guid = arr[0];
+					_state.OsVersion = arr[1];
+					break;
+				}
 				case MessageType.Object:
 				{
 					var obj = _socket.ObjectSerializer.DeserializeBytesToObject(_state.ReceivedBytes);
-					_socket.RaiseObjectReceived(_state.Id, obj, obj.GetType());
+					_socket.RaiseObjectReceived(_state, obj, obj.GetType());
 					break;
 				}
 				case MessageType.Message:
-					_socket.RaiseMessageReceived(_state.Id, Encoding.UTF8.GetString(_state.ReceivedBytes));
+					_socket.RaiseMessageReceived(_state, Encoding.UTF8.GetString(_state.ReceivedBytes));
 					break;
 				case MessageType.Bytes:
-					_socket.RaiseBytesReceived(_state.Id, _state.ReceivedBytes);
+					_socket.RaiseBytesReceived(_state, _state.ReceivedBytes);
 					break;
 				case MessageType.File:
 				{
 					var file = Encoding.UTF8.GetString(Header);
 					var output = file;
+
+					_socket.RaiseFileReceiver(_state, _partNumber, _totalParts, output, MessageState.ReceivingData);
 
 					if (_totalParts == _partNumber)
 					{
@@ -724,23 +782,25 @@ namespace SimpleSockets.Messaging
 
 						if (Encrypted)
 						{
-							var tmp = file;
-							_socket.RaiseFileReceiver(_state.Id, _partNumber, _totalParts, output, MessageState.Decrypting);
+							_socket.RaiseFileReceiver(_state, _partNumber, _totalParts, output, MessageState.Decrypting);
 							Log("Decrypting file from path : " + file);
+							var tmp = file;
 							file = _socket.DecryptFile(file, _socket.TempPath + Path.GetRandomFileName()).FullName;
+							File.Delete(tmp);
 							Log("File has been decrypted from path: " + file);
-							if (!Compressed)
-								File.Delete(tmp);
-							_socket.RaiseFileReceiver(_state.Id, _partNumber, _totalParts, output,MessageState.DecryptingDone);
+							_socket.RaiseFileReceiver(_state, _partNumber, _totalParts, output,MessageState.DecryptingDone);
 						}
 
 						if (Compressed)
 						{
-							_socket.RaiseFileReceiver(_state.Id, _partNumber, _totalParts, output,MessageState.Decompressing);
+							_socket.RaiseFileReceiver(_state, _partNumber, _totalParts, output,MessageState.Decompressing);
 							Log("Decompressing file from path : " + file);
+							var tmp = file;
 							file = _socket.DecompressFile(new FileInfo(file), _socket.TempPath + Path.GetRandomFileName()).FullName;
+							if (Encrypted)
+								File.Delete(tmp);
 							Log("File Decompressed from path : " + file);
-							_socket.RaiseFileReceiver(_state.Id, _partNumber, _totalParts, output,MessageState.DecompressingDone);
+							_socket.RaiseFileReceiver(_state, _partNumber, _totalParts, output,MessageState.DecompressingDone);
 						}
 
 
@@ -751,24 +811,25 @@ namespace SimpleSockets.Messaging
 							Log("Deleting file: " + output);
 							File.Move(file, output);
 							Log("Moving " + file + " to " + output);
-							File.Delete(file); // Delete encrypted file.
-							Log("Deleting encrypted file : " + file);
+							File.Delete(file); // Delete encrypted/compressed file.
+							Log("Deleting temp file : " + file);
 						}
+
+						_socket.RaiseFileReceiver(_state, _partNumber, _totalParts, output, MessageState.Completed);
+						Log("File has been received and saved to path : " + output);
 					}
-				
-					_socket.RaiseFileReceiver(_state.Id, _partNumber, _totalParts, output,MessageState.Completed);
-					Log("File has been received and saved to path : " + output);
+					
 					break;
 				}
 				case MessageType.CustomHeader:
-					_socket.RaiseCustomHeaderReceived(_state.Id, Encoding.UTF8.GetString(Header), Encoding.UTF8.GetString(_state.ReceivedBytes));
+					_socket.RaiseCustomHeaderReceived(_state, Encoding.UTF8.GetString(Header), Encoding.UTF8.GetString(_state.ReceivedBytes));
 					break;
 				case MessageType.MessageContract:
 				{
 					var contractHeader = Encoding.UTF8.GetString(Header);
 					var contract = GetCorrespondingMessageContract(contractHeader);
 					if (contract != null)
-						_socket.RaiseMessageContractReceived(_state.Id, contract, _state.ReceivedBytes);
+						_socket.RaiseMessageContractReceived(_state, contract, _state.ReceivedBytes);
 					else if (_debug)
 						Log("MessageContract with Header '" + contractHeader + "' does not exist.");
 					break;
@@ -777,6 +838,8 @@ namespace SimpleSockets.Messaging
 				{
 					var folder = Encoding.UTF8.GetString(Header);
 					var output = folder;
+
+					_socket.RaiseFolderReceiver(_state, _partNumber, _totalParts, output, MessageState.ReceivingData);
 
 					if (_totalParts == _partNumber)
 					{
@@ -790,11 +853,11 @@ namespace SimpleSockets.Messaging
 						}
 
 
-						Task.Run(() => _socket.ExtractToFolder(folder, output));
+						_socket.ExtractToFolder(folder, output);
 						File.Delete(folder); //Delete extracted folder.
-					}
 
-					_socket.RaiseFolderReceiver(_state.Id, _partNumber, _totalParts, output, MessageState.Completed);
+						_socket.RaiseFolderReceiver(_state, _partNumber, _totalParts, output, MessageState.Completed);
+					}
 					break;
 				}
 				default:
@@ -829,4 +892,5 @@ namespace SimpleSockets.Messaging
 		#endregion
 
 	}
+
 }

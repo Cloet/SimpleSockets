@@ -6,7 +6,7 @@ namespace SimpleSockets.Messaging.Metadata
 	/// <summary>
 	/// Interface for SocketState
 	/// </summary>
-	public interface ISocketState: ISocketInfo
+	public interface IClientMetadata: IClientInfo
 	{
 		/// <summary>
 		/// Get the buffersize

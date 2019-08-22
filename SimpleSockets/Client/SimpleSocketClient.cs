@@ -15,6 +15,39 @@ using Timer = System.Threading.Timer;
 
 namespace SimpleSockets.Client
 {
+
+	#region Delegates
+
+	public delegate void ConnectedToServerDelegate(SimpleSocketClient client);
+
+	public delegate void MessageReceivedDelegate(SimpleSocketClient client, string msg);
+
+	public delegate void CustomHeaderReceivedDelegate(SimpleSocketClient client, string message, string header);
+
+	public delegate void BytesReceivedDelegate(SimpleSocketClient client, byte[] messageBytes);
+
+	public delegate void ObjectReceivedDelegate(SimpleSocketClient client, object obj, Type objType);
+
+	public delegate void MessageUpdateFileTransferDelegate(SimpleSocketClient client, string origin, string remoteSaveLoc, double percentageDone, MessageState state);
+
+	public delegate void MessageUpdateDelegate(SimpleSocketClient client, string message, string header, MessageType messageType, MessageState state);
+
+	public delegate void FileReceiverDelegate(SimpleSocketClient client, int currentPart, int totalPart, string location, MessageState state);
+
+	public delegate void FolderReceiverDelegate(SimpleSocketClient client, int currentPart, int totalPart, string location, MessageState state);
+
+	public delegate void MessageSubmittedDelegate(SimpleSocketClient client, bool close);
+
+	public delegate void DisconnectedFromServerDelegate(SimpleSocketClient client);
+
+	public delegate void MessageFailedDelegate(SimpleSocketClient client, byte[] payLoad, Exception ex);
+
+	public delegate void ClientErrorThrownDelegate(SimpleSocketClient client, Exception ex);
+
+	public delegate void ClientLogsDelegate(SimpleSocketClient client, string message);
+
+	#endregion
+
 	public abstract class SimpleSocketClient: SimpleSocket
 	{
 
@@ -27,15 +60,23 @@ namespace SimpleSockets.Client
 		protected readonly ManualResetEvent SentMre = new ManualResetEvent(false);
 		protected IPEndPoint Endpoint;
 		protected static System.Timers.Timer KeepAliveTimer;
+		protected bool Disposed = false;
 
 		//--Private
 		private bool _disconnectedInvoked;
+		private string _clientGuid = "";
 
 		//--Public
 		/// <summary>
 		/// This is how many seconds te client waits to try and reconnect to the server
 		/// </summary>
 		public int ReconnectInSeconds { get; protected set; }
+
+		/// <summary>
+		/// When true the client will send additional info to the server.
+		/// Additional info : Client username, domainName
+		/// </summary>
+		public bool EnableExtendedAuth { get; set; }
 
 		#endregion
 
@@ -44,81 +85,81 @@ namespace SimpleSockets.Client
 		/// <summary>
 		/// Event that triggers when a client is connected to server
 		/// </summary>
-		public event Action<SimpleSocketClient> ConnectedToServer;
+		public event ConnectedToServerDelegate ConnectedToServer;
 
 		/// <summary>
 		/// Event that is triggered when a client receives a message from a server
 		/// Format = SimpleSocketClient:MESSAGE
 		/// </summary>
-		public event Action<SimpleSocketClient, string> MessageReceived;
+		public event MessageReceivedDelegate MessageReceived;
 
 		/// <summary>
 		/// Event that is triggered when a client receives a custom message from a server
 		/// Format = SimpleSocketClient:MESSAGE:HEADER
 		/// </summary>
-		public event Action<SimpleSocketClient, string, string> CustomHeaderReceived;
+		public event CustomHeaderReceivedDelegate CustomHeaderReceived;
 
 		/// <summary>
 		/// Event that is triggered when a client receives bytes from the connected server.
 		/// </summary>
-		public event Action<SimpleSocketClient, byte[]> BytesReceived;
+		public event BytesReceivedDelegate BytesReceived;
 
 		/// <summary>
 		/// Event that is triggered when the client receives an object from the server.
 		/// </summary>
-		public event Action<SimpleSocketClient, object, Type> ObjectReceived;
+		public event ObjectReceivedDelegate ObjectReceived;
 
 		/// <summary>
 		/// Gives insight in the state of the current FileTransfer to the server.
 		/// Format = Socket,OriginFile,RemoteSaveLocFile,PercentageDone,MessageState
 		/// </summary>
-		public event Action<SimpleSocketClient, string, string, double, MessageState> MessageUpdateFileTransfer;
+		public event MessageUpdateFileTransferDelegate MessageUpdateFileTransfer;
 
 		/// <summary>
 		/// Gives insight in the state of the current message.
 		/// </summary>
-		public event Action<SimpleSocketClient, string, string, MessageType, MessageState> MessageUpdate;
+		public event MessageUpdateDelegate MessageUpdate;
 
 		/// <summary>
 		/// Event that is triggered when a client receives a file or a part of a file.
 		/// Format = Socket,CurrentPart,TotalParts,PathToOutput,MessageState
 		/// </summary>
-		public event Action<SimpleSocketClient, int, int, string, MessageState> FileReceiver;
+		public event FileReceiverDelegate FileReceiver;
 
 		/// <summary>
 		/// Event that is triggered when a client receives a folder or a part of a folder.
 		/// Format = Socket,CurrentPart,TotalParts,PathToOutput,MessageState
 		/// </summary>
-		public event Action<SimpleSocketClient, int, int, string, MessageState> FolderReceiver;
+		public event FolderReceiverDelegate FolderReceiver;
 
 		/// <summary>
 		/// Event that is triggered when the client successfully has submitted a transmission of data.
 		/// Format is ID:CLOSE
 		/// The bool represents if the client has terminated after the message.
 		/// </summary>
-		public event Action<SimpleSocketClient, bool> MessageSubmitted;
+		public event MessageSubmittedDelegate MessageSubmitted;
 
 		/// <summary>
 		/// Event that is triggered when the client has disconnected from the server.
 		/// Format = SimpleSocketClient
 		/// </summary>
-		public event Action<SimpleSocketClient> DisconnectedFromServer;
+		public event DisconnectedFromServerDelegate DisconnectedFromServer;
 
 		/// <summary>
 		/// Event that is triggered when a client fails to send a message to the server
 		/// Format = SimpleSocketClient:MessageType:MessageBytes,Exception
 		/// </summary>
-		public event Action<SimpleSocketClient,byte[],Exception> MessageFailed;
+		public event MessageFailedDelegate MessageFailed;
 
 		/// <summary>
 		/// Event that is triggered when a client gives an error.
 		/// </summary>
-		public event Action<SimpleSocketClient, Exception> ClientErrorThrown;
+		public event ClientErrorThrownDelegate ClientErrorThrown;
 
 		/// <summary>
 		/// Event that receives logs.
 		/// </summary>
-		public event Action<SimpleSocketClient, string> ClientLogs;
+		public event ClientLogsDelegate ClientLogs;
 
 		#endregion
 
@@ -133,6 +174,11 @@ namespace SimpleSockets.Client
 			KeepAliveTimer.Elapsed += KeepAlive;
 			KeepAliveTimer.AutoReset = true;
 			KeepAliveTimer.Enabled = false;
+
+			if (EnableExtendedAuth)
+				SendAuthMessage();
+			else
+				SendBasicAuthMessage();
 		}
 
 		#endregion
@@ -170,6 +216,9 @@ namespace SimpleSockets.Client
 		{
 			try
 			{
+				if (Disposed)
+					return;
+
 				ConnectedMre.Reset();
 				TokenSource.Cancel();
 				IsRunning = false;
@@ -195,14 +244,16 @@ namespace SimpleSockets.Client
 		/// </summary>
 		public override void Dispose()
 		{
-			Close();
-			ConnectedMre.Dispose();
-			SentMre.Dispose();
-			KeepAliveTimer.Enabled = false;
-			KeepAliveTimer.Dispose();
-			TokenSource.Dispose();
-
-			GC.SuppressFinalize(this);
+			if (!Disposed)
+			{
+				Disposed = true;
+				Close();
+				ConnectedMre.Dispose();
+				SentMre.Dispose();
+				KeepAliveTimer.Enabled = false;
+				//KeepAliveTimer.Dispose();
+				GC.SuppressFinalize(this);
+			}
 		}
 
 		#endregion
@@ -258,6 +309,9 @@ namespace SimpleSockets.Client
 		//Loops the queue for messages that have to be sent.
 		protected void SendFromQueue()
 		{
+			if (Disposed)
+				return;
+
 			while (!Token.IsCancellationRequested)
 			{
 
@@ -289,52 +343,52 @@ namespace SimpleSockets.Client
 		#region Global-Event-Invokers
 
 		//Invoke MessageReceived.
-		protected internal override void RaiseMessageReceived(int id, string message)
+		protected internal override void RaiseMessageReceived(IClientInfo client, string message)
 		{
 			MessageReceived?.Invoke(this, message);
 		}
 
-		protected internal override void RaiseMessageContractReceived(int id, IMessageContract contract, byte[] data)
+		protected internal override void RaiseMessageContractReceived(IClientInfo client, IMessageContract contract, byte[] data)
 		{
-			contract.RaiseOnMessageReceived(this, id, contract.DeserializeToObject(data), contract.MessageHeader);
+			contract.RaiseOnMessageReceived(this, client, contract.DeserializeToObject(data), contract.MessageHeader);
 		}
 
-		protected internal override void RaiseCustomHeaderReceived(int id, string header, string message)
+		protected internal override void RaiseCustomHeaderReceived(IClientInfo client, string header, string message)
 		{
 			CustomHeaderReceived?.Invoke(this, message, header);
 		}
 
-		protected internal override void RaiseBytesReceived(int id, byte[] data)
+		protected internal override void RaiseBytesReceived(IClientInfo client, byte[] data)
 		{
 			BytesReceived?.Invoke(this, data);
 		}
 
-		protected internal override void RaiseFileReceiver(int id, int currentPart, int totalParts, string partPath, MessageState status)
+		protected internal override void RaiseFileReceiver(IClientInfo client, int currentPart, int totalParts, string partPath, MessageState status)
 		{
 			FileReceiver?.Invoke(this, currentPart, totalParts, partPath, status);
 		}
 
-		protected internal override void RaiseFolderReceiver(int id, int currentPart, int totalParts, string partPath, MessageState status)
+		protected internal override void RaiseFolderReceiver(IClientInfo client, int currentPart, int totalParts, string partPath, MessageState status)
 		{
 			FolderReceiver?.Invoke(this, currentPart, totalParts, partPath, status);
 		}
 
-		protected internal override void RaiseObjectReceived(int id, object obj, Type objectType)
+		protected internal override void RaiseObjectReceived(IClientInfo client, object obj, Type objectType)
 		{
 			ObjectReceived?.Invoke(this, obj, objectType);
 		}
 
-		protected internal override void RaiseMessageUpdateStateFileTransfer(int id,string origin, string remoteSaveLoc,double percentageDone, MessageState state)
+		protected internal override void RaiseMessageUpdateStateFileTransfer(IClientInfo client, string origin, string remoteSaveLoc,double percentageDone, MessageState state)
 		{
 			MessageUpdateFileTransfer?.Invoke(this, origin, remoteSaveLoc, percentageDone, state);
 		}
 
-		protected internal override void RaiseMessageUpdate(int id,string msg, string header, MessageType msgType,MessageState state)
+		protected internal override void RaiseMessageUpdate(IClientInfo client, string msg, string header, MessageType msgType,MessageState state)
 		{
 			MessageUpdate?.Invoke(this, msg, header, msgType, state);
 		}
 
-		protected internal override void RaiseMessageFailed(int id, byte[] payLoad,Exception ex)
+		protected internal override void RaiseMessageFailed(IClientInfo client, byte[] payLoad,Exception ex)
 		{
 			MessageFailed?.Invoke(this,payLoad,ex);
 		}
@@ -379,6 +433,46 @@ namespace SimpleSockets.Client
 		#endregion
 
 		#region Send Methods
+
+		#region AuthMessage
+
+		protected void SendBasicAuthMessage()
+		{
+			var osVersion = Environment.OSVersion;
+
+			var guid = string.IsNullOrEmpty(_clientGuid) ? Guid.NewGuid().ToString() : _clientGuid;
+
+			var msg = guid + "|" + osVersion;
+
+			var builder = new SimpleMessage(MessageType.BasicAuth, this, Debug)
+				.CompressMessage(false)
+				.EncryptMessage(true)
+				.SetMessage(msg);
+			builder.Build();
+			SendToSocket(builder.PayLoad, false, false);
+		}
+
+		protected void SendAuthMessage()
+		{
+			var username = Environment.UserName;
+			var osVersion = Environment.OSVersion;
+			var user = Environment.UserDomainName;
+
+			//Keep existing GUID
+			var guid = string.IsNullOrEmpty(_clientGuid) ? Guid.NewGuid().ToString() : _clientGuid;
+
+			var msg = username + "|" + guid + "|" + user + "|" + osVersion;
+
+			var builder = new SimpleMessage(MessageType.Auth, this, Debug)
+				.CompressMessage(false)
+				.EncryptMessage(true)
+				.SetMessage(msg);
+
+			builder.Build();
+			SendToSocket(builder.PayLoad, false, false);
+		}
+
+		#endregion
 
 		#region Message
 
@@ -516,12 +610,12 @@ namespace SimpleSockets.Client
 
 		public async Task SendFileAsync(string fileLocation, string remoteSaveLocation, bool compress = true, bool encrypt = false, bool close = false)
 		{
-			await StreamFileFolderAsync(fileLocation, remoteSaveLocation, encrypt, compress, close, -1, MessageType.File);
+			await StreamFileFolderAsync(fileLocation, remoteSaveLocation, encrypt, compress, close,MessageType.File);
 		}
 
 		public void SendFile(string fileLocation, string remoteSaveLocation, bool compress = true, bool encrypt = false, bool close = false)
 		{
-			StreamFileFolder(fileLocation, remoteSaveLocation, encrypt, compress, close, -1, MessageType.File);
+			StreamFileFolder(fileLocation, remoteSaveLocation, encrypt, compress, close,MessageType.File);
 		}
 
 		#endregion
@@ -530,12 +624,12 @@ namespace SimpleSockets.Client
 
 		public async Task SendFolderAsync(string folderLocation, string remoteSaveLocation,bool encrypt = false, bool close = false)
 		{
-			await StreamFileFolderAsync(folderLocation, remoteSaveLocation, encrypt, true, close, -1,MessageType.Folder);
+			await StreamFileFolderAsync(folderLocation, remoteSaveLocation, encrypt, true, close,MessageType.Folder);
 		}
 
 		public void SendFolder(string folderLocation, string remoteSaveLocation,bool encrypt = false, bool close = false)
 		{
-			StreamFileFolder(folderLocation, remoteSaveLocation, encrypt, true, close, -1, MessageType.Folder);
+			StreamFileFolder(folderLocation, remoteSaveLocation, encrypt, true, close, MessageType.Folder);
 		}
 
 
