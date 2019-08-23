@@ -3,46 +3,26 @@ using System.Text;
 
 namespace SimpleSockets.Messaging.Cryptography
 {
-	public abstract class MessageEncryption
+	public interface IMessageEncryption
 	{
-
-		public string Extension => ".aes";
-
 		/// <summary>
-		/// Encrypt a string to bytes
+		/// Extension of encrypted File.
 		/// </summary>
-		/// <param name="plainText"></param>
-		/// <returns>The encrypted bytes</returns>
-		public byte[] EncryptStringToBytes(string plainText)
-		{
-			byte[] toEncrypt = Encoding.UTF8.GetBytes(plainText);
-			return EncryptBytes(toEncrypt);
-		}
-
-		/// <summary>
-		/// Decrypt bytes to string.
-		/// </summary>
-		/// <param name="cipherText"></param>
-		/// <returns>The decrypted string.</returns>
-		public string DecryptStringFromBytes(byte[] cipherText)
-		{
-			byte[] decryptedBytes = DecryptBytes(cipherText);
-			return Encoding.UTF8.GetString(decryptedBytes);
-		}
+		string Extension { get; }
 
 		/// <summary>
 		/// Encrypt bytes to bytes
 		/// </summary>
 		/// <param name="bytes"></param>
 		/// <returns>The encrypted bytes</returns>
-		public abstract byte[] EncryptBytes(byte[] bytes);
+		byte[] EncryptBytes(byte[] bytes);
 
 		/// <summary>
 		/// Decrypt bytes to bytes.
 		/// </summary>
 		/// <param name="cipherText"></param>
 		/// <returns>The decrypted string.</returns>
-		public abstract byte[] DecryptBytes(byte[] cipherText);
+		byte[] DecryptBytes(byte[] cipherText);
 
 		/// <summary>
 		/// Encrypts a file from its path and a plain password.
@@ -50,14 +30,14 @@ namespace SimpleSockets.Messaging.Cryptography
 		/// </summary>
 		/// <param name="inputFile"></param>
 		/// <param name="outputFile"></param>
-		public abstract FileInfo FileEncrypt(string inputFile, string outputFile);
+		FileInfo FileEncrypt(string inputFile, string outputFile);
 
 		/// <summary>
 		/// Decrypts an encrypted file with the FileEncrypt method through its path and the plain password.
 		/// </summary>
 		/// <param name="inputFile"></param>
 		/// <param name="outputFile"></param>
-		public abstract FileInfo FileDecrypt(string inputFile, string outputFile);
+		FileInfo FileDecrypt(string inputFile, string outputFile);
 
 	}
 }

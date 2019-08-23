@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections;
-using System.Net.Http.Headers;
-using System.Security.Cryptography;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using SimpleSockets.Client;
@@ -22,9 +20,11 @@ namespace Test.Parallel
 		private static Counter _receivedSubmitted = new Counter();
 		private static Counter _receivedEmpty = new Counter();
 		private static Counter _receivedError = new Counter();
-
+		private static Stopwatch _watch = new Stopwatch();
+		
 		static void Main(string[] args)
 		{
+			_watch.Start();
 			Console.WriteLine("Starting Test...");
 			StartServer();
 			Thread.Sleep(1000);
@@ -123,6 +123,8 @@ namespace Test.Parallel
 				Console.WriteLine("Received : " + _received.GetCount);
 				Console.WriteLine("All messages have been received...");
 				Console.WriteLine("==================================");
+				_watch.Stop();
+				Console.WriteLine("Task took : " + _watch.ElapsedMilliseconds);
 			}
 
 

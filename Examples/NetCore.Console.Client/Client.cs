@@ -23,7 +23,12 @@ namespace NetCore.Console.Client
 		{
 			_encrypt = true;
 			_compress = false;
-			_client = new SimpleSocketTcpClient() {AllowReceivingFiles = true};
+			_client = new SimpleSocketTcpClient();
+			//_client = new SimpleSocketTcpSslClient(@"PATH\TO\CERT.pfx", "Password");
+
+			_client.EnableExtendedAuth = true;
+			_client.AllowReceivingFiles = true;
+
 
 			//Create the MessageContract implementation and add to the client
 			_messageAContract = new MessageA("MessageAHeader");
@@ -157,6 +162,8 @@ namespace NetCore.Console.Client
 		private static void BindEvents()
 		{
 			//_client.ProgressFileReceived += Progress;
+			_client.AuthSuccess += ClientOnAuthSuccess;
+			_client.AuthFailed += ClientOnAuthFailed;
 			_client.FileReceiver += ClientOnFileReceiver;
 			_client.FolderReceiver += ClientOnFolderReceiver;
 			_client.DisconnectedFromServer += Disconnected;
@@ -171,6 +178,15 @@ namespace NetCore.Console.Client
 			_client.ObjectReceived += ClientOnObjectReceived;
 		}
 
+		private static void ClientOnAuthFailed()
+		{
+			WriteLine("Failed to authenticate.");
+		}
+
+		private static void ClientOnAuthSuccess()
+		{
+			WriteLine("Authenticated with success.");
+		}
 
 		private static void ClientOnObjectReceived(SimpleSocketClient a, object obj, Type objType)
 		{
@@ -268,7 +284,6 @@ namespace NetCore.Console.Client
 		{
 			WriteLine("Bytes received from server with header = " + header + " and message = " + msg);
 		}
-
 
 		private static void ErrorThrown(SimpleSocket socketClient, Exception error)
 		{

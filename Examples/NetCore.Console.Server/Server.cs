@@ -23,8 +23,10 @@ namespace NetCore.Console.Server
 		{
 			_encrypt = false;
 			_compress = false;
-			_listener = new SimpleSocketTcpListener() {AllowReceivingFiles = true};
+			_listener = new SimpleSocketTcpListener();
+			//_listener = new SimpleSocketTcpSslListener(@"PATH\TO\CERT.pfx","Password");
 
+			_listener.AllowReceivingFiles = true;
 			_messageAContract = new MessageA("MessageAHeader");
 			_listener.AddMessageContract(_messageAContract);
 			_messageAContract.OnMessageReceived += MessageAContractOnOnMessageReceived;
@@ -196,6 +198,8 @@ namespace NetCore.Console.Server
 		private static void BindEvents()
 		{
 			//Events
+			_listener.AuthFailure += ListenerOnAuthFailure;
+			_listener.AuthSuccess += ListenerOnAuthSuccess;
 			_listener.FileReceiver += ListenerOnFileReceiver;
 			_listener.FolderReceiver += ListenerOnFolderReceiver;
 			_listener.MessageReceived += MessageReceived;
@@ -210,6 +214,16 @@ namespace NetCore.Console.Server
 			_listener.MessageUpdateFileTransfer += ListenerOnMessageUpdateFileTransfer;
 			_listener.MessageUpdate += ListenerOnMessageUpdate;
 
+		}
+
+		private static void ListenerOnAuthFailure(IClientInfo client)
+		{
+			WriteLine("Server failed to authenticate certificate of client " + client.Id + " " + client.Guid + ".");
+		}
+
+		private static void ListenerOnAuthSuccess(IClientInfo client)
+		{
+			WriteLine("Server authenticate certificate of client " + client.Id + " " + client.Guid + ".");
 		}
 
 		//*****Begin Events************///

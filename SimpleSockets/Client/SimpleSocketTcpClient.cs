@@ -42,6 +42,8 @@ namespace SimpleSockets.Client
 			ReconnectInSeconds = reconnectInSeconds;
 			KeepAliveTimer.Enabled = false;
 
+			if (EnableExtendedAuth)
+				SendAuthMessage();
 
 			Endpoint = new IPEndPoint(GetIp(ipServer), port);
 
@@ -86,7 +88,7 @@ namespace SimpleSockets.Client
 
 		}
 		
-		protected void OnConnectCallback(IAsyncResult result)
+		protected override void OnConnectCallback(IAsyncResult result)
 		{
 			if (Disposed)
 				return;
@@ -124,12 +126,7 @@ namespace SimpleSockets.Client
 		{
 			try
 			{
-				if (message.Partial)
-					Listener.BeginSend(message.Data, 0, message.Data.Length, SocketFlags.None, SendCallbackPartial,Listener);
-				else
-					Listener.BeginSend(message.Data, 0, message.Data.Length, SocketFlags.None, SendCallback, Listener);
-
-				message.Dispose();
+				Listener.BeginSend(message.Data, 0, message.Data.Length, SocketFlags.None, SendCallback, message);
 			}
 			catch (Exception ex)
 			{
@@ -137,36 +134,13 @@ namespace SimpleSockets.Client
 			}
 		}
 
-		//
-		protected void SendCallbackPartial(IAsyncResult result)
-		{
-			try
-			{
-				var receiver = (Socket)result.AsyncState;
-				receiver.EndSend(result);
-			}
-			catch (SocketException se)
-			{
-				throw new Exception(se.ToString());
-			}
-			catch (ObjectDisposedException se)
-			{
-				throw new Exception(se.ToString());
-			}
-			finally
-			{
-				//No invoke submitted.
-				SentMre.Set();
-			}
-		}
-
 		//Send message and invokes MessageSubmitted.
 		protected override void SendCallback(IAsyncResult result)
 		{
+			var message = (MessageWrapper)result.AsyncState;
 			try
 			{
-				var receiver = (Socket)result.AsyncState;
-				receiver.EndSend(result);
+				Listener.EndSend(result);
 			}
 			catch (SocketException se)
 			{
@@ -178,9 +152,10 @@ namespace SimpleSockets.Client
 			}
 			finally
 			{
-				RaiseMessageSubmitted(CloseClient);
+				if (!message.Partial)
+					RaiseMessageSubmitted(CloseClient);
 
-				if (CloseClient)
+				if (!message.Partial && CloseClient)
 					Close();
 
 				SentMre.Set();
@@ -216,7 +191,7 @@ namespace SimpleSockets.Client
 			state.Listener.BeginReceive(state.Buffer, offset, state.BufferSize - offset, SocketFlags.None, this.ReceiveCallback, state);
 		}
 
-		protected override void ReceiveCallback(IAsyncResult result)
+		protected override async void ReceiveCallback(IAsyncResult result)
 		{
 			if (!IsConnected())
 			{
@@ -241,17 +216,11 @@ namespace SimpleSockets.Client
 				{
 					if (state.SimpleMessage == null)
 						state.SimpleMessage = new SimpleMessage(state, this, true);
-					if (receive < 6)
-					{
-						Receive(state, receive);
-						return;
-					}
-
-					state.SimpleMessage.ReadBytesAndBuildMessage(receive);
+					await state.SimpleMessage.ReadBytesAndBuildMessage(receive);
 				}
 				else if (receive > 0)
 				{
-					state.SimpleMessage.ReadBytesAndBuildMessage(receive);
+					await state.SimpleMessage.ReadBytesAndBuildMessage(receive);
 				}
 
 				Receive(state, state.Buffer.Length);

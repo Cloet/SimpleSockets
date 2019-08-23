@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -40,10 +41,11 @@ namespace SimpleSockets
 		#region Private
 
 		private string _tempPath;
-		private MessageEncryption _messageEncryption;
-		private FileCompression _fileCompressor;
-		private FolderCompression _folderCompressor;
-		private ByteCompression _byteCompressor;
+		private IMessageEncryption _messageEncryption;
+		private IFileCompression _fileCompressor;
+		private IFolderCompression _folderCompressor;
+		private IByteCompression _byteCompressor;
+		private IObjectSerializer _objectSerializer;
 
 		#endregion
 
@@ -57,7 +59,7 @@ namespace SimpleSockets
 		public bool AllowReceivingFiles { get; set; }
 
 		/// <summary>
-		/// When true messages will be logged.
+		/// When true additional messages will be logged.
 		/// </summary>
 		public bool Debug { get; set; }
 
@@ -72,7 +74,7 @@ namespace SimpleSockets
 		public string Ip { get; protected set; }
 
 		/// <summary>
-		/// Indicates if the server or client is running.
+		/// Indicates if the server or client is running and accepting connections.
 		/// </summary>
 		public bool IsRunning { get; set; }
 
@@ -114,7 +116,7 @@ namespace SimpleSockets
 		/// <summary>
 		/// Used to compress/decompress bytes before sending
 		/// </summary>
-		public ByteCompression ByteCompressor
+		public IByteCompression ByteCompressor
 		{
 			protected internal get => _byteCompressor;
 			set
@@ -129,7 +131,7 @@ namespace SimpleSockets
 		/// <summary>
 		/// Used to compress files before sending
 		/// </summary>
-		public FileCompression FileCompressor
+		public IFileCompression FileCompressor
 		{
 			protected internal get => _fileCompressor;
 			set
@@ -137,7 +139,13 @@ namespace SimpleSockets
 				if (IsRunning)
 					throw new Exception("The file compressor cannot be changed while the socket is running.");
 
-				_fileCompressor = value ?? throw new ArgumentNullException(nameof(value));
+				if (string.IsNullOrEmpty(value.Extension))
+					throw new ArgumentNullException(nameof(value));
+
+				if (!value.Extension.StartsWith("."))
+					throw new Exception("An extension has to begin with a '.'");
+
+				_fileCompressor = value;
 			}
 
 		}
@@ -145,7 +153,7 @@ namespace SimpleSockets
 		/// <summary>
 		/// Used to encrypt files/folders
 		/// </summary>
-		public MessageEncryption MessageEncryption
+		public IMessageEncryption MessageEncryption
 		{
 			protected internal get => _messageEncryption;
 			set
@@ -153,14 +161,20 @@ namespace SimpleSockets
 				if (IsRunning)
 					throw new Exception("The Encryption cannot be changed while the socket is running.");
 
-				_messageEncryption = value ?? throw new ArgumentNullException(nameof(value));
+				if (string.IsNullOrEmpty(value.Extension))
+					throw new ArgumentNullException(nameof(value));
+
+				if (!value.Extension.StartsWith("."))
+					throw new Exception("An extension has to begin with a '.'");
+
+				_messageEncryption = value;
 			}
 		}
 
 		/// <summary>
 		/// Used to compress folder before sending
 		/// </summary>
-		public FolderCompression FolderCompressor
+		public IFolderCompression FolderCompressor
 		{
 			protected internal get => _folderCompressor;
 			set
@@ -168,14 +182,30 @@ namespace SimpleSockets
 				if (IsRunning)
 					throw new Exception("The Folder compressor cannot be changed while the socket is running.");
 
-				_folderCompressor = value ?? throw new ArgumentNullException(nameof(value));
+				if (string.IsNullOrEmpty(value.Extension))
+					throw new ArgumentNullException(nameof(value));
+
+				if (!value.Extension.StartsWith("."))
+					throw new Exception("An extension has to begin with a '.'");
+
+				_folderCompressor = value;
 			}
 		}
 
 		/// <summary>
 		/// Class used to Serialize and deserialize objects.
 		/// </summary>
-		public IObjectSerializer ObjectSerializer { get; set; }
+		public IObjectSerializer ObjectSerializer
+		{
+			get => _objectSerializer;
+			set
+			{
+				if (IsRunning)
+					throw new Exception("Cannot change the ObjectSerializer when the socket is running.");
+
+				_objectSerializer = value ?? throw new ArgumentNullException(nameof(value));
+			}
+		}
 
 		#endregion
 
@@ -184,7 +214,7 @@ namespace SimpleSockets
 		/// <summary>
 		/// MessageContracts
 		/// </summary>
-		internal IDictionary<string, IMessageContract> MessageContracts { get; } = new Dictionary<string, IMessageContract>();
+		internal IDictionary<string, IMessageContract> MessageContracts { get; }
 		#endregion
 
 		#endregion
@@ -301,8 +331,8 @@ namespace SimpleSockets
 			IsRunning = false;
 			AllowReceivingFiles = false;
 			Debug = true;
-			//FileBuffer =  10485760; //Default 10 Mb buffer
 			FileBuffer = 4096;
+			MessageContracts = new Dictionary<string, IMessageContract>();
 
 			ByteCompressor = new DeflateByteCompression();
 			MessageEncryption = new Aes256();

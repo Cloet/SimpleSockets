@@ -5,8 +5,13 @@ using System.Text;
 
 namespace SimpleSockets.Messaging.Cryptography
 {
-	public class Aes256: MessageEncryption
+	public class Aes256: IMessageEncryption
 	{
+
+		/// <summary>
+		/// Extension of ecnrypted file.
+		/// </summary>
+		public string Extension => ".Aes";
 
 		public Aes256()
 		{
@@ -31,9 +36,12 @@ namespace SimpleSockets.Messaging.Cryptography
 		private readonly byte[] _IV;
 
 
-		////String
-
-		public override byte[] EncryptBytes(byte[] bytes)
+		/// <summary>
+		/// Encrypt bytes using AES
+		/// </summary>
+		/// <param name="bytes"></param>
+		/// <returns></returns>
+		public byte[] EncryptBytes(byte[] bytes)
 		{
 			// Check arguments.
 			if (bytes == null || bytes.Length <= 0)
@@ -74,7 +82,12 @@ namespace SimpleSockets.Messaging.Cryptography
 			return encrypted;
 		}
 
-		public override byte[] DecryptBytes(byte[] cipherBytes)
+		/// <summary>
+		/// Decrypt bytes, encrypted with AES
+		/// </summary>
+		/// <param name="cipherBytes"></param>
+		/// <returns></returns>
+		public byte[] DecryptBytes(byte[] cipherBytes)
 		{
 			try
 			{
@@ -151,7 +164,7 @@ namespace SimpleSockets.Messaging.Cryptography
 		/// </summary>
 		/// <param name="inputFile"></param>
 		/// <param name="outputfile"></param>
-		public override FileInfo FileEncrypt(string inputFile, string outputfile)
+		public FileInfo FileEncrypt(string inputFile, string outputfile)
 		{
 
 			//generate random salt
@@ -213,7 +226,7 @@ namespace SimpleSockets.Messaging.Cryptography
 		/// </summary>
 		/// <param name="inputFile"></param>
 		/// <param name="outputFile"></param>
-		public override FileInfo FileDecrypt(string inputFile, string outputFile)
+		public FileInfo FileDecrypt(string inputFile, string outputFile)
 		{
 			byte[] passwordBytes = _key;
 			byte[] salt = new byte[32];

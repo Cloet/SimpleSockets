@@ -1,10 +1,12 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel.Design;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -52,6 +54,9 @@ namespace SimpleSockets.Server
 
 	public delegate void ServerLogsDelegate(string log);
 
+	public delegate void AuthenticationSuccess(IClientInfo client);
+
+	public delegate void AuthenticationFailure(IClientInfo client);
 
 	#endregion
 
@@ -59,12 +64,16 @@ namespace SimpleSockets.Server
 	{
 
 		private static System.Timers.Timer _keepAliveTimer;
-		internal IDictionary<int, IClientMetadata> ConnectedClients = new Dictionary<int, IClientMetadata>();
+		internal IDictionary<int, IClientMetadata> ConnectedClients = new ConcurrentDictionary<int, IClientMetadata>();
 
 		protected int Limit = 500;
 		protected readonly ManualResetEvent CanAcceptConnections = new ManualResetEvent(false);
 		protected Socket Listener { get; set; }
 		protected bool Disposed { get; set; }
+
+		protected IList<Task> ClientThreads { get; set; }
+
+		protected ParallelQueue ParallelQueue { get; set; }
 
 		/// <summary>
 		/// Server will only accept IP Addresses that are in the whitelist.
@@ -80,6 +89,16 @@ namespace SimpleSockets.Server
 		public IList<IPAddress> BlackList { get; set; }
 
 		#region Events
+
+		/// <summary>
+		/// Only thrown when using ssl
+		/// </summary>
+		public event AuthenticationFailure AuthFailure;
+
+		/// <summary>
+		/// Only thrown when using ssl
+		/// </summary>
+		public event AuthenticationSuccess AuthSuccess;
 
 		/// <summary>
 		/// Event that is triggered when the server receives a Message.
@@ -186,6 +205,9 @@ namespace SimpleSockets.Server
 
 			IsRunning = false;
 			AllowReceivingFiles = false;
+
+			ParallelQueue = new ParallelQueue(50);
+			ClientThreads = new List<Task>();
 
 			ByteCompressor = new DeflateByteCompression();
 			MessageEncryption = new Aes256();
@@ -516,6 +538,16 @@ namespace SimpleSockets.Server
 		#endregion
 		
 		#region Global-Event-Invokers
+
+		protected void RaiseAuthFailed(IClientInfo client)
+		{
+			AuthFailure?.Invoke(client);
+		}
+
+		protected void RaiseAuthSuccess(IClientInfo client)
+		{
+			AuthSuccess?.Invoke(client);
+		}
 
 		//Invoke Message Received
 		protected internal override void RaiseMessageReceived(IClientInfo client, string message)

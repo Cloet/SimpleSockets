@@ -3,10 +3,12 @@ using System.IO;
 
 namespace SimpleSockets.Messaging.Compression.File
 {
-	public abstract class FileCompression
+	public interface IFileCompression
 	{
-
-		public string Extension => ".GZip";
+		/// <summary>
+		/// Extension of the compressed file
+		/// </summary>
+		string Extension { get; }
 
 		/// <summary>
 		/// Compress a file and return the FileInfo of the new file.
@@ -15,7 +17,7 @@ namespace SimpleSockets.Messaging.Compression.File
 		/// <param name="fileToCompress"></param>
 		/// <param name="outputFile"></param>
 		/// <returns></returns>
-		public abstract FileInfo Compress(FileInfo fileToCompress, FileInfo outputFile);
+		FileInfo Compress(FileInfo fileToCompress, FileInfo outputFile);
 
 
 		/// <summary>
@@ -24,7 +26,7 @@ namespace SimpleSockets.Messaging.Compression.File
 		/// </summary>
 		/// <param name="fileToDecompress"></param>
 		/// <param name="outputFile"></param>
-		public abstract FileInfo Decompress(FileInfo fileToDecompress, FileInfo outputFile);
+		FileInfo Decompress(FileInfo fileToDecompress, FileInfo outputFile);
 
 	}
 }

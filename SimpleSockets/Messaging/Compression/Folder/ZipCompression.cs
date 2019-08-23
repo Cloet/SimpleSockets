@@ -5,15 +5,20 @@ using FileInfo = System.IO.FileInfo;
 
 namespace SimpleSockets.Messaging.Compression.Folder
 {
-	internal class ZipCompression: FolderCompression
+	internal class ZipCompression: IFolderCompression
 	{
+
+		/// <summary>
+		/// Extension of the compressed Folder
+		/// </summary>
+		public string Extension { get; } = ".Zip";
 
 		/// <summary>
 		/// Compresses a folder to .zip file.
 		/// </summary>
 		/// <param name="sourceDirPath"></param>
 		/// <param name="targetZipPath"></param>
-		public override FileInfo Compress(string sourceDirPath, string targetZipPath)
+		public FileInfo Compress(string sourceDirPath, string targetZipPath)
 		{
 			try
 			{
@@ -38,7 +43,7 @@ namespace SimpleSockets.Messaging.Compression.Folder
 		/// </summary>
 		/// <param name="sourceZipPath"></param>
 		/// <param name="targetDirPath"></param>
-		public override string Extract(string sourceZipPath, string targetDirPath)
+		public string Extract(string sourceZipPath, string targetDirPath)
 		{
 			try
 			{

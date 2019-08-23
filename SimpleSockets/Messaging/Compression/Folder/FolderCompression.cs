@@ -4,10 +4,12 @@ using System.Numerics;
 
 namespace SimpleSockets.Messaging.Compression.Folder
 {
-	public abstract class FolderCompression
+	public interface IFolderCompression
 	{
-
-		public string Extension => ".Zip";
+		/// <summary>
+		/// Extension of the compressed Folder
+		/// </summary>
+		string Extension { get; }
 
 		/// <summary>
 		/// Compresses a folder to .zip file.
@@ -15,7 +17,7 @@ namespace SimpleSockets.Messaging.Compression.Folder
 		/// </summary>
 		/// <param name="sourceDirPath"></param>
 		/// <param name="targetZipPath"></param>
-		public abstract FileInfo Compress(string sourceDirPath, string targetZipPath);
+		FileInfo Compress(string sourceDirPath, string targetZipPath);
 
 		/// <summary>
 		/// Extracts a Zip file to a target directory.
@@ -23,7 +25,7 @@ namespace SimpleSockets.Messaging.Compression.Folder
 		/// </summary>
 		/// <param name="sourceZipPath"></param>
 		/// <param name="targetDirPath"></param>
-		public abstract string Extract(string sourceZipPath, string targetDirPath);
+		string Extract(string sourceZipPath, string targetDirPath);
 		
 	}
 }

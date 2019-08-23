@@ -1,11 +1,20 @@
 ﻿namespace SimpleSockets.Messaging.Compression.Stream
 {
-	public abstract class ByteCompression
+	public interface IByteCompression
 	{
+		/// <summary>
+		/// Compress bytes
+		/// </summary>
+		/// <param name="data"></param>
+		/// <returns></returns>
+		byte[] CompressBytes(byte[] data);
 
-		public abstract byte[] CompressBytes(byte[] data);
-
-		public abstract byte[] DecompressBytes(byte[] data);
+		/// <summary>
+		/// Decompress compressed bytes.
+		/// </summary>
+		/// <param name="data"></param>
+		/// <returns></returns>
+		byte[] DecompressBytes(byte[] data);
 
 	}
 }

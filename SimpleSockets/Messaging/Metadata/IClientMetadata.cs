@@ -71,7 +71,6 @@ namespace SimpleSockets.Messaging.Metadata
 		/// </summary>
 		void Reset();
 
-
 		/// <summary>
 		/// Gets how much bytes have been received
 		/// </summary>

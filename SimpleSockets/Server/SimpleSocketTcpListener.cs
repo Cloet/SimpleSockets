@@ -111,7 +111,6 @@ namespace SimpleSockets.Server
 
 					RaiseClientConnected(state);
 				}
-
 				Receive(state, 0);
 			}
 			catch (ObjectDisposedException ode)
@@ -129,6 +128,7 @@ namespace SimpleSockets.Server
 
 		protected internal override void Receive(IClientMetadata state, int offset = 0)
 		{
+			
 			if (offset > 0)
 			{
 				state.UnhandledBytes = state.Buffer;
@@ -144,7 +144,7 @@ namespace SimpleSockets.Server
 			state.Listener.BeginReceive(state.Buffer, offset, state.BufferSize - offset, SocketFlags.None, ReceiveCallback, state);
 		}
 
-		protected override void ReceiveCallback(IAsyncResult result)
+		protected override async void ReceiveCallback(IAsyncResult result)
 		{
 			var state = (ClientMetadata)result.AsyncState;
 			try
@@ -164,7 +164,6 @@ namespace SimpleSockets.Server
 				//Else start receiving and handle the message.
 				else
 				{
-
 					var receive = state.Listener.EndReceive(result);
 
 					if (state.UnhandledBytes != null && state.UnhandledBytes.Length > 0)
@@ -177,11 +176,11 @@ namespace SimpleSockets.Server
 					if (state.Flag == 0)
 					{
 						if (state.SimpleMessage == null)
-							state.SimpleMessage = new SimpleMessage(state, this, true);
-						state.SimpleMessage.ReadBytesAndBuildMessage(receive);
+							state.SimpleMessage = new SimpleMessage(state, this, Debug);
+						await ParallelQueue.Enqueue(() => state.SimpleMessage.ReadBytesAndBuildMessage(receive));
 					}else if (receive > 0)
 					{
-						state.SimpleMessage.ReadBytesAndBuildMessage(receive);
+						await ParallelQueue.Enqueue(() => state.SimpleMessage.ReadBytesAndBuildMessage(receive));
 					}
 
 					Receive(state, state.Buffer.Length);
@@ -191,10 +190,12 @@ namespace SimpleSockets.Server
 			{
 				state.Reset();
 				RaiseErrorThrown(ex);
+				RaiseLog(ex);
+				RaiseLog("Error handling message from client with guid : " + state.Guid + ".");
 				Receive(state, state.Buffer.Length);
 			}
 		}
-		
+
 		#endregion
 
 		#region Message Sending
@@ -203,12 +204,7 @@ namespace SimpleSockets.Server
 		{
 			try
 			{
-				if (message.Partial)
-					message.State.Listener.BeginSend(message.Data, 0, message.Data.Length, SocketFlags.None, SendCallbackPartial, message.State);
-				else
-					message.State.Listener.BeginSend(message.Data, 0, message.Data.Length, SocketFlags.None, SendCallback, message.State);
-
-				message.Dispose();
+				message.State.Listener.BeginSend(message.Data, 0, message.Data.Length, SocketFlags.None, SendCallback, message);
 			}
 			catch (Exception ex)
 			{
@@ -249,37 +245,16 @@ namespace SimpleSockets.Server
 			}
 		}
 
-		protected void SendCallbackPartial(IAsyncResult result)
-		{
-			var state = (IClientMetadata)result.AsyncState;
-
-			try
-			{
-				state.Listener.EndSend(result);
-			}
-			catch (SocketException se)
-			{
-				throw new SocketException(se.ErrorCode);
-			}
-			catch (ObjectDisposedException ode)
-			{
-				throw new ObjectDisposedException(ode.ObjectName, ode.Message);
-			}
-			catch (Exception ex)
-			{
-				throw new Exception(ex.Message, ex);
-			}
-		}
-
 		//End the send and invoke MessageSubmitted event.
 		protected override void SendCallback(IAsyncResult result)
 		{
-			var state = (IClientMetadata)result.AsyncState;
+			var message = (MessageWrapper)result.AsyncState;
+			var state = message.State;
 
 			try
 			{
 				state.Listener.EndSend(result);
-				if (state.Close)
+				if (!message.Partial && state.Close)
 					Close(state.Id);
 			}
 			catch (SocketException se)
@@ -296,7 +271,9 @@ namespace SimpleSockets.Server
 			}
 			finally
 			{
-				RaiseMessageSubmitted(state, state.Close);
+				if (!message.Partial)
+					RaiseMessageSubmitted(state, state.Close);
+				message.Dispose();
 			}
 		}
 

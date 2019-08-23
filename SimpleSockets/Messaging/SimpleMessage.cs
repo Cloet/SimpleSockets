@@ -470,7 +470,7 @@ namespace SimpleSockets.Messaging
 		/// Call from socket receiver and create a message from this.
 		/// </summary>
 		/// <param name="receive"></param>
-		internal void ReadBytesAndBuildMessage(int receive)
+		internal async Task<bool> ReadBytesAndBuildMessage(int receive)
 		{
 			if (_state.Flag == 0)
 			{
@@ -478,8 +478,7 @@ namespace SimpleSockets.Messaging
 				var length = CalculateHeaderFieldsLength();
 				if (_state.Buffer.Length < length)
 				{
-					//_socket.Receive(_state, receive);
-					return;
+					return true;
 				}
 
 				byte headerFieldByte = _state.Buffer[0];
@@ -495,8 +494,7 @@ namespace SimpleSockets.Messaging
 
 			if (_state.Buffer.Length < 1)
 			{
-				//_socket.Receive(_state, receive);
-				return;
+				return true;
 			}
 
 
@@ -505,18 +503,17 @@ namespace SimpleSockets.Messaging
 				var enoughBytes = DeconstructHeader();
 				if (!enoughBytes)
 				{
-					//_socket.Receive(_state, receive);
-					return;
+					return true;
 				}
 				receive -= _headerLength;
 			}
 
 			if (_state.Flag == 2)
 			{
-				ReadData(receive);
+				return await ReadData(receive);
 			}
 
-
+			return true;
 		}
 
 		#region Header-Deconstructors
@@ -543,8 +540,6 @@ namespace SimpleSockets.Messaging
 						Array.Copy(_state.Buffer, _headerLength, remainingBytes, 0, remainingBytes.Length);
 						_state.ChangeBuffer(remainingBytes);
 					}
-					//else
-					//	_state.ChangeBuffer(new byte[0]);
 
 					//Set header.
 					Header = headerBytes;
@@ -591,7 +586,7 @@ namespace SimpleSockets.Messaging
 
 		#region Read message-data
 
-		private void ReadData(int receive)
+		private async Task<bool> ReadData(int receive)
 		{
 			byte[] bytes = new byte[receive];
 
@@ -669,9 +664,11 @@ namespace SimpleSockets.Messaging
 				bytes = null;
 				MessageHasBeenReceived();
 				_state.Reset();
-				ReadBytesAndBuildMessage(_state.Buffer.Length);
+				return await ReadBytesAndBuildMessage(_state.Buffer.Length);
 			}
 
+
+			return true;
 			//_socket.Receive(_state, 0);
 		}
 
@@ -720,19 +717,13 @@ namespace SimpleSockets.Messaging
 
 			if (MessageType != MessageType.Folder && MessageType != MessageType.File)
 			{
+				//Header has already been decrypted and decompressed.
+
 				if (Encrypted)
-				{
 					_state.ChangeReceivedBytes(_socket.DecryptBytes(_state.ReceivedBytes));
-					if (HeaderFields[2])
-						Header = _socket.DecryptBytes(Header);
-				}
 
 				if (Compressed)
-				{
 					_state.ChangeReceivedBytes(_socket.DecompressBytes(_state.ReceivedBytes));
-					if (HeaderFields[2])
-						Header = _socket.DecompressBytes(Header);
-				}
 			}
 
 			//Invoke correct receiver.

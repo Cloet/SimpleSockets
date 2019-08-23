@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -46,6 +47,10 @@ namespace SimpleSockets.Client
 
 	public delegate void ClientLogsDelegate(SimpleSocketClient client, string message);
 
+	public delegate void AuthenticationFailed();
+
+	public delegate void AuthenticationSuccess();
+
 	#endregion
 
 	public abstract class SimpleSocketClient: SimpleSocket
@@ -81,6 +86,16 @@ namespace SimpleSockets.Client
 		#endregion
 
 		#region Events
+
+		/// <summary>
+		/// This event is only thrown when using SSL, and you SslCert is invalid.
+		/// </summary>
+		public event AuthenticationFailed AuthFailed;
+
+		/// <summary>
+		/// This event is only thrown when using Ssl, and your SslCert is valid.
+		/// </summary>
+		public event AuthenticationSuccess AuthSuccess;
 
 		/// <summary>
 		/// Event that triggers when a client is connected to server
@@ -175,10 +190,8 @@ namespace SimpleSockets.Client
 			KeepAliveTimer.AutoReset = true;
 			KeepAliveTimer.Enabled = false;
 
-			if (EnableExtendedAuth)
-				SendAuthMessage();
-			else
-				SendBasicAuthMessage();
+
+			SendBasicAuthMessage();
 		}
 
 		#endregion
@@ -259,6 +272,8 @@ namespace SimpleSockets.Client
 		#endregion
 
 		#region Protected
+
+		protected abstract void OnConnectCallback(IAsyncResult result);
 
 		//Convert string to IPAddress
 		protected IPAddress GetIp(string ip)
@@ -341,6 +356,16 @@ namespace SimpleSockets.Client
 		#endregion
 
 		#region Global-Event-Invokers
+
+		protected void RaiseAuthFailed()
+		{
+			AuthFailed?.Invoke();
+		}
+
+		protected void RaiseAuthSuccess()
+		{
+			AuthSuccess?.Invoke();
+		}
 
 		//Invoke MessageReceived.
 		protected internal override void RaiseMessageReceived(IClientInfo client, string message)
@@ -449,7 +474,9 @@ namespace SimpleSockets.Client
 				.EncryptMessage(true)
 				.SetMessage(msg);
 			builder.Build();
-			SendToSocket(builder.PayLoad, false, false);
+
+			//Setting partial to true prevents MessageSubmitted invoke.
+			SendToSocket(builder.PayLoad, false, true);
 		}
 
 		protected void SendAuthMessage()
@@ -469,7 +496,9 @@ namespace SimpleSockets.Client
 				.SetMessage(msg);
 
 			builder.Build();
-			SendToSocket(builder.PayLoad, false, false);
+
+			//Setting partial to true prevents MessageSubmitted invoke.
+			SendToSocket(builder.PayLoad, false, true);
 		}
 
 		#endregion
