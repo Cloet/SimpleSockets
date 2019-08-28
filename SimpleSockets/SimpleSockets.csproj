@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Folder Include="Messaging\Compression\File\" />
+    <Folder Include="Messaging\Compression\Folder\" />
+    <Folder Include="Messaging\Compression\Stream\" />
+    <Folder Include="Messaging\Cryptography\" />
+  </ItemGroup>
+
+</Project>

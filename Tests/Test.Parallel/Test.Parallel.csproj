@@ -7,7 +7,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\SimpleSockets\SimpleSockets.csproj" />
-    <ProjectReference Include="..\MessageTesting\MessageTesting.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,0 +1,59 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29009.5
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SimpleSockets", "SimpleSockets\SimpleSockets.csproj", "{4200EFBA-B2D8-4E41-8E1D-A238999D7C3A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples", "Examples", "{925643B9-4157-4D32-86B7-58FA392EEE17}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NetCore.Console.Client", "Examples\NetCore.Console.Client\NetCore.Console.Client.csproj", "{81BAE935-DD5F-4AEF-9D30-10806D123E46}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NetCore.Console.Server", "Examples\NetCore.Console.Server\NetCore.Console.Server.csproj", "{2F061C49-B157-435E-99FA-E0C1F3E958D7}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{6DA110EA-8C10-44FC-A817-0E899B156B80}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Test.Parallel", "Tests\Test.Parallel\Test.Parallel.csproj", "{F39A4BCF-96D0-4EA6-9940-22A845C28236}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MessageTesting", "Examples\MessageTesting\MessageTesting.csproj", "{FBEE3324-43BE-4DE0-AD02-978CA5363C97}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4200EFBA-B2D8-4E41-8E1D-A238999D7C3A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4200EFBA-B2D8-4E41-8E1D-A238999D7C3A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4200EFBA-B2D8-4E41-8E1D-A238999D7C3A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4200EFBA-B2D8-4E41-8E1D-A238999D7C3A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{81BAE935-DD5F-4AEF-9D30-10806D123E46}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{81BAE935-DD5F-4AEF-9D30-10806D123E46}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{81BAE935-DD5F-4AEF-9D30-10806D123E46}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{81BAE935-DD5F-4AEF-9D30-10806D123E46}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2F061C49-B157-435E-99FA-E0C1F3E958D7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2F061C49-B157-435E-99FA-E0C1F3E958D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2F061C49-B157-435E-99FA-E0C1F3E958D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2F061C49-B157-435E-99FA-E0C1F3E958D7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F39A4BCF-96D0-4EA6-9940-22A845C28236}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F39A4BCF-96D0-4EA6-9940-22A845C28236}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F39A4BCF-96D0-4EA6-9940-22A845C28236}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F39A4BCF-96D0-4EA6-9940-22A845C28236}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FBEE3324-43BE-4DE0-AD02-978CA5363C97}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FBEE3324-43BE-4DE0-AD02-978CA5363C97}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FBEE3324-43BE-4DE0-AD02-978CA5363C97}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FBEE3324-43BE-4DE0-AD02-978CA5363C97}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{81BAE935-DD5F-4AEF-9D30-10806D123E46} = {925643B9-4157-4D32-86B7-58FA392EEE17}
+		{2F061C49-B157-435E-99FA-E0C1F3E958D7} = {925643B9-4157-4D32-86B7-58FA392EEE17}
+		{F39A4BCF-96D0-4EA6-9940-22A845C28236} = {6DA110EA-8C10-44FC-A817-0E899B156B80}
+		{FBEE3324-43BE-4DE0-AD02-978CA5363C97} = {925643B9-4157-4D32-86B7-58FA392EEE17}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {8328F8FD-99F3-428F-BE76-2BBE6F8C1F42}
+	EndGlobalSection
+EndGlobal

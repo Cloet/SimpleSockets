@@ -3,24 +3,35 @@ using System.Collections.Generic;
 using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Threading;
-using AsyncClientServer;
-using AsyncClientServer.Messaging.Metadata;
-using AsyncClientServer.Server;
-using NetCore.Console.Server.MessageContracts;
+using MessageTesting;
+using SimpleSockets;
+using SimpleSockets.Messaging;
+using SimpleSockets.Messaging.Metadata;
+using SimpleSockets.Server;
 
 namespace NetCore.Console.Server
 {
 	public class Server
 	{
-		private static ServerListener _listener;
+		private static SimpleSocketListener _listener;
 		private static MessageA _messageAContract;
 		private static bool _encrypt;
+		private static bool _compress;
+		private static ProgressBar progress;
 
 		private static void Main(string[] args)
 		{
 			_encrypt = false;
-			_listener = new AsyncSocketListener {AllowReceivingFiles = true};
+			_compress = false;
 
+			var xmlSer = new XmlSerialization();
+			var binSer = new BinarySerializer();
+			
+			_listener = new SimpleSocketTcpListener();
+			//_listener = new SimpleSocketTcpSslListener(@"PATH\TO\CERT.pfx","Password");
+
+			_listener.ObjectSerializer = binSer;
+			_listener.AllowReceivingFiles = true;
 			_messageAContract = new MessageA("MessageAHeader");
 			_listener.AddMessageContract(_messageAContract);
 			_messageAContract.OnMessageReceived += MessageAContractOnOnMessageReceived;
@@ -43,9 +54,9 @@ namespace NetCore.Console.Server
 		}
 
 		// Handles the MessageContractA
-		private static void MessageAContractOnOnMessageReceived(AsyncSocket socket, int clientId, object message, string header)
+		private static void MessageAContractOnOnMessageReceived(SimpleSocket socket, IClientInfo clientInfo, object message, string header)
 		{
-			WriteLine("Server received a MessageContract from the client with id " + clientId + " the header is : " + header + " and the message reads: " + message.ToString());
+			WriteLine("Server received a MessageContract from the client with id " + clientInfo.Id + " the header is : " + header + " and the message reads: " + message.ToString());
 		}
 
 
@@ -60,6 +71,7 @@ namespace NetCore.Console.Server
 				WriteLine("    - File      (F)");
 				WriteLine("    - Directory (D)");
 				WriteLine("    - Contract  (B)");
+				WriteLine("    - Object    (O)");
 				Write("Enter your chosen type: ");
 
 				var option = System.Console.ReadLine();
@@ -81,6 +93,9 @@ namespace NetCore.Console.Server
 							break;
 						case "B":
 							SendMessageContract();
+							break;
+						case "O":
+							SendObject();
 							break;
 						default:
 							Options();
@@ -119,7 +134,7 @@ namespace NetCore.Console.Server
 
 		}
 
-		private static void SendMessage()
+		private static async void SendMessage()
 		{
 			System.Console.Clear();
 			var id = ShowClients();
@@ -128,10 +143,11 @@ namespace NetCore.Console.Server
 			Write("Enter your message you want to send to the server...  ");
 			var message = System.Console.ReadLine();
 
-			_listener.SendMessage(id, message,_encrypt, false);
+
+			await _listener.SendMessageAsync(id, message, _compress, _encrypt, false);
 		}
 
-		private static void SendMessageContract()
+		private static async void SendMessageContract()
 		{
 			System.Console.Clear();
 			var id = ShowClients();
@@ -140,10 +156,10 @@ namespace NetCore.Console.Server
 			Write("Press enter to send a MessageContract...  ");
 			System.Console.ReadLine();
 
-			_listener.SendMessageContract(id, _messageAContract, _encrypt, false);
+			await _listener.SendMessageContractAsync(id, _messageAContract, _compress, _encrypt, false);
 		}
 
-		private static void SendCustom()
+		private static async void SendCustom()
 		{
 			System.Console.Clear();
 			var id = ShowClients();
@@ -154,11 +170,10 @@ namespace NetCore.Console.Server
 			Write("Enter the message you want to send...  ");
 			var message = System.Console.ReadLine();
 
-
-			_listener.SendCustomHeaderMessage(id,message, header,_encrypt, false);
+			await _listener.SendCustomHeaderAsync(id, message, header, _compress, _encrypt, false);
 		}
 
-		private static void SendFile()
+		private static async void SendFile()
 		{
 			System.Console.Clear();
 			var id = ShowClients();
@@ -168,10 +183,12 @@ namespace NetCore.Console.Server
 
 			Write("Enter the path on the server where the file should be stored... ");
 			var targetPath = System.Console.ReadLine();
-			_listener.SendFile(id,path, targetPath,_encrypt,true, false);
+
+			await _listener.SendFileAsync(id, path, targetPath, _compress, _encrypt, false);
+			//_listener.SendFile(id,path, targetPath,_encrypt,true, false);
 		}
 
-		private static void SendFolder()
+		private static async void SendFolder()
 		{
 			System.Console.Clear();
 			var id = ShowClients();
@@ -182,68 +199,174 @@ namespace NetCore.Console.Server
 			Write("Enter the path on the server where the folder should be stored... ");
 			var targetPath = System.Console.ReadLine();
 
-			_listener.SendFolder(id,path, targetPath,_encrypt, false);
+			await _listener.SendFolderAsync(id,path, targetPath,true, false);
 		}
+
+		private static async void SendObject()
+		{
+			System.Console.Clear();
+			var id = ShowClients();
+
+			var person = new Person("Test", "FirstName", "5th Avenue");
+
+			WriteLine("Press enter to send an object.");
+			System.Console.ReadLine();
+
+			await _listener.SendObjectAsync(id, person);
+		}
+
 
 		#region Events
 
 		private static void BindEvents()
 		{
 			//Events
-			_listener.ProgressFileTransfer += Progress;
+			_listener.AuthFailure += ListenerOnAuthFailure;
+			_listener.AuthSuccess += ListenerOnAuthSuccess;
+			_listener.FileReceiver += ListenerOnFileReceiver;
+			_listener.FolderReceiver += ListenerOnFolderReceiver;
 			_listener.MessageReceived += MessageReceived;
 			_listener.MessageSubmitted += MessageSubmitted;
 			_listener.CustomHeaderReceived += CustomHeaderReceived;
 			_listener.ClientDisconnected += ClientDisconnected;
 			_listener.ClientConnected += ClientConnected;
-			_listener.FileReceived += FileReceived;
 			_listener.ServerHasStarted += ServerHasStarted;
 			_listener.MessageFailed += MessageFailed;
 			_listener.ServerErrorThrown += ErrorThrown;
+			_listener.ObjectReceived += ListenerOnObjectReceived;
+			_listener.MessageUpdateFileTransfer += ListenerOnMessageUpdateFileTransfer;
+			_listener.MessageUpdate += ListenerOnMessageUpdate;
+
+		}
+
+		private static void ListenerOnAuthFailure(IClientInfo client)
+		{
+			WriteLine("Server failed to authenticate certificate of client " + client.Id + " " + client.Guid + ".");
+		}
+
+		private static void ListenerOnAuthSuccess(IClientInfo client)
+		{
+			WriteLine("Server authenticate certificate of client " + client.Id + " " + client.Guid + ".");
 		}
 
 		//*****Begin Events************///
 
-		private static void CustomHeaderReceived(int id, string msg, string header)
+		private static void ListenerOnMessageUpdate(IClientInfo client, string msg, string header, MessageType msgType, MessageState state)
 		{
-			WriteLine("The server received a message from the client with ID " + id + " the header is : " + header + " and the message is : " + msg);
+			//WriteLine("Sending message to client: msg = " + msg + ", header = " + header);
 		}
 
-		private static void MessageReceived(int id, string msg)
+		private static void ListenerOnMessageUpdateFileTransfer(IClientInfo client, string origin, string loc, double percentageDone, MessageState state)
 		{
-			WriteLine("The server has received a message from client " + id + " the message reads: " + msg);
+			//WriteLine("Sending message to client: " + percentageDone);
+
 		}
 
-		private static void MessageSubmitted(int id, bool close)
+		private static void ListenerOnObjectReceived(IClientInfo client, object obj, Type objType)
 		{
-			WriteLine("A message has been sent to client " + id);
-		}
+			WriteLine("Received an object of type = " + objType.FullName);
 
-		private static void FileReceived(int id, string path)
-		{
-			WriteLine("The server has received a file from client " + id + " the file/folder is stored at : " + path);
-		}
-
-		private static ProgressBar progress;
-		private static void Progress(int id, int bytes, int messageSize)
-		{
-			if (progress == null)
+			if (obj.GetType() == typeof(Person))
 			{
-				progress = new ProgressBar();
-				System.Console.Write("Receiving a file/folder... ");
+				var p = (Person) obj;
+				WriteLine("Person: ");
+				WriteLine("Name:" + p.Name);
+				WriteLine("Firstname:" + p.FirstName);
+				WriteLine("Street: " + p.Street);
 			}
 
-			var progressDouble = ((double) bytes / messageSize);
+		}
 
-			progress.Report(progressDouble);
-
-			if (progressDouble >= 1.00)
+		private static void ListenerOnFolderReceiver(IClientInfo client, int currentPart, int totalParts, string loc, MessageState state)
+		{
+			if (state == MessageState.ReceivingData)
 			{
-				progress.Dispose();
-				progress = null;
-				Thread.Sleep(200);
-				WriteLine(" Done.");
+				if (progress == null)
+				{
+					progress = new ProgressBar();
+					System.Console.Write("Receiving a Folder... ");
+				}
+
+				var progressDouble = ((double)currentPart / totalParts);
+
+				progress.Report(progressDouble);
+
+				if (progressDouble >= 1.00)
+				{
+					progress.Dispose();
+					progress = null;
+					Thread.Sleep(200);
+					WriteLine("Folder Received.");
+				}
 			}
+
+
+
+			if (state == MessageState.Decrypting)
+				WriteLine("Decrypting Folder this might take a while.");
+			if (state == MessageState.Decompressing)
+				WriteLine("Decompressing the Folder this might take a while.");
+			if (state == MessageState.DecompressingDone)
+				WriteLine("Decompressing has finished.");
+			if (state == MessageState.DecryptingDone)
+				WriteLine("Decrypting has finished.");
+			if (state == MessageState.Completed)
+			{
+				WriteLine("Folder received and stored at location: " + loc);
+			}
+		}
+
+		private static void ListenerOnFileReceiver(IClientInfo client, int currentPart, int totalParts, string loc, MessageState state)
+		{
+			if (state == MessageState.ReceivingData)
+			{
+				if (progress == null)
+				{
+					progress = new ProgressBar();
+					System.Console.Write("Receiving a File... ");
+				}
+
+				var progressDouble = ((double)currentPart / totalParts);
+
+				progress.Report(progressDouble);
+
+				if (progressDouble >= 1.00)
+				{
+					progress.Dispose();
+					progress = null;
+					Thread.Sleep(200);
+					WriteLine("File Transfer Complete");
+				}
+			}
+
+			if (state == MessageState.Decrypting)
+				WriteLine("Decrypting File this might take a while.");
+			if (state == MessageState.Decompressing)
+				WriteLine("Decompressing the File this might take a while.");
+			if (state == MessageState.DecompressingDone)
+				WriteLine("Decompressing has finished.");
+			if (state == MessageState.DecryptingDone)
+				WriteLine("Decrypting has finished.");
+			if (state == MessageState.Completed)
+				WriteLine("File received and stored at location: " + loc);
+		}
+
+		private static void CustomHeaderReceived(IClientInfo client, string msg, string header)
+		{
+			WriteLine("The server received a message from the client with ID " + client.Id + " the header is : " + header + " and the message is : " + msg);
+		}
+
+		private static void MessageReceived(IClientInfo client, string msg)
+		{
+			WriteLine("The server has received a message from client " + client.Id + " with name : " + client.ClientName +" and guid : " + client.Guid);
+			WriteLine("The client is running on " + client.OsVersion + " and UserDomainName = " + client.UserDomainName);
+
+			WriteLine("The server has received a message from client " + client.Id + " the message reads: " + msg);
+		}
+
+		private static void MessageSubmitted(IClientInfo client, bool close)
+		{
+			WriteLine("A message has been sent to client " + client.Id);
 		}
 
 		private static void ServerHasStarted()
@@ -257,20 +380,20 @@ namespace NetCore.Console.Server
 			WriteLine("Stacktrace: " + exception.StackTrace);
 		}
 
-		private static void MessageFailed(int id, byte[] messageData, Exception exception)
+		private static void MessageFailed(IClientInfo client, byte[] messageData, Exception exception)
 		{
-			WriteLine("The server has failed to deliver a message to client " + id);
+			WriteLine("The server has failed to deliver a message to client " + client.Id);
 			WriteLine("Error message : " + exception.Message);
 		}
 
-		private static void ClientConnected(int id, ISocketInfo clientState)
+		private static void ClientConnected(IClientInfo client)
 		{
-			WriteLine("Client " + id + " with IPv4 " + clientState.RemoteIPv4 + " has connected to the server.");
+			WriteLine("Client " + client.Id + " with IPv4 " + client.RemoteIPv4 + " has connected to the server.");
 		}
 
-		private static void ClientDisconnected(int id)
+		private static void ClientDisconnected(IClientInfo client)
 		{
-			WriteLine("Client " + id + " has disconnected from the server.");
+			WriteLine("Client " + client.Id + " has disconnected from the server.");
 		}
 
 
