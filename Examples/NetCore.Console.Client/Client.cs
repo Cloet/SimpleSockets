@@ -2,7 +2,7 @@
 using System.Reflection.Metadata.Ecma335;
 using System.Threading;
 using System.Threading.Tasks;
-using NetCore.Console.Client.MessageContracts;
+using MessageTesting;
 using SimpleSockets;
 using SimpleSockets.Client;
 using SimpleSockets.Messaging;
@@ -23,9 +23,14 @@ namespace NetCore.Console.Client
 		{
 			_encrypt = true;
 			_compress = false;
+
+			var xmlSer = new XmlSerialization();
+			var binSer = new BinarySerializer();
+
 			_client = new SimpleSocketTcpClient();
 			//_client = new SimpleSocketTcpSslClient(@"PATH\TO\CERT.pfx", "Password");
 
+			_client.ObjectSerializer = binSer;
 			_client.EnableExtendedAuth = true;
 			_client.AllowReceivingFiles = true;
 
@@ -71,6 +76,7 @@ namespace NetCore.Console.Client
 				WriteLine("    - File      (F)");
 				WriteLine("    - Directory (D)");
 				WriteLine("    - Contract  (B)");
+				WriteLine("    - Object    (O)");
 				Write("Enter your chosen type: ");
 
 				var option = System.Console.ReadLine();
@@ -92,6 +98,9 @@ namespace NetCore.Console.Client
 							break;
 						case "B":
 							SendMessageContract();
+							break;
+						case "O":
+							SendObject();
 							break;
 						default:
 							Options();
@@ -156,6 +165,17 @@ namespace NetCore.Console.Client
 			await _client.SendFolderAsync(path, targetPath,_encrypt, false);
 		}
 
+		private static async void SendObject()
+		{
+			System.Console.Clear();
+
+			var person = new Person("TestFromClient", "FirstName", "5th Avenue");
+
+			WriteLine("Press enter to send an object.");
+			System.Console.ReadLine();
+
+			await _client.SendObjectAsync(person);
+		}
 
 		#region Events
 
@@ -191,6 +211,15 @@ namespace NetCore.Console.Client
 		private static void ClientOnObjectReceived(SimpleSocketClient a, object obj, Type objType)
 		{
 			WriteLine("Received an object of type = " + objType.FullName);
+
+			if (obj.GetType() == typeof(Person))
+			{
+				var p = (Person)obj;
+				WriteLine("Person: ");
+				WriteLine("Name:" + p.Name);
+				WriteLine("Firstname:" + p.FirstName);
+				WriteLine("Street: " + p.Street);
+			}
 		}
 
 		private static void ClientOnMessageUpdate(SimpleSocketClient a, string msg, string header, MessageType msgType, MessageState state)

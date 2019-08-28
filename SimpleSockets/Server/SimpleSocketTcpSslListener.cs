@@ -126,6 +126,8 @@ namespace SimpleSockets.Server
 					id = !ConnectedClients.Any() ? 1 : ConnectedClients.Keys.Max() + 1;
 
 					state = new ClientMetadata(((Socket) result.AsyncState).EndAccept(result), id);
+
+					ConnectedClients.Add(id, state);
 				}
 
 				//If the server shouldn't accept the IP do nothing.
@@ -143,16 +145,15 @@ namespace SimpleSockets.Server
 
 					if (success)
 					{
-						lock (ConnectedClients)
-						{
-							ConnectedClients.Add(id, state);
-						}
-
 						RaiseClientConnected(state);
 						Receive(state);
 					}
 					else
 					{
+						lock (ConnectedClients)
+						{
+							ConnectedClients.Remove(id);
+						}
 						throw new AuthenticationException("Unable to authenticate server.");
 					}
 
@@ -356,8 +357,6 @@ namespace SimpleSockets.Server
 
 					var receive = state.SslStream.EndRead(result);
 
-					_mreRead.Set();
-
 					if (state.UnhandledBytes != null && state.UnhandledBytes.Length > 0)
 					{
 						receive += state.UnhandledBytes.Length;
@@ -372,6 +371,7 @@ namespace SimpleSockets.Server
 					}else if (receive > 0)
 						await ParallelQueue.Enqueue(() => state.SimpleMessage.ReadBytesAndBuildMessage(receive));
 
+					_mreRead.Set();
 					Receive(state, state.Buffer.Length);
 				}
 			}

@@ -13,8 +13,8 @@ namespace Test.Parallel
 		private static SimpleSocketListener _server;
 		private static Random _random = new Random((int) DateTime.Now.Ticks);
 		private static int _clientId;
-		private static int _numMsg = 10000;
-		private static int _clientThreads = 500;
+		private static int _numMsg = 1000;
+		private static int _clientThreads = 8;
 		private static int _totalToReceive = _numMsg * _clientThreads;
 		private static Counter _received = new Counter();
 		private static Counter _receivedSubmitted = new Counter();
@@ -53,6 +53,7 @@ namespace Test.Parallel
 		private static void StartServer()
 		{
 			_server = new SimpleSocketTcpListener();
+			//_server = new SimpleSocketTcpSslListener(@"C:\Users\CloetOMEN\Desktop\Test\cert.pfx", "Password");
 			_server.ServerHasStarted += ServerOnServerHasStarted;
 			_server.MessageReceived += ServerOnMessageReceived;
 			_server.ServerErrorThrown += ServerOnServerErrorThrown;
@@ -74,11 +75,13 @@ namespace Test.Parallel
 			//using (var client = new SimpleSocketTcpClient())
 			//{
 				var client = new SimpleSocketTcpClient();
+				//var client = new SimpleSocketTcpSslClient(@"", "");
 				_clientId++;
 				client.MessageReceived += ClientOnMessageReceived;
 				client.ConnectedToServer += ClientOnConnectedToServer;
 				client.ClientErrorThrown += ClientOnClientErrorThrown;
 				client.MessageSubmitted += ClientOnMessageSubmitted;
+				client.MessageFailed += ClientOnMessageFailed;
 				client.StartClient("127.0.0.1", 13000);
 
 				//Thread.Sleep(1000);
@@ -92,6 +95,17 @@ namespace Test.Parallel
 			//}
 
 			Console.WriteLine("[CLIENT] has finished.");
+		}
+
+		private static void ClientOnMessageFailed(SimpleSocketClient client, byte[] payload, Exception ex)
+		{
+			_receivedError.Count();
+			Console.WriteLine("=================================");
+			Console.WriteLine("Client Error.");
+			Console.WriteLine(ex.Message);
+			Console.WriteLine("Stacktrace: " + ex.StackTrace);
+			Console.WriteLine("=================================");
+
 		}
 
 		private static void ClientOnMessageSubmitted(SimpleSocketClient client, bool close)

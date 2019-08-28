@@ -750,7 +750,8 @@ namespace SimpleSockets.Messaging
 				}
 				case MessageType.Object:
 				{
-					var obj = _socket.ObjectSerializer.DeserializeBytesToObject(_state.ReceivedBytes);
+					var type = Type.GetType(Encoding.UTF8.GetString(Header));
+					var obj = _socket.ObjectSerializer.DeserializeBytesToObject(_state.ReceivedBytes, type);
 					_socket.RaiseObjectReceived(_state, obj, obj.GetType());
 					break;
 				}

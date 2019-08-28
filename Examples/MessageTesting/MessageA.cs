@@ -4,7 +4,7 @@ using SimpleSockets;
 using SimpleSockets.Messaging.MessageContract;
 using SimpleSockets.Messaging.Metadata;
 
-namespace NetCore.Console.Server.MessageContracts
+namespace MessageTesting
 {
 	public class MessageA: IMessageContract
 	{

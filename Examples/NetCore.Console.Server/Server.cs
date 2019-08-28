@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Threading;
-using NetCore.Console.Server.MessageContracts;
+using MessageTesting;
 using SimpleSockets;
 using SimpleSockets.Messaging;
 using SimpleSockets.Messaging.Metadata;
@@ -23,9 +23,14 @@ namespace NetCore.Console.Server
 		{
 			_encrypt = false;
 			_compress = false;
+
+			var xmlSer = new XmlSerialization();
+			var binSer = new BinarySerializer();
+			
 			_listener = new SimpleSocketTcpListener();
 			//_listener = new SimpleSocketTcpSslListener(@"PATH\TO\CERT.pfx","Password");
 
+			_listener.ObjectSerializer = binSer;
 			_listener.AllowReceivingFiles = true;
 			_messageAContract = new MessageA("MessageAHeader");
 			_listener.AddMessageContract(_messageAContract);
@@ -66,6 +71,7 @@ namespace NetCore.Console.Server
 				WriteLine("    - File      (F)");
 				WriteLine("    - Directory (D)");
 				WriteLine("    - Contract  (B)");
+				WriteLine("    - Object    (O)");
 				Write("Enter your chosen type: ");
 
 				var option = System.Console.ReadLine();
@@ -87,6 +93,9 @@ namespace NetCore.Console.Server
 							break;
 						case "B":
 							SendMessageContract();
+							break;
+						case "O":
+							SendObject();
 							break;
 						default:
 							Options();
@@ -193,6 +202,20 @@ namespace NetCore.Console.Server
 			await _listener.SendFolderAsync(id,path, targetPath,true, false);
 		}
 
+		private static async void SendObject()
+		{
+			System.Console.Clear();
+			var id = ShowClients();
+
+			var person = new Person("Test", "FirstName", "5th Avenue");
+
+			WriteLine("Press enter to send an object.");
+			System.Console.ReadLine();
+
+			await _listener.SendObjectAsync(id, person);
+		}
+
+
 		#region Events
 
 		private static void BindEvents()
@@ -242,6 +265,16 @@ namespace NetCore.Console.Server
 		private static void ListenerOnObjectReceived(IClientInfo client, object obj, Type objType)
 		{
 			WriteLine("Received an object of type = " + objType.FullName);
+
+			if (obj.GetType() == typeof(Person))
+			{
+				var p = (Person) obj;
+				WriteLine("Person: ");
+				WriteLine("Name:" + p.Name);
+				WriteLine("Firstname:" + p.FirstName);
+				WriteLine("Street: " + p.Street);
+			}
+
 		}
 
 		private static void ListenerOnFolderReceiver(IClientInfo client, int currentPart, int totalParts, string loc, MessageState state)

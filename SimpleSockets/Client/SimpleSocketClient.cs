@@ -674,7 +674,8 @@ namespace SimpleSockets.Client
 			var builder = new SimpleMessage(MessageType.Object, this, Debug)
 				.CompressMessage(compress)
 				.EncryptMessage(encrypt)
-				.SetBytes(ObjectSerializer.SerializeObjectToBytes(obj));
+				.SetBytes(ObjectSerializer.SerializeObjectToBytes(obj))
+				.SetHeaderString(obj.GetType().AssemblyQualifiedName);
 
 			await builder.BuildAsync();
 
@@ -689,7 +690,8 @@ namespace SimpleSockets.Client
 			var builder = new SimpleMessage(MessageType.Object, this, Debug)
 				.CompressMessage(compress)
 				.EncryptMessage(encrypt)
-				.SetBytes(ObjectSerializer.SerializeObjectToBytes(obj));
+				.SetBytes(ObjectSerializer.SerializeObjectToBytes(obj))
+				.SetHeaderString(obj.GetType().AssemblyQualifiedName);
 			builder.Build();
 
 			SendToSocket(builder.PayLoad, close, false);

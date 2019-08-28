@@ -837,7 +837,8 @@ namespace SimpleSockets.Server
 				.CompressMessage(compress)
 				.EncryptMessage(encrypt)
 				.SetBytes(ObjectSerializer.SerializeObjectToBytes(obj))
-				.SetSendClient(client);
+				.SetSendClient(client)
+				.SetHeaderString(obj.GetType().AssemblyQualifiedName);
 
 			await builder.BuildAsync();
 
@@ -854,7 +855,8 @@ namespace SimpleSockets.Server
 				.CompressMessage(compress)
 				.EncryptMessage(encrypt)
 				.SetBytes(ObjectSerializer.SerializeObjectToBytes(obj))
-				.SetSendClient(client);
+				.SetSendClient(client)
+				.SetHeaderString(obj.GetType().AssemblyQualifiedName);
 
 			builder.Build();
 

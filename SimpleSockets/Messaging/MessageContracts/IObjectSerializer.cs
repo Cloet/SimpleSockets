@@ -23,8 +23,9 @@ namespace SimpleSockets.Messaging.MessageContract
 		/// you have to deserialize the outputted bytes from <seealso cref="SerializeObjectToBytes"/>
 		/// </summary>
 		/// <param name="bytes"></param>
+		/// <param name="objType"></param>
 		/// <returns></returns>
-		 object DeserializeBytesToObject(byte[] bytes);
+		object DeserializeBytesToObject(byte[] bytes, Type objType);
 
 	}
 }
