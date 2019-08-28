@@ -3,6 +3,8 @@
 
 .NET Library implementing Asynchronous usage of Sockets. The Library is written in .NET Standard 2.0 and supports Ssl.
 
+Changed From AsyncClientServer to SimpleSockets
+
 ## SSL
 ### Creating a certificate
 I've included a powershell scrit (Self-SignedCertificate Script.ps1). I've used this script to create an certificate to test the Ssl implementation.
@@ -90,10 +92,10 @@ There are two different options of SimpleSocketListener
 Creating the Server
 ```C#
 //Create Regular server
-Serverlistener listener = new AsyncSocketListener();
+SimpleSocketListener listener = new SimpleSocketTcpListener();
 //Create Ssl server
 //(Certificate will be a .pfx) file
-Serverlistener listener = new AsyncSocketSslListener("path to certificate","password");
+SimpleSocketListener listener = new SimpleSocketTcpSslListener("path to certificate","password");
 ```
 
 Starts the server
