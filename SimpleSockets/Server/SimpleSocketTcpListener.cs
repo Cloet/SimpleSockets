@@ -1,13 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using SimpleSockets.Messaging;
-using SimpleSockets.Messaging.MessageContract;
 using SimpleSockets.Messaging.Metadata;
 
 namespace SimpleSockets.Server
@@ -56,7 +53,7 @@ namespace SimpleSockets.Server
 						while (!Token.IsCancellationRequested)
 						{
 							CanAcceptConnections.Reset();
-							listener.BeginAccept(this.OnClientConnect, listener);
+							listener.BeginAccept(OnClientConnect, listener);
 							CanAcceptConnections.WaitOne();
 						}
 
@@ -111,7 +108,7 @@ namespace SimpleSockets.Server
 
 					RaiseClientConnected(state);
 				}
-				Receive(state, 0);
+				Receive(state);
 			}
 			catch (ObjectDisposedException ode)
 			{

@@ -1,17 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using SimpleSockets.Client;
 using SimpleSockets.Messaging;
 using SimpleSockets.Messaging.Compression.File;
 using SimpleSockets.Messaging.Compression.Folder;
 using SimpleSockets.Messaging.Compression.Stream;
 using SimpleSockets.Messaging.Cryptography;
-using SimpleSockets.Messaging.MessageContract;
+using SimpleSockets.Messaging.MessageContracts;
 using SimpleSockets.Messaging.Metadata;
+using SimpleSockets.Server;
 
 namespace SimpleSockets
 {
@@ -76,7 +76,7 @@ namespace SimpleSockets
 		/// <summary>
 		/// Indicates if the server or client is running and accepting connections.
 		/// </summary>
-		public bool IsRunning { get; set; }
+		public bool IsRunning { get; protected set; }
 
 		/// <summary>
 		/// Gets if there are still messages pending for transmission.
@@ -228,10 +228,30 @@ namespace SimpleSockets
 		/// </summary>
 		public abstract void Dispose();
 
+		public static SimpleSocketListener CreateServer()
+		{
+			return new SimpleSocketTcpListener();
+		}
+
+		public static SimpleSocketClient CreateClient()
+		{
+			return new SimpleSocketTcpClient();
+		}
+
+		public static SimpleSocketTcpSslClient CreateSslServer(string certPath, string certPass, TlsProtocol tlsProtocol, bool acceptInvalidCertificates, bool mutualAuth)
+		{
+			return new SimpleSocketTcpSslClient(certPath, certPass, tlsProtocol, acceptInvalidCertificates, mutualAuth);
+		}
+
+		public static SimpleSocketTcpSslListener CreateSslClient(string certPath, string certPass, TlsProtocol tlsProtocol, bool acceptInvalidCerts, bool mutualAuth)
+		{
+			return new SimpleSocketTcpSslListener(certPath,certPass,tlsProtocol,acceptInvalidCerts,mutualAuth);
+		}
+		
 		//MessageContract
 		#region IMessageContract
 
-		
+
 		/// <summary>
 		/// Adds a new MessageContract Handler to the socket.
 		/// Remember: you have to add the IMessageContract to the Server and Client if you want to use it.

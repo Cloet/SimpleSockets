@@ -1,7 +1,7 @@
 ﻿using System;
 using SimpleSockets.Messaging.Metadata;
 
-namespace SimpleSockets.Messaging.MessageContract
+namespace SimpleSockets.Messaging.MessageContracts
 {
 
 	public interface IMessageContract

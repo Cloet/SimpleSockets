@@ -1,12 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using SimpleSockets.Messaging;
-using SimpleSockets.Messaging.MessageContract;
 using SimpleSockets.Messaging.Metadata;
 
 namespace SimpleSockets.Client
@@ -116,7 +113,7 @@ namespace SimpleSockets.Client
 			}
 			catch (Exception ex)
 			{
-				throw new Exception(ex.Message, ex);
+				RaiseErrorThrown(ex);
 			}
 		}
 
@@ -144,18 +141,18 @@ namespace SimpleSockets.Client
 			}
 			catch (SocketException se)
 			{
-				throw new Exception(se.ToString());
+				RaiseErrorThrown(se);
 			}
 			catch (ObjectDisposedException se)
 			{
-				throw new Exception(se.ToString());
+				RaiseErrorThrown(se);
 			}
 			finally
 			{
 				if (!message.Partial)
 					RaiseMessageSubmitted(CloseClient);
 
-				if (!message.Partial && CloseClient)
+				if (!message.Partial && CloseClient && BlockingMessageQueue.Count == 0)
 					Close();
 
 				SentMre.Set();
@@ -164,6 +161,8 @@ namespace SimpleSockets.Client
 
 		protected override void SendToSocket(byte[] data, bool close, bool partial = false, int id = -1)
 		{
+			//If socket has been ordered to close, prevent adding new messages to queue
+			if (CloseClient) return;
 			CloseClient = close;
 			BlockingMessageQueue.Enqueue(new MessageWrapper(data, partial));
 		}

@@ -1,14 +1,19 @@
-﻿using SimpleSockets.Messaging.MessageContract;
-using SimpleSockets.Messaging.Metadata;
+﻿using SimpleSockets.Messaging.Metadata;
 using System;
 using System.Collections;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using SimpleSockets.Messaging.MessageContracts;
 
 namespace SimpleSockets.Messaging
 {
+	/// <summary>
+	/// Message is:
+	///  - Flags
+	///  - Header
+	///  - Message
+	/// </summary>
 	internal class SimpleMessage
 	{
 
