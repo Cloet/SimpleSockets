@@ -1,18 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
 using SimpleSockets.Messaging;
-using SimpleSockets.Messaging.MessageContract;
+using SimpleSockets.Messaging.MessageContracts;
 using SimpleSockets.Messaging.Metadata;
-using Timer = System.Threading.Timer;
 
 namespace SimpleSockets.Client
 {
@@ -191,7 +186,7 @@ namespace SimpleSockets.Client
 			KeepAliveTimer.Enabled = false;
 
 
-			SendBasicAuthMessage();
+			//SendBasicAuthMessage();
 		}
 
 		#endregion
@@ -210,7 +205,7 @@ namespace SimpleSockets.Client
 		/// Check if client is connected to server
 		/// </summary>
 		/// <returns>bool</returns>
-		public bool IsConnected()
+		public virtual bool IsConnected()
 		{
 			try
 			{
@@ -324,26 +319,34 @@ namespace SimpleSockets.Client
 		//Loops the queue for messages that have to be sent.
 		protected void SendFromQueue()
 		{
-			if (Disposed)
-				return;
-
-			while (!Token.IsCancellationRequested)
+			try
 			{
+				if (Disposed)
+					return;
 
-				ConnectedMre.WaitOne();
-
-				if (IsConnected())
+				while (!Token.IsCancellationRequested)
 				{
-					BlockingMessageQueue.TryDequeue(out var message);
-					BeginSendFromQueue(message);
-				}
-				else
-				{
-					Close();
-					ConnectedMre.Reset();
-				}
 
+					ConnectedMre.WaitOne();
+
+					if (IsConnected())
+					{
+						BlockingMessageQueue.TryDequeue(out var message);
+						BeginSendFromQueue(message);
+					}
+					else
+					{
+						Close();
+						ConnectedMre.Reset();
+					}
+
+				}
 			}
+			catch (Exception ex)
+			{
+				RaiseErrorThrown(ex);
+			}
+
 		}
 
 		//Send message and invokes MessageSubmitted.

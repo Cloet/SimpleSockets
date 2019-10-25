@@ -1,13 +1,10 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.ComponentModel.Design;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
@@ -16,7 +13,7 @@ using SimpleSockets.Messaging.Compression.File;
 using SimpleSockets.Messaging.Compression.Folder;
 using SimpleSockets.Messaging.Compression.Stream;
 using SimpleSockets.Messaging.Cryptography;
-using SimpleSockets.Messaging.MessageContract;
+using SimpleSockets.Messaging.MessageContracts;
 using SimpleSockets.Messaging.Metadata;
 
 namespace SimpleSockets.Server

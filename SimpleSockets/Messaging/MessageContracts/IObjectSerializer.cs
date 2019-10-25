@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
-namespace SimpleSockets.Messaging.MessageContract
+namespace SimpleSockets.Messaging.MessageContracts
 {
 
 	/// <summary>

@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace SimpleSockets.Messaging
+﻿namespace SimpleSockets.Messaging
 {
 	public enum MessageType
 	{

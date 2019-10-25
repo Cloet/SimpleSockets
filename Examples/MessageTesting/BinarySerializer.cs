@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
-using SimpleSockets.Messaging.MessageContract;
+using SimpleSockets.Messaging.MessageContracts;
 
 namespace MessageTesting
 {

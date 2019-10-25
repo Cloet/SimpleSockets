@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Text;
 using SimpleSockets;
-using SimpleSockets.Messaging.MessageContract;
+using SimpleSockets.Messaging.MessageContracts;
 using SimpleSockets.Messaging.Metadata;
 
 namespace MessageTesting

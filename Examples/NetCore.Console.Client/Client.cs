@@ -29,6 +29,7 @@ namespace NetCore.Console.Client
 
 			_client = new SimpleSocketTcpClient();
 			//_client = new SimpleSocketTcpSslClient(@"PATH\TO\CERT.pfx", "Password");
+			//_client = new SimpleSocketUdpClient();
 
 			_client.ObjectSerializer = binSer;
 			_client.EnableExtendedAuth = true;
