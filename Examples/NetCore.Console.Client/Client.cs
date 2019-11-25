@@ -27,8 +27,8 @@ namespace NetCore.Console.Client
 			var xmlSer = new XmlSerialization();
 			var binSer = new BinarySerializer();
 
-			_client = new SimpleSocketTcpClient();
-			//_client = new SimpleSocketTcpSslClient(@"PATH\TO\CERT.pfx", "Password");
+			//_client = new SimpleSocketTcpClient();
+			_client = new SimpleSocketTcpSslClient(@"C:\Users\Cloet\Desktop\test.pfx", "Password");
 			//_client = new SimpleSocketUdpClient();
 
 			_client.ObjectSerializer = binSer;

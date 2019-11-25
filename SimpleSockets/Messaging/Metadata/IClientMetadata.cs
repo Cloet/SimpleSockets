@@ -1,5 +1,6 @@
 ﻿using System.Net.Security;
 using System.Net.Sockets;
+using System.Threading;
 
 namespace SimpleSockets.Messaging.Metadata
 {
@@ -22,6 +23,8 @@ namespace SimpleSockets.Messaging.Metadata
 		/// Get or set the SslStream
 		/// </summary>
 		SslStream SslStream { get; set; }
+
+		ManualResetEvent MreRead { get; }
 
 		/// <summary>
 		/// get how much bytes have been read.

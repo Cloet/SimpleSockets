@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
+using System.Threading;
 
 namespace SimpleSockets.Messaging.Metadata
 {
@@ -43,6 +44,7 @@ namespace SimpleSockets.Messaging.Metadata
 		internal ClientMetadata(Socket listener, int id = -1)
 		{
 			Listener = listener;
+			MreRead = new ManualResetEvent(false);
 
 			SetIps();
 
@@ -55,11 +57,12 @@ namespace SimpleSockets.Messaging.Metadata
 		{
 			try
 			{
-				//RemoteIPv4 = ((IPEndPoint)Listener.RemoteEndPoint).Address.MapToIPv4().ToString();
-				//RemoteIPv6 = ((IPEndPoint)Listener.RemoteEndPoint).Address.MapToIPv6().ToString();
+				RemoteIPv4 = ((IPEndPoint)Listener.RemoteEndPoint).Address.MapToIPv4().ToString();
+				RemoteIPv6 = ((IPEndPoint)Listener.RemoteEndPoint).Address.MapToIPv6().ToString();
 
-				//LocalIPv4 = ((IPEndPoint)Listener.LocalEndPoint).Address.MapToIPv4().ToString();
-				//LocalIPv6 = ((IPEndPoint)Listener.LocalEndPoint).Address.MapToIPv6().ToString();
+				LocalIPv4 = ((IPEndPoint)Listener.LocalEndPoint).Address.MapToIPv4().ToString();
+				LocalIPv6 = ((IPEndPoint)Listener.LocalEndPoint).Address.MapToIPv6().ToString();
+
 			}
 			catch (Exception ex)
 			{
@@ -83,6 +86,8 @@ namespace SimpleSockets.Messaging.Metadata
 
 			_bufferSize = size;
 		}
+
+		public ManualResetEvent MreRead { get; set; }
 
 		/// <summary>
 		/// How many bytes have been read
@@ -204,6 +209,7 @@ namespace SimpleSockets.Messaging.Metadata
 		public void Reset()
 		{
 			_receivedBytes = new List<byte>();
+			MreRead.Set();
 			Read = 0;
 			Flag = 0;
 		}

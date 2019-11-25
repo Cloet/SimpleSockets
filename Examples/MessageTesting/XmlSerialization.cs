@@ -28,6 +28,7 @@ namespace MessageTesting
 			{
 				throw new Exception("Unable to serialize the object of type " + anySerializableObject.GetType() + " to an xml string.");
 			}
+
 		}
 
 		public object DeserializeBytesToObject(byte[] bytes, Type objType)

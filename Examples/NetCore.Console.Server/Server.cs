@@ -28,8 +28,8 @@ namespace NetCore.Console.Server
 			var binSer = new BinarySerializer();
 			
 			//_listener = new SimpleSocketUdpListener();
-			_listener = new SimpleSocketTcpListener();
-			//_listener = new SimpleSocketTcpSslListener(@"PATH\TO\CERT.pfx","Password");
+			//_listener = new SimpleSocketTcpListener();
+			_listener = new SimpleSocketTcpSslListener(@"C:\Users\Cloet\Desktop\test.pfx", "Password");
 
 			_listener.ObjectSerializer = binSer;
 			_listener.AllowReceivingFiles = true;

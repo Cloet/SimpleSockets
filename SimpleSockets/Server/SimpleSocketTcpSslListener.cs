@@ -20,7 +20,7 @@ namespace SimpleSockets.Server
 		#region Vars
 
 		private readonly X509Certificate2 _serverCertificate = null;
-		private readonly ManualResetEvent _mreRead = new ManualResetEvent(true);
+		// private readonly ManualResetEvent _mreRead = new ManualResetEvent(true);
 		private readonly ManualResetEvent _mreWriting = new ManualResetEvent(true);
 		private readonly TlsProtocol _tlsProtocol;
 
@@ -156,7 +156,6 @@ namespace SimpleSockets.Server
 					}
 
 				}, new CancellationTokenSource(10000).Token);
-
 
 			}
 			catch (Exception ex)
@@ -320,8 +319,8 @@ namespace SimpleSockets.Server
 				}
 
 				var sslStream = state.SslStream;
-				_mreRead.WaitOne();
-				_mreRead.Reset();
+				state.MreRead.WaitOne();
+				state.MreRead.Reset();
 				sslStream.BeginRead(state.Buffer, offset, state.BufferSize - offset, ReceiveCallback, state);
 			}
 			catch (Exception ex)
@@ -369,7 +368,7 @@ namespace SimpleSockets.Server
 					}else if (receive > 0)
 						await ParallelQueue.Enqueue(() => state.SimpleMessage.ReadBytesAndBuildMessage(receive));
 
-					_mreRead.Set();
+					state.MreRead.Set();
 					Receive(state, state.Buffer.Length);
 				}
 			}
@@ -393,7 +392,6 @@ namespace SimpleSockets.Server
 			try
 			{
 				base.Dispose();
-				_mreRead.Dispose();
 				_mreWriting.Dispose();
 			}
 			catch (Exception ex)
