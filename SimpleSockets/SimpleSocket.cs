@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 using SimpleSockets.Client;
@@ -17,6 +18,7 @@ namespace SimpleSockets
 {
 	public abstract class SimpleSocket: IDisposable
 	{
+
 		#region Variables
 
 		//--Protected
@@ -238,12 +240,56 @@ namespace SimpleSockets
 			return new SimpleSocketTcpClient();
 		}
 
-		public static SimpleSocketTcpSslClient CreateSslServer(string certPath, string certPass, TlsProtocol tlsProtocol, bool acceptInvalidCertificates, bool mutualAuth)
+		/// <summary>
+		/// Creates a new Ssl Listener
+		/// </summary>
+		/// <param name="certificate"></param>
+		/// <param name="tlsProtocol"></param>
+		/// <param name="acceptInvalidCertificates"></param>
+		/// <param name="mutualAuth"></param>
+		/// <returns></returns>
+		public static SimpleSocketTcpSslListener CreateSslServer(X509Certificate2 certificate, TlsProtocol tlsProtocol = TlsProtocol.Tls12, bool acceptInvalidCertificates = true, bool mutualAuth = false)
 		{
-			return new SimpleSocketTcpSslClient(certPath, certPass, tlsProtocol, acceptInvalidCertificates, mutualAuth);
+			return new SimpleSocketTcpSslListener(certificate, tlsProtocol, acceptInvalidCertificates, mutualAuth);
 		}
 
-		public static SimpleSocketTcpSslListener CreateSslClient(string certPath, string certPass, TlsProtocol tlsProtocol, bool acceptInvalidCerts, bool mutualAuth)
+		/// <summary>
+		/// Creates a new Ssl Listener
+		/// </summary>
+		/// <param name="certPath"></param>
+		/// <param name="certPass"></param>
+		/// <param name="tlsProtocol"></param>
+		/// <param name="acceptInvalidCertificates"></param>
+		/// <param name="mutualAuth"></param>
+		/// <returns></returns>
+		public static SimpleSocketTcpSslListener CreateSslServer(string certPath, string certPass, TlsProtocol tlsProtocol = TlsProtocol.Tls12, bool acceptInvalidCertificates = true, bool mutualAuth = false)
+		{
+			return new SimpleSocketTcpSslListener(certPath, certPass, tlsProtocol, acceptInvalidCertificates, mutualAuth);
+		}
+
+		/// <summary>
+		/// Creates a new Ssl Client
+		/// </summary>
+		/// <param name="certificate"></param>
+		/// <param name="tlsProtocol"></param>
+		/// <param name="acceptInvalidCertificates"></param>
+		/// <param name="mutualAuth"></param>
+		/// <returns></returns>
+		public static SimpleSocketTcpSslClient CreateSslClient(X509Certificate2 certificate, TlsProtocol tlsProtocol = TlsProtocol.Tls12, bool acceptInvalidCertificates = true, bool mutualAuth = false)
+		{
+			return new SimpleSocketTcpSslClient(certificate, tlsProtocol, acceptInvalidCertificates, mutualAuth);
+		}
+
+		/// <summary>
+		/// Creates a new Ssl Client
+		/// </summary>
+		/// <param name="certPath"></param>
+		/// <param name="certPass"></param>
+		/// <param name="tlsProtocol"></param>
+		/// <param name="acceptInvalidCerts"></param>
+		/// <param name="mutualAuth"></param>
+		/// <returns></returns>
+		public static SimpleSocketTcpSslListener CreateSslClient(string certPath, string certPass, TlsProtocol tlsProtocol = TlsProtocol.Tls12, bool acceptInvalidCerts = true, bool mutualAuth = false)
 		{
 			return new SimpleSocketTcpSslListener(certPath,certPass,tlsProtocol,acceptInvalidCerts,mutualAuth);
 		}

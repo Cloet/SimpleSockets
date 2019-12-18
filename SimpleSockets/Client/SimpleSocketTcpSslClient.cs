@@ -33,6 +33,18 @@ namespace SimpleSockets.Client
 
 		#region Constructor
 
+		public SimpleSocketTcpSslClient(X509Certificate2 certificate, TlsProtocol tls = TlsProtocol.Tls12, bool acceptInvalidCertificates = true, bool mutualAuth = false) : base()
+		{
+			if (certificate == null)
+				throw new ArgumentNullException(nameof(certificate));
+
+			_sslCertificate = certificate;
+
+			_tlsProtocol = tls;
+			AcceptInvalidCertificates = acceptInvalidCertificates;
+			MutualAuthentication = mutualAuth;
+		}
+
 		public SimpleSocketTcpSslClient(string cert, string certPass, TlsProtocol tls = TlsProtocol.Tls12,bool acceptInvalidCertificates = true, bool mutualAuth = false) : base()
 		{
 			if (string.IsNullOrEmpty(cert))

@@ -53,6 +53,19 @@ namespace SimpleSockets.Server
 				_serverCertificate = new X509Certificate2(File.ReadAllBytes(Path.GetFullPath(cert)));
 			else
 				_serverCertificate = new X509Certificate2(File.ReadAllBytes(Path.GetFullPath(cert)), certPass);
+
+		}
+
+		public SimpleSocketTcpSslListener(X509Certificate2 certificate, TlsProtocol tlsProctocol = TlsProtocol.Tls12, bool acceptInvalidCertificates = true, bool mutualAuth = false): base()
+		{
+			if (certificate == null)
+				throw new ArgumentNullException(nameof(certificate));
+
+			AcceptInvalidCertificates = acceptInvalidCertificates;
+			MutualAuthentication = mutualAuth;
+			_tlsProtocol = tlsProctocol;
+
+			_serverCertificate = certificate;
 		}
 
 		#endregion

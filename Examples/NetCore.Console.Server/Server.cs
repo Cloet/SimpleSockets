@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Reflection.Metadata.Ecma335;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using MessageTesting;
@@ -26,10 +28,14 @@ namespace NetCore.Console.Server
 
 			var xmlSer = new XmlSerialization();
 			var binSer = new BinarySerializer();
-			
+
 			//_listener = new SimpleSocketUdpListener();
 			//_listener = new SimpleSocketTcpListener();
-			_listener = new SimpleSocketTcpSslListener(@"C:\Users\Cloet\Desktop\test.pfx", "Password");
+
+			var cert = new X509Certificate2(File.ReadAllBytes(Path.GetFullPath(@"C:\Users\Cloet\Desktop\test.pfx")), "Password");
+
+			_listener = new SimpleSocketTcpSslListener(cert);
+			//_listener = new SimpleSocketTcpSslListener(@"C:\Users\Cloet\Desktop\test.pfx", "Password");
 
 			_listener.ObjectSerializer = binSer;
 			_listener.AllowReceivingFiles = true;
