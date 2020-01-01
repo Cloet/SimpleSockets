@@ -50,12 +50,12 @@ namespace NetCore.Console.Server
 
 			while (true)
 			{
-				Options();
+				// Options();
 
 
-				WriteLine("Press any key to continue...");
+				// WriteLine("Press any key to continue...");
 				System.Console.Read();
-				System.Console.Clear();
+				// System.Console.Clear();
 			}
 
 		}

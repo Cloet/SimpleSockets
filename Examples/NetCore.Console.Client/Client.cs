@@ -49,16 +49,26 @@ namespace NetCore.Console.Client
 
 			BindEvents();
 			_client.StartClient("127.0.0.1", 13000);
-			
+
+
+			// while (true)
+			// {
+			// 	Options();
+			// 
+			// 
+			// 	WriteLine("Press any key to continue...");
+			// 	System.Console.Read();
+			// 	System.Console.Clear();
+			// }
+
+			var loop = 0;
+			var txt = File.ReadAllText(@"C:\Users\Cloet\Desktop\TestData.txt");
 
 			while (true)
 			{
-				Options();
-
-
-				WriteLine("Press any key to continue...");
-				System.Console.Read();
-				System.Console.Clear();
+				System.Console.WriteLine("Sending package" + ++loop);
+				_client.SendMessageAsync(txt);
+				Thread.Sleep(3);
 			}
 
 		}

@@ -22,6 +22,7 @@ namespace SimpleSockets.Client
 		private readonly X509Certificate2 _sslCertificate;
 		private X509Certificate2Collection _sslCertificateCollection;
 		private readonly ManualResetEvent _mreRead = new ManualResetEvent(true);
+		private readonly ManualResetEvent _mreReceiving = new ManualResetEvent(true);
 		private readonly ManualResetEvent _mreWriting = new ManualResetEvent(true);
 		private readonly TlsProtocol _tlsProtocol;
 
@@ -296,23 +297,36 @@ namespace SimpleSockets.Client
 		{
 			try
 			{
-				state.SslStream = _sslStream;
+				bool firstRead = true;
 
-				if (offset > 0)
+				while (!Token.IsCancellationRequested)
 				{
-					state.UnhandledBytes = state.Buffer;
-				}
+					_mreReceiving.WaitOne();
+					_mreReceiving.Reset();
 
-				if (state.Buffer.Length < state.BufferSize)
-				{
-					state.ChangeBuffer(new byte[state.BufferSize]);
+					state.SslStream = _sslStream;
+
+					if (!firstRead)
+						offset = state.Buffer.Length;
+
 					if (offset > 0)
-						Array.Copy(state.UnhandledBytes, 0, state.Buffer, 0, state.UnhandledBytes.Length);
-				}
+					{
+						state.UnhandledBytes = state.Buffer;
+					}
 
-				_mreRead.WaitOne();
-				_mreRead.Reset();
-				state.SslStream.BeginRead(state.Buffer, offset, state.BufferSize - offset, ReceiveCallback, state);
+					if (state.Buffer.Length < state.BufferSize)
+					{
+						state.ChangeBuffer(new byte[state.BufferSize]);
+						if (offset > 0)
+							Array.Copy(state.UnhandledBytes, 0, state.Buffer, 0, state.UnhandledBytes.Length);
+					}
+
+					firstRead = false;
+
+					_mreRead.WaitOne();
+					_mreRead.Reset();
+					state.SslStream.BeginRead(state.Buffer, offset, state.BufferSize - offset, ReceiveCallback, state);
+				}
 			}
 			catch (Exception ex)
 			{
@@ -343,14 +357,17 @@ namespace SimpleSockets.Client
 				else if (receive > 0)
 					await state.SimpleMessage.ReadBytesAndBuildMessage(receive);
 
-				Receive(state, state.Buffer.Length);
+				_mreReceiving.Set();
+				// Receive(state, state.Buffer.Length);
 			}
 			catch (Exception ex)
 			{
+				_mreReceiving.Set();
+				_mreRead.Set();
 				state.Reset();
 				DisposeSslStream();
 				RaiseErrorThrown(ex);
-				Receive(state);
+				// Receive(state);
 			}
 		}
 

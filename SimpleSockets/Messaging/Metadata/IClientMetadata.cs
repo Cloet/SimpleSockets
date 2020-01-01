@@ -26,6 +26,8 @@ namespace SimpleSockets.Messaging.Metadata
 
 		ManualResetEvent MreRead { get; }
 
+		ManualResetEvent MreReceiving { get; }
+
 		/// <summary>
 		/// get how much bytes have been read.
 		/// </summary>

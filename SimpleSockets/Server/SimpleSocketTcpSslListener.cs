@@ -321,20 +321,33 @@ namespace SimpleSockets.Server
 		{
 			try
 			{
-				if (offset > 0)
-					state.UnhandledBytes = state.Buffer;
+				var firstRead = true;
 
-				if (state.Buffer.Length < state.BufferSize)
+				while (!Token.IsCancellationRequested)
 				{
-					state.ChangeBuffer(new byte[state.BufferSize]);
-					if (offset > 0)
-						Array.Copy(state.UnhandledBytes, 0, state.Buffer, 0, state.UnhandledBytes.Length);
-				}
+					state.MreReceiving.WaitOne();
+					state.MreReceiving.Reset();
 
-				var sslStream = state.SslStream;
-				state.MreRead.WaitOne();
-				state.MreRead.Reset();
-				sslStream.BeginRead(state.Buffer, offset, state.BufferSize - offset, ReceiveCallback, state);
+					if (!firstRead)
+						offset = state.Buffer.Length;
+
+					if (offset > 0)
+						state.UnhandledBytes = state.Buffer;
+
+					if (state.Buffer.Length < state.BufferSize)
+					{
+						state.ChangeBuffer(new byte[state.BufferSize]);
+						if (offset > 0)
+							Array.Copy(state.UnhandledBytes, 0, state.Buffer, 0, state.UnhandledBytes.Length);
+					}
+
+					firstRead = false;
+
+					var sslStream = state.SslStream;
+					state.MreRead.WaitOne();
+					state.MreRead.Reset();
+					sslStream.BeginRead(state.Buffer, offset, state.BufferSize - offset, ReceiveCallback, state);
+				}
 			}
 			catch (Exception ex)
 			{
@@ -381,8 +394,9 @@ namespace SimpleSockets.Server
 					}else if (receive > 0)
 						await ParallelQueue.Enqueue(() => state.SimpleMessage.ReadBytesAndBuildMessage(receive));
 
+					state.MreReceiving.Set();
 					state.MreRead.Set();
-					Receive(state, state.Buffer.Length);
+					// Receive(state, state.Buffer.Length);
 				}
 			}
 			catch (Exception ex)
@@ -391,7 +405,7 @@ namespace SimpleSockets.Server
 				RaiseLog(ex);
 				RaiseLog("Error handling message from client with guid : " + state.Guid  + ".");
 				RaiseErrorThrown(ex);
-				Receive(state);
+				// Receive(state);
 			}
 		}
 

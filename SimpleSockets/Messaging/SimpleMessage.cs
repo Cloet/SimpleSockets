@@ -475,51 +475,60 @@ namespace SimpleSockets.Messaging
 		/// Call from socket receiver and create a message from this.
 		/// </summary>
 		/// <param name="receive"></param>
-		internal async Task<bool> ReadBytesAndBuildMessage(int receive)
-		{
-			if (_state.Flag == 0)
+		internal async Task<bool> ReadBytesAndBuildMessage(int receive) {
+
+			var processing = true;
+
+			while (processing)
 			{
-				DeconstructHeaderField(_state.Buffer[0]);
-				var length = CalculateHeaderFieldsLength();
-				if (_state.Buffer.Length < length)
+				if (_state.Flag == 0)
 				{
-					return true;
+					DeconstructHeaderField(_state.Buffer[0]);
+					var length = CalculateHeaderFieldsLength();
+					if (_state.Buffer.Length < length)
+					{
+						return true;
+					}
+
+					byte headerFieldByte = _state.Buffer[0];
+					DeconstructHeaderFields(headerFieldByte, _state.Buffer);
+					byte[] remainingBytes = new byte[_state.Buffer.Length - length];
+					receive -= length;
+
+					Array.Copy(_state.Buffer, length, remainingBytes, 0, remainingBytes.Length);
+					_state.ChangeBuffer(remainingBytes);
+					_state.Flag++;
+
 				}
 
-				byte headerFieldByte = _state.Buffer[0];
-				DeconstructHeaderFields(headerFieldByte, _state.Buffer);
-				byte[] remainingBytes = new byte[_state.Buffer.Length - length];
-				receive -= length;
-
-				Array.Copy(_state.Buffer, length, remainingBytes, 0, remainingBytes.Length);
-				_state.ChangeBuffer(remainingBytes);
-				_state.Flag++;
-
-			}
-
-			if (_state.Buffer.Length < 1)
-			{
-				return true;
-			}
-
-
-			if (_state.Flag == 1)
-			{
-				var enoughBytes = DeconstructHeader();
-				if (!enoughBytes)
+				if (_state.Buffer.Length < 2)
 				{
-					return true;
+					processing = false;
 				}
-				receive -= _headerLength;
-			}
 
-			if (_state.Flag == 2)
-			{
-				return await ReadData(receive);
+
+				if (_state.Flag == 1)
+				{
+					var enoughBytes = DeconstructHeader();
+					if (!enoughBytes)
+					{
+						return true;
+					}
+					receive -= _headerLength;
+					if (_state.Flag != 2)
+						processing = false;
+				}
+
+				if (_state.Flag == 2)
+				{
+					processing = await ReadData(receive);
+					receive = _state.Buffer.Length;
+				}
 			}
 
 			return true;
 		}
+
 
 		#region Header-Deconstructors
 
@@ -591,6 +600,7 @@ namespace SimpleSockets.Messaging
 
 		#region Read message-data
 
+		//Returns true if there is more data to read.
 		private async Task<bool> ReadData(int receive)
 		{
 			byte[] bytes = new byte[receive];
@@ -669,12 +679,11 @@ namespace SimpleSockets.Messaging
 				bytes = null;
 				MessageHasBeenReceived();
 				_state.Reset();
-				return await ReadBytesAndBuildMessage(_state.Buffer.Length);
+				return true;
+				// return await ReadBytesAndBuildMessage(_state.Buffer.Length);
 			}
 
-
-			return true;
-			//_socket.Receive(_state, 0);
+			return false;
 		}
 
 		private string GetTempPath(string path)

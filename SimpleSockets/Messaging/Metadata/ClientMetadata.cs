@@ -45,6 +45,8 @@ namespace SimpleSockets.Messaging.Metadata
 		{
 			Listener = listener;
 			MreRead = new ManualResetEvent(false);
+			MreReceiving = new ManualResetEvent(true);
+
 
 			SetIps();
 
@@ -88,6 +90,8 @@ namespace SimpleSockets.Messaging.Metadata
 		}
 
 		public ManualResetEvent MreRead { get; set; }
+
+		public ManualResetEvent MreReceiving { get; set; }
 
 		/// <summary>
 		/// How many bytes have been read

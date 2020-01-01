@@ -125,20 +125,32 @@ namespace SimpleSockets.Server
 
 		protected internal override void Receive(IClientMetadata state, int offset = 0)
 		{
-			
-			if (offset > 0)
-			{
-				state.UnhandledBytes = state.Buffer;
-			}
+			var firstRead = true;
 
-			if (state.Buffer.Length < state.BufferSize)
+			while (!Token.IsCancellationRequested)
 			{
-				state.ChangeBuffer(new byte[state.BufferSize]);
+				state.MreReceiving.WaitOne();
+				state.MreReceiving.Reset();
+
+				if (!firstRead)
+					offset = state.Buffer.Length;
+
 				if (offset > 0)
-					Array.Copy(state.UnhandledBytes, 0, state.Buffer, 0, state.UnhandledBytes.Length);
-			}
+				{
+					state.UnhandledBytes = state.Buffer;
+				}
 
-			state.Listener.BeginReceive(state.Buffer, offset, state.BufferSize - offset, SocketFlags.None, ReceiveCallback, state);
+				if (state.Buffer.Length < state.BufferSize)
+				{
+					state.ChangeBuffer(new byte[state.BufferSize]);
+					if (offset > 0)
+						Array.Copy(state.UnhandledBytes, 0, state.Buffer, 0, state.UnhandledBytes.Length);
+				}
+
+				firstRead = false;
+
+				state.Listener.BeginReceive(state.Buffer, offset, state.BufferSize - offset, SocketFlags.None, ReceiveCallback, state);
+			}
 		}
 
 		protected override async void ReceiveCallback(IAsyncResult result)
@@ -180,7 +192,7 @@ namespace SimpleSockets.Server
 						await ParallelQueue.Enqueue(() => state.SimpleMessage.ReadBytesAndBuildMessage(receive));
 					}
 
-					Receive(state, state.Buffer.Length);
+					// Receive(state, state.Buffer.Length);
 				}
 			}
 			catch (Exception ex)
@@ -189,7 +201,8 @@ namespace SimpleSockets.Server
 				RaiseErrorThrown(ex);
 				RaiseLog(ex);
 				RaiseLog("Error handling message from client with guid : " + state.Guid + ".");
-				Receive(state, state.Buffer.Length);
+				state.MreReceiving.Set();
+				// Receive(state, state.Buffer.Length);
 			}
 		}
 

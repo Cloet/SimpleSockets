@@ -11,6 +11,8 @@ namespace SimpleSockets.Client
 	public class SimpleSocketTcpClient: SimpleSocketClient
 	{
 
+		private readonly ManualResetEvent _mreReceiving = new ManualResetEvent(true);
+
 		public SimpleSocketTcpClient() : base()
 		{
 
@@ -175,19 +177,32 @@ namespace SimpleSockets.Client
 
 		protected internal override void Receive(IClientMetadata state, int offset = 0)
 		{
-			if (offset > 0)
-			{
-				state.UnhandledBytes = state.Buffer;
-			}
+			bool firstRead = true;
 
-			if (state.Buffer.Length < state.BufferSize)
+			while (!Token.IsCancellationRequested)
 			{
-				state.ChangeBuffer(new byte[state.BufferSize]);
+				_mreReceiving.WaitOne();
+				_mreReceiving.Reset();
+
+				if (!firstRead)
+					offset = state.Buffer.Length;
+
 				if (offset > 0)
-					Array.Copy(state.UnhandledBytes, 0, state.Buffer, 0, state.UnhandledBytes.Length);
-			}
+				{
+					state.UnhandledBytes = state.Buffer;
+				}
 
-			state.Listener.BeginReceive(state.Buffer, offset, state.BufferSize - offset, SocketFlags.None, this.ReceiveCallback, state);
+				if (state.Buffer.Length < state.BufferSize)
+				{
+					state.ChangeBuffer(new byte[state.BufferSize]);
+					if (offset > 0)
+						Array.Copy(state.UnhandledBytes, 0, state.Buffer, 0, state.UnhandledBytes.Length);
+				}
+
+				firstRead = false;
+
+				state.Listener.BeginReceive(state.Buffer, offset, state.BufferSize - offset, SocketFlags.None, this.ReceiveCallback, state);
+			}
 		}
 
 		protected override async void ReceiveCallback(IAsyncResult result)
@@ -222,13 +237,15 @@ namespace SimpleSockets.Client
 					await state.SimpleMessage.ReadBytesAndBuildMessage(receive);
 				}
 
-				Receive(state, state.Buffer.Length);
+				_mreReceiving.Set();
+				// Receive(state, state.Buffer.Length);
 			}
 			catch (Exception ex)
 			{
 				state.Reset();
 				RaiseErrorThrown(ex);
-				Receive(state);
+				_mreReceiving.Set();
+				// Receive(state);
 			}
 		}
 		
