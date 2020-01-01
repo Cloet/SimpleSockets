@@ -39,7 +39,7 @@ When framing a normal message this will be a lot smaller:
 | MessageData   | 18 + HeaderLength + MessageLength | Message bytes |
 
 ## Customization
-I've added several classes that can be used to augment how the messageing of your sockets work.
+I've added several classes that can be used to augment how the messaging of your sockets work.
 ### MessageContracts
 With MessageContracts you can send custom type of message to a connected socket.
 You have to implement the interface IMessageContract and add both the contract to the server and client.
@@ -82,8 +82,9 @@ To help authenticate connected clients on the server side, whenever a client con
 ### Server
 
 There are two different options of SimpleSocketListener
-| Server | Description|
-|--------| -----------|
+
+| Server | Description |
+|--------| ------------|
 | SimpleSocketListener    | The base Listener class. |
 | SimpleSocketTcpListener    | Server using Async calls without using Ssl. |
 | SimpleSocketTcpSslListener | Server using Async calls that uses a Ssl certificate to encrypt incoming & outgoing data.| 
