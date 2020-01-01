@@ -306,7 +306,7 @@ namespace SimpleSockets.Client
 
 					state.SslStream = _sslStream;
 
-					if (!firstRead)
+					if (!firstRead && state.Buffer.Length != state.BufferSize)
 						offset = state.Buffer.Length;
 
 					if (offset > 0)

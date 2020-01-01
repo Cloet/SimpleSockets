@@ -328,7 +328,7 @@ namespace SimpleSockets.Server
 					state.MreReceiving.WaitOne();
 					state.MreReceiving.Reset();
 
-					if (!firstRead)
+					if (!firstRead && state.Buffer.Length != state.BufferSize)
 						offset = state.Buffer.Length;
 
 					if (offset > 0)
@@ -404,6 +404,7 @@ namespace SimpleSockets.Server
 				state.Reset();
 				RaiseLog(ex);
 				RaiseLog("Error handling message from client with guid : " + state.Guid  + ".");
+				state.MreReceiving.Set();
 				RaiseErrorThrown(ex);
 				// Receive(state);
 			}

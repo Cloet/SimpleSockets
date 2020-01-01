@@ -510,19 +510,18 @@ namespace SimpleSockets.Messaging
 				if (_state.Flag == 1)
 				{
 					var enoughBytes = DeconstructHeader();
-					if (!enoughBytes)
+					if (!enoughBytes || _state.Flag != 2)
 					{
-						return true;
+						processing = false;
 					}
 					receive -= _headerLength;
-					if (_state.Flag != 2)
-						processing = false;
 				}
 
 				if (_state.Flag == 2)
 				{
 					processing = await ReadData(receive);
-					receive = _state.Buffer.Length;
+					if (processing)
+						receive = _state.Buffer.Length;
 				}
 			}
 
@@ -584,12 +583,18 @@ namespace SimpleSockets.Messaging
 
 			if (HeaderFields[2])
 				_headerLength = BitConverter.ToInt32(_state.Buffer, 6);
+			else
+				_headerLength = 0;
 
 			if (HeaderFields[3])
 				_partNumber = BitConverter.ToInt32(_state.Buffer, 10);
+			else
+				_partNumber = 0;
 
 			if (HeaderFields[4])
 				_totalParts = BitConverter.ToInt32(_state.Buffer, 14);
+			else
+				_totalParts = 0;
 
 			Encrypted = HeaderFields[5];
 			Compressed = HeaderFields[6];

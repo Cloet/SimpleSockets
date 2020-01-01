@@ -214,6 +214,7 @@ namespace SimpleSockets.Messaging.Metadata
 		{
 			_receivedBytes = new List<byte>();
 			MreRead.Set();
+			// MreReceiving.Set();
 			Read = 0;
 			Flag = 0;
 		}

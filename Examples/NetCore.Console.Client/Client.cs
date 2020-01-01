@@ -23,7 +23,7 @@ namespace NetCore.Console.Client
 
 		private static void Main(string[] args)
 		{
-			_encrypt = true;
+			_encrypt = false;
 			_compress = false;
 
 			var xmlSer = new XmlSerialization();
@@ -51,23 +51,38 @@ namespace NetCore.Console.Client
 			_client.StartClient("127.0.0.1", 13000);
 
 
-			// while (true)
-			// {
-			// 	Options();
-			// 
-			// 
-			// 	WriteLine("Press any key to continue...");
-			// 	System.Console.Read();
-			// 	System.Console.Clear();
-			// }
-
-			var loop = 0;
-			var txt = File.ReadAllText(@"C:\Users\Cloet\Desktop\TestData.txt");
-
 			while (true)
 			{
-				System.Console.WriteLine("Sending package" + ++loop);
-				_client.SendMessageAsync(txt);
+				Options();
+			
+			
+				WriteLine("Press any key to continue...");
+				System.Console.Read();
+				System.Console.Clear();
+			}
+
+
+			// Task.Run(Sender);
+			// 
+			// while (true)
+			// {
+			// 	System.Console.Read();
+			// }
+
+		}
+
+
+		private static void Sender()
+		{
+			var txt = File.ReadAllText(@"C:\Users\Cloet\Desktop\TestData.txt");
+			long loop = 0;
+			while (true)
+			{
+				System.Console.WriteLine("Sending package " + ++loop);
+				var person = new Person("TestFromClient " + loop , "FirstName", "5th Avenue");
+				
+				_client.SendObjectAsync(person);
+				// _client.SendMessageAsync(txt);
 				Thread.Sleep(3);
 			}
 

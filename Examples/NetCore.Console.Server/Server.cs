@@ -20,6 +20,7 @@ namespace NetCore.Console.Server
 		private static bool _encrypt;
 		private static bool _compress;
 		private static ProgressBar progress;
+		private static long totalmsg;
 
 		private static void Main(string[] args)
 		{
@@ -50,14 +51,18 @@ namespace NetCore.Console.Server
 
 			while (true)
 			{
-				// Options();
-
-
-				// WriteLine("Press any key to continue...");
+				Options();
+			
+			
+				WriteLine("Press any key to continue...");
 				System.Console.Read();
-				// System.Console.Clear();
+				System.Console.Clear();
 			}
 
+			// System.Console.Read();
+			// 
+			// WriteLine("Total messages received and processed: " + totalmsg); 
+			// System.Console.Read();
 		}
 
 		// Handles the MessageContractA
@@ -365,6 +370,7 @@ namespace NetCore.Console.Server
 
 		private static void MessageReceived(IClientInfo client, string msg)
 		{
+			totalmsg++;
 			WriteLine("The server has received a message from client " + client.Id + " with name : " + client.ClientName +" and guid : " + client.Guid);
 			WriteLine("The client is running on " + client.OsVersion + " and UserDomainName = " + client.UserDomainName);
 
