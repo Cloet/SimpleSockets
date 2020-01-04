@@ -303,6 +303,7 @@ namespace SimpleSockets.Client
 			{
 				Close();
 				ConnectedMre.Reset();
+				Log("Reconnecting to server");
 				StartClient(Ip, Port, ReconnectInSeconds);
 			}
 		}
@@ -454,6 +455,7 @@ namespace SimpleSockets.Client
 		protected void RaiseConnected()
 		{
 			IsRunning = true;
+			KeepAliveTimer.Enabled = true;
 			ConnectedToServer?.Invoke(this);
 			_disconnectedInvoked = false;
 		}

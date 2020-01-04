@@ -4,7 +4,9 @@ using System.Reflection.Metadata.Ecma335;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
+using BasicLogger.Core.Logging;
 using MessageTesting;
+using Newtonsoft.Json;
 using SimpleSockets;
 using SimpleSockets.Client;
 using SimpleSockets.Messaging;
@@ -20,23 +22,22 @@ namespace NetCore.Console.Client
 		private static bool _compress;
 		private static MessageA _messageAContract;
 		private static ProgressBar progress;
+		private static ILogger extendedLogger = LogManager.GetLogger("Client logger " + Guid.NewGuid().ToString());
 
 		private static void Main(string[] args)
 		{
-			_encrypt = false;
-			_compress = false;
+			_encrypt = true;
+			_compress = true;
 
+			var jsonSer = new MessageTesting.JsonSerialization();
 			var xmlSer = new XmlSerialization();
 			var binSer = new BinarySerializer();
 
-			var cert = new X509Certificate2(File.ReadAllBytes(Path.GetFullPath(@"C:\Users\Cloet\Desktop\test.pfx")), "Password");
+			var cert = new X509Certificate2(File.ReadAllBytes(Path.GetFullPath(@"C:\Users\" + Environment.UserName + @"\Desktop\test.pfx")), "Password");
 
-			//_client = new SimpleSocketTcpClient();
 			_client = new SimpleSocketTcpSslClient(cert);
-			//_client = new SimpleSocketTcpSslClient(@"C:\Users\Cloet\Desktop\test.pfx", "Password");
-			//_client = new SimpleSocketUdpClient();
 
-			_client.ObjectSerializer = binSer;
+			_client.ObjectSerializer = jsonSer;
 			_client.EnableExtendedAuth = true;
 			_client.AllowReceivingFiles = true;
 
@@ -48,9 +49,9 @@ namespace NetCore.Console.Client
 			_messageAContract.OnMessageReceived += MessageAContractOnOnMessageReceived;
 
 			BindEvents();
+
+
 			_client.StartClient("127.0.0.1", 13000);
-
-
 			while (true)
 			{
 				Options();
@@ -61,32 +62,9 @@ namespace NetCore.Console.Client
 				System.Console.Clear();
 			}
 
-
-			// Task.Run(Sender);
-			// 
-			// while (true)
-			// {
-			// 	System.Console.Read();
-			// }
-
 		}
 
 
-		private static void Sender()
-		{
-			var txt = File.ReadAllText(@"C:\Users\Cloet\Desktop\TestData.txt");
-			long loop = 0;
-			while (true)
-			{
-				System.Console.WriteLine("Sending package " + ++loop);
-				var person = new Person("TestFromClient " + loop , "FirstName", "5th Avenue");
-				
-				_client.SendObjectAsync(person);
-				// _client.SendMessageAsync(txt);
-				Thread.Sleep(3);
-			}
-
-		}
 
 		//Event for MessageContract (MessageA)
 		//The clientId is only used on the server side. Here it will return -1
@@ -242,7 +220,6 @@ namespace NetCore.Console.Client
 		private static void ClientOnObjectReceived(SimpleSocketClient a, object obj, Type objType)
 		{
 			WriteLine("Received an object of type = " + objType.FullName);
-
 			if (obj.GetType() == typeof(Person))
 			{
 				var p = (Person)obj;
@@ -255,12 +232,12 @@ namespace NetCore.Console.Client
 
 		private static void ClientOnMessageUpdate(SimpleSocketClient a, string msg, string header, MessageType msgType, MessageState state)
 		{
-			//WriteLine("Sending message to client: msg = " + msg + ", header = " + header);
+			// WriteLine("Sending message to client: msg = " + msg + ", header = " + header);
 		}
 
 		private static void ClientOnMessageUpdateFileTransfer(SimpleSocketClient a, string origin, string loc, double percentageDone, MessageState state)
 		{
-			//WriteLine("Sending message to client: " + percentageDone + "%");
+			WriteLine("Sending message to server: " + percentageDone + "%");
 		}
 
 		private static void ClientOnFolderReceiver(SimpleSocketClient a, int currentPart, int totalParts, string loc, MessageState state)
@@ -382,11 +359,13 @@ namespace NetCore.Console.Client
 
 		private static void Write(string text)
 		{
+			extendedLogger.Debug(text);
 			System.Console.Write(text);
 		}
 
 		private static void WriteLine(string text)
 		{
+			extendedLogger.Debug(text);
 			System.Console.WriteLine(text);
 		}
 

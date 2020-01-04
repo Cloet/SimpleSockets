@@ -157,7 +157,8 @@ namespace SimpleSockets.Client
 			}
 			catch (Exception ex)
 			{
-				throw new Exception(ex.Message, ex);
+				RaiseErrorThrown(ex);
+				// throw new Exception(ex.Message, ex);
 			}
 		}
 
@@ -270,13 +271,9 @@ namespace SimpleSockets.Client
 				_sslStream.EndWrite(result);
 				_mreWriting.Set();
 			}
-			catch (SocketException se)
+			catch (Exception ex)
 			{
-				throw new SocketException(se.ErrorCode);
-			}
-			catch (ObjectDisposedException ode)
-			{
-				throw new ObjectDisposedException(ode.ObjectName, ode.Message);
+				RaiseErrorThrown(ex);
 			}
 			finally
 			{
