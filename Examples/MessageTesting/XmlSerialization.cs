@@ -14,15 +14,17 @@ namespace MessageTesting
 			try
 			{
 				XmlSerializer xmlSer = new XmlSerializer(anySerializableObject.GetType());
+				byte[] bytes;
 
 				using (var sww = new StringWriter())
 				{
 					using (XmlWriter writer = XmlWriter.Create(sww))
 					{
 						xmlSer.Serialize(writer, anySerializableObject);
-						return Encoding.UTF8.GetBytes(sww.ToString());
+						bytes = Encoding.UTF8.GetBytes(sww.ToString());
 					}
 				}
+				return bytes;
 			}
 			catch (Exception)
 			{

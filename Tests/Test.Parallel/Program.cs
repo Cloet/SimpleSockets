@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
+using System.IO;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 using SimpleSockets.Client;
@@ -10,6 +12,7 @@ namespace Test.Parallel
 {
 	class Program
 	{
+		private static X509Certificate2 cert = new X509Certificate2(File.ReadAllBytes(Path.GetFullPath(@"C:\Users\Cloet\Desktop\test.pfx")), "Password");
 		private static SimpleSocketListener _server;
 		private static Random _random = new Random((int) DateTime.Now.Ticks);
 		private static int _clientId;
@@ -52,7 +55,8 @@ namespace Test.Parallel
 
 		private static void StartServer()
 		{
-			_server = new SimpleSocketTcpListener();
+			_server = new SimpleSocketTcpSslListener(cert);
+			//_server = new SimpleSocketTcpListener();
 			//_server = new SimpleSocketTcpSslListener(@"C:\Users\CloetOMEN\Desktop\Test\cert.pfx", "Password");
 			_server.ServerHasStarted += ServerOnServerHasStarted;
 			_server.MessageReceived += ServerOnMessageReceived;
@@ -74,7 +78,8 @@ namespace Test.Parallel
 		{
 			//using (var client = new SimpleSocketTcpClient())
 			//{
-				var client = new SimpleSocketTcpClient();
+				var client = new SimpleSocketTcpSslClient(cert);
+				//var client = new SimpleSocketTcpClient();
 				//var client = new SimpleSocketTcpSslClient(@"", "");
 				_clientId++;
 				client.MessageReceived += ClientOnMessageReceived;

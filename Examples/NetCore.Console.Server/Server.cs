@@ -5,6 +5,7 @@ using System.Reflection.Metadata.Ecma335;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
+using BasicLogger.Core.Logging;
 using MessageTesting;
 using SimpleSockets;
 using SimpleSockets.Messaging;
@@ -21,24 +22,22 @@ namespace NetCore.Console.Server
 		private static bool _compress;
 		private static ProgressBar progress;
 		private static long totalmsg;
+		private static ILogger extendedLogger = LogManager.GetLogger("Server Logger");
 
 		private static void Main(string[] args)
 		{
-			_encrypt = false;
-			_compress = false;
+			_encrypt = true;
+			_compress = true;
 
+			var jsonSer = new JsonSerialization();
 			var xmlSer = new XmlSerialization();
 			var binSer = new BinarySerializer();
 
-			//_listener = new SimpleSocketUdpListener();
-			//_listener = new SimpleSocketTcpListener();
-
-			var cert = new X509Certificate2(File.ReadAllBytes(Path.GetFullPath(@"C:\Users\Cloet\Desktop\test.pfx")), "Password");
+			var cert = new X509Certificate2(File.ReadAllBytes(Path.GetFullPath(@"C:\Users\" + Environment.UserName + @"\Desktop\test.pfx")), "Password");
 
 			_listener = new SimpleSocketTcpSslListener(cert);
-			//_listener = new SimpleSocketTcpSslListener(@"C:\Users\Cloet\Desktop\test.pfx", "Password");
 
-			_listener.ObjectSerializer = binSer;
+			_listener.ObjectSerializer = jsonSer;
 			_listener.AllowReceivingFiles = true;
 			_messageAContract = new MessageA("MessageAHeader");
 			_listener.AddMessageContract(_messageAContract);
@@ -46,8 +45,6 @@ namespace NetCore.Console.Server
 
 			BindEvents();
 			_listener.StartListening(13000);
-
-
 
 			while (true)
 			{
@@ -58,11 +55,6 @@ namespace NetCore.Console.Server
 				System.Console.Read();
 				System.Console.Clear();
 			}
-
-			// System.Console.Read();
-			// 
-			// WriteLine("Total messages received and processed: " + totalmsg); 
-			// System.Console.Read();
 		}
 
 		// Handles the MessageContractA
@@ -197,7 +189,6 @@ namespace NetCore.Console.Server
 			var targetPath = System.Console.ReadLine();
 
 			await _listener.SendFileAsync(id, path, targetPath, _compress, _encrypt, false);
-			//_listener.SendFile(id,path, targetPath,_encrypt,true, false);
 		}
 
 		private static async void SendFolder()
@@ -248,7 +239,13 @@ namespace NetCore.Console.Server
 			_listener.ObjectReceived += ListenerOnObjectReceived;
 			_listener.MessageUpdateFileTransfer += ListenerOnMessageUpdateFileTransfer;
 			_listener.MessageUpdate += ListenerOnMessageUpdate;
+			_listener.ServerLogs += _listener_ServerLogs;
 
+		}
+
+		private static void _listener_ServerLogs(string log)
+		{
+			WriteLine(log);
 		}
 
 		private static void ListenerOnAuthFailure(IClientInfo client)
@@ -265,7 +262,7 @@ namespace NetCore.Console.Server
 
 		private static void ListenerOnMessageUpdate(IClientInfo client, string msg, string header, MessageType msgType, MessageState state)
 		{
-			//WriteLine("Sending message to client: msg = " + msg + ", header = " + header);
+			// WriteLine("Sending message to client: msg = " + msg + ", header = " + header);
 		}
 
 		private static void ListenerOnMessageUpdateFileTransfer(IClientInfo client, string origin, string loc, double percentageDone, MessageState state)
@@ -276,6 +273,7 @@ namespace NetCore.Console.Server
 
 		private static void ListenerOnObjectReceived(IClientInfo client, object obj, Type objType)
 		{
+		
 			WriteLine("Received an object of type = " + objType.FullName);
 
 			if (obj.GetType() == typeof(Person))
@@ -311,8 +309,6 @@ namespace NetCore.Console.Server
 					WriteLine("Folder Received.");
 				}
 			}
-
-
 
 			if (state == MessageState.Decrypting)
 				WriteLine("Decrypting Folder this might take a while.");
@@ -371,8 +367,8 @@ namespace NetCore.Console.Server
 		private static void MessageReceived(IClientInfo client, string msg)
 		{
 			totalmsg++;
-			WriteLine("The server has received a message from client " + client.Id + " with name : " + client.ClientName +" and guid : " + client.Guid);
-			WriteLine("The client is running on " + client.OsVersion + " and UserDomainName = " + client.UserDomainName);
+			//WriteLine("The server has received a message from client " + client.Id + " with name : " + client.ClientName +" and guid : " + client.Guid);
+			//WriteLine("The client is running on " + client.OsVersion + " and UserDomainName = " + client.UserDomainName);
 
 			WriteLine("The server has received a message from client " + client.Id + " the message reads: " + msg);
 		}
@@ -414,11 +410,13 @@ namespace NetCore.Console.Server
 
 		private static void Write(string text)
 		{
+			extendedLogger.Debug(text);
 			System.Console.Write(text);
 		}
 
 		private static void WriteLine(string text)
 		{
+			extendedLogger.Debug(text);
 			System.Console.WriteLine(text);
 		}
 

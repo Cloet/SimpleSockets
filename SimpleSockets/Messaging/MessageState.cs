@@ -13,6 +13,6 @@
 		CompressingDone=8,
 		EncryptingDone=9,
 		DecompressingDone=10,
-		DecryptingDone
+		DecryptingDone=11
 	}
 }

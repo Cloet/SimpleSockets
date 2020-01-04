@@ -10,4 +10,10 @@
     <ProjectReference Include="..\MessageTesting\MessageTesting.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Reference Include="BasicLogger.Core">
+      <HintPath>bin\Debug\netcoreapp2.0\BasicLogger.Core.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
 </Project>

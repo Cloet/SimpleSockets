@@ -387,7 +387,6 @@ namespace SimpleSockets.Messaging
 			{
 				if (MessageType != MessageType.File && MessageType != MessageType.Folder)
 				{
-
 					_socket.RaiseMessageUpdate(_sendClient, Encoding.UTF8.GetString(Data),HeaderFields[2] ? Encoding.UTF8.GetString(Header) : "", MessageType,
 						MessageState.Encrypting);
 					Log("Encrypting message...");
@@ -481,6 +480,7 @@ namespace SimpleSockets.Messaging
 
 			while (processing)
 			{
+				// Log( "ReadBytesAndBuildMessage:" + receive.ToString());
 				if (_state.Flag == 0)
 				{
 					DeconstructHeaderField(_state.Buffer[0]);
@@ -612,6 +612,7 @@ namespace SimpleSockets.Messaging
 
 			_state.AppendRead(receive);
 
+			// Log("ReadData:" + receive.ToString());
 			if (_state.Read > _receivingMessageLength)
 			{
 				int extraRead = _state.Read - _receivingMessageLength;
@@ -630,20 +631,14 @@ namespace SimpleSockets.Messaging
 			else if (_state.Read == _receivingMessageLength)
 			{
 				_state.Flag = -2;
+				bytes = new byte[receive];
 				Array.Copy(_state.Buffer, 0, bytes, 0, bytes.Length);
 				_state.ChangeBuffer(new byte[0]);
 			}
 			else
 			{
-				if (_state.Buffer.Length == _state.BufferSize)
-				{
-					bytes = _state.Buffer;
-				}
-				else
-				{
-					bytes = new byte[_state.Buffer.Length];
-					Array.Copy(_state.Buffer, 0, bytes, 0, bytes.Length);
-				}
+				bytes = new byte[receive];
+				Array.Copy(_state.Buffer, 0, bytes, 0, bytes.Length);
 				_state.ChangeBuffer(new byte[0]);
 			}
 

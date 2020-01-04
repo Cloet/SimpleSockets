@@ -165,7 +165,8 @@ namespace SimpleSockets.Server
 						{
 							ConnectedClients.Remove(id);
 						}
-						throw new AuthenticationException("Unable to authenticate server.");
+						RaiseLog("Unable to authenticate server.");
+						// throw new AuthenticationException("Unable to authenticate server.");
 					}
 
 				}, new CancellationTokenSource(10000).Token);
@@ -251,8 +252,13 @@ namespace SimpleSockets.Server
 			}
 			catch (Exception ex)
 			{
-				RaiseLog("A message failed to send to client with ip: " + message.State.RemoteIPv4);
-				RaiseMessageFailed(message.State, message.Data, ex);
+				if (message.State != null)
+				{
+					RaiseLog("A message failed to send to client with ip: " + message.State?.RemoteIPv4);
+					RaiseMessageFailed(message.State, message.Data, ex);
+				}
+				else
+					RaiseLog("Faild to send a message to client.");
 			}
 		}
 
