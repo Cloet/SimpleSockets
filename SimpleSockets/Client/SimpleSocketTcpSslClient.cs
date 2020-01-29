@@ -153,10 +153,13 @@ namespace SimpleSockets.Client
 				DisposeSslStream();
 
 				Thread.Sleep(ReconnectInSeconds * 1000);
-				Listener.BeginConnect(Endpoint, OnConnectCallback, Listener);
+				if (!Token.IsCancellationRequested && !Disposed)
+					Listener.BeginConnect(Endpoint, OnConnectCallback, Listener);
 			}
 			catch (Exception ex)
 			{
+				DisposeSslStream();
+				Dispose();
 				RaiseErrorThrown(ex);
 				// throw new Exception(ex.Message, ex);
 			}
@@ -339,20 +342,32 @@ namespace SimpleSockets.Client
 				var receive = state.SslStream.EndRead(result);
 				_mreRead.Set();
 
-				if (state.UnhandledBytes != null && state.UnhandledBytes.Length > 0)
-				{
-					receive += state.UnhandledBytes.Length;
-					state.UnhandledBytes = null;
+				// if 0 bytes are received this mostly means the socket has been closed => timeout etc...
+				if (receive == 0) {
+					if (!IsConnected()) {
+						Log("Client has been closed due to timeout.");
+						RaiseDisconnected();
+						Dispose();
+						return;
+					}
 				}
 
-				if (state.Flag == 0)
-				{
-					if (state.SimpleMessage == null)
-						state.SimpleMessage = new SimpleMessage(state, this, Debug);
-					await state.SimpleMessage.ReadBytesAndBuildMessage(receive);
+				if (receive > 0) {
+					if (state.UnhandledBytes != null && state.UnhandledBytes.Length > 0)
+					{
+						receive += state.UnhandledBytes.Length;
+						state.UnhandledBytes = null;
+					}
+
+					if (state.Flag == 0)
+					{
+						if (state.SimpleMessage == null)
+							state.SimpleMessage = new SimpleMessage(state, this, Debug);
+						await state.SimpleMessage.ReadBytesAndBuildMessage(receive);
+					}
+					else if (receive > 0)
+						await state.SimpleMessage.ReadBytesAndBuildMessage(receive);
 				}
-				else if (receive > 0)
-					await state.SimpleMessage.ReadBytesAndBuildMessage(receive);
 
 				_mreReceiving.Set();
 				// Receive(state, state.Buffer.Length);

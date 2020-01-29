@@ -328,9 +328,10 @@ namespace SimpleSockets.Server
 			try
 			{
 				var firstRead = true;
-
+				
 				while (!Token.IsCancellationRequested)
 				{
+					state.MreTimeout.Reset();
 					state.MreReceiving.WaitOne();
 					state.MreReceiving.Reset();
 
@@ -353,21 +354,40 @@ namespace SimpleSockets.Server
 					state.MreRead.WaitOne();
 					state.MreRead.Reset();
 					sslStream.BeginRead(state.Buffer, offset, state.BufferSize - offset, ReceiveCallback, state);
+					if (!state.MreTimeout.WaitOne(Timeout, false)) { 
+						throw new SocketException((int) SocketError.TimedOut);
+					}
 				}
+			}
+			catch (SocketException se) {
+				if (se.SocketErrorCode == SocketError.TimedOut)
+				{
+					Log("Socket has timed out.");
+					RaiseClientTimedOut(state);
+				}
+				else
+					RaiseErrorThrown(se);
 			}
 			catch (Exception ex)
 			{
-				Log(ex);
-				Log("Error trying to receive from client " + state.Id);
-				throw new Exception(ex.Message, ex);
+				Log("Error trying to receive from client with id:" + state.Id + " and Guid: " + state.Guid);
+				RaiseErrorThrown(ex);
+			}
+			finally {
+				Log("Closing socket from client with id:" + state.Id + " and Guid: " + state.Guid);
+				Close(state.Id);
+				Log("Socket from client with id:" + state.Id + " and Guid: " + state.Guid +" has been closed.");
 			}
 		}
 
 		protected override async void ReceiveCallback(IAsyncResult result)
 		{
 			var state = (ClientMetadata)result.AsyncState;
+			state.MreTimeout.Set();
 			try
 			{
+				if (state.Listener == null)
+					return;
 
 				//Check if client is still connected.
 				//If client is disconnected, send disconnected message
@@ -402,17 +422,16 @@ namespace SimpleSockets.Server
 
 					state.MreReceiving.Set();
 					state.MreRead.Set();
-					// Receive(state, state.Buffer.Length);
 				}
 			}
 			catch (Exception ex)
 			{
 				state.Reset();
-				RaiseLog(ex);
-				RaiseLog("Error handling message from client with guid : " + state.Guid  + ".");
+				Log(ex);
+				Log("Error handling message from client with guid : " + state.Guid  + ".");
 				state.MreReceiving.Set();
+				state.MreRead.Set();
 				RaiseErrorThrown(ex);
-				// Receive(state);
 			}
 		}
 

@@ -46,7 +46,7 @@ namespace SimpleSockets.Messaging.Metadata
 			Listener = listener;
 			MreRead = new ManualResetEvent(false);
 			MreReceiving = new ManualResetEvent(true);
-
+			MreTimeout = new ManualResetEvent(false);
 
 			SetIps();
 
@@ -92,6 +92,8 @@ namespace SimpleSockets.Messaging.Metadata
 		public ManualResetEvent MreRead { get; set; }
 
 		public ManualResetEvent MreReceiving { get; set; }
+
+		public ManualResetEvent MreTimeout { get; set; }
 
 		/// <summary>
 		/// How many bytes have been read
@@ -152,7 +154,7 @@ namespace SimpleSockets.Messaging.Metadata
 		/// <summary>
 		/// Returns the listener socket
 		/// </summary>
-		public Socket Listener { get; }
+		public Socket Listener { get; private set; }
 
 		/// <summary>
 		/// Gets how much bytes have been received.
@@ -217,6 +219,14 @@ namespace SimpleSockets.Messaging.Metadata
 			// MreReceiving.Set();
 			Read = 0;
 			Flag = 0;
+		}
+
+		public void DisposeListener() {
+			if (Listener != null) {
+				Listener.Shutdown(SocketShutdown.Both);
+				Listener.Close();
+				Listener = null;
+			}
 		}
 
 	}

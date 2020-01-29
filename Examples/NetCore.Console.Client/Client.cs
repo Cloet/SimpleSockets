@@ -35,7 +35,9 @@ namespace NetCore.Console.Client
 
 			var cert = new X509Certificate2(File.ReadAllBytes(Path.GetFullPath(@"C:\Users\" + Environment.UserName + @"\Desktop\test.pfx")), "Password");
 
-			_client = new SimpleSocketTcpSslClient(cert);
+
+			//_client = new SimpleSocketTcpSslClient(cert);
+			_client = new SimpleSocketTcpClient();
 
 			_client.ObjectSerializer = jsonSer;
 			_client.EnableExtendedAuth = true;
@@ -49,7 +51,6 @@ namespace NetCore.Console.Client
 			_messageAContract.OnMessageReceived += MessageAContractOnOnMessageReceived;
 
 			BindEvents();
-
 
 			_client.StartClient("127.0.0.1", 13000);
 			while (true)

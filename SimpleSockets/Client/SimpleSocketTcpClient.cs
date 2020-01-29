@@ -115,6 +115,7 @@ namespace SimpleSockets.Client
 			}
 			catch (Exception ex)
 			{
+				Dispose();
 				RaiseErrorThrown(ex);
 			}
 		}
@@ -177,41 +178,47 @@ namespace SimpleSockets.Client
 
 		protected internal override void Receive(IClientMetadata state, int offset = 0)
 		{
-			bool firstRead = true;
+			try {
 
-			while (!Token.IsCancellationRequested)
-			{
-				_mreReceiving.WaitOne();
-				_mreReceiving.Reset();
-
-				if (!firstRead)
-					offset = state.Buffer.Length;
-
-				if (offset > 0)
+				bool firstRead = true;
+				while (!Token.IsCancellationRequested)
 				{
-					state.UnhandledBytes = state.Buffer;
-				}
+					_mreReceiving.WaitOne();
+					_mreReceiving.Reset();
 
-				if (state.Buffer.Length < state.BufferSize)
-				{
-					state.ChangeBuffer(new byte[state.BufferSize]);
+					if (!firstRead)
+						offset = state.Buffer.Length;
+
 					if (offset > 0)
-						Array.Copy(state.UnhandledBytes, 0, state.Buffer, 0, state.UnhandledBytes.Length);
+					{
+						state.UnhandledBytes = state.Buffer;
+					}
+
+					if (state.Buffer.Length < state.BufferSize)
+					{
+						state.ChangeBuffer(new byte[state.BufferSize]);
+						if (offset > 0)
+							Array.Copy(state.UnhandledBytes, 0, state.Buffer, 0, state.UnhandledBytes.Length);
+					}
+
+					firstRead = false;
+
+					state.Listener.BeginReceive(state.Buffer, offset, state.BufferSize - offset, SocketFlags.None, this.ReceiveCallback, state);
 				}
-
-				firstRead = false;
-
-				state.Listener.BeginReceive(state.Buffer, offset, state.BufferSize - offset, SocketFlags.None, this.ReceiveCallback, state);
 			}
+			catch (Exception ex) {
+				throw new Exception(ex.Message, ex);
+			}
+
 		}
 
 		protected override async void ReceiveCallback(IAsyncResult result)
 		{
-			if (!IsConnected())
-			{
-				RaiseLog(new Exception("Socket is not connected, can't receive messages."));
-				return;
-			}
+			// if (!IsConnected())
+			// {
+			// 	RaiseLog(new Exception("Socket is not connected, can't receive messages."));
+			// 	return;
+			// }
 
 			var state = (ClientMetadata)result.AsyncState;
 			try
@@ -219,22 +226,37 @@ namespace SimpleSockets.Client
 
 				var receive = state.Listener.EndReceive(result);
 
-				if (state.UnhandledBytes != null && state.UnhandledBytes.Length > 0)
+				// if 0 bytes are received this mostly means the socket has been closed => timeout etc...
+				if (receive == 0)
 				{
-					receive += state.UnhandledBytes.Length;
-					state.UnhandledBytes = null;
+					if (!IsConnected())
+					{
+						Log("Client has been closed due to timeout.");
+						RaiseDisconnected();
+						Close();
+						Dispose();
+						return;
+					}
 				}
 
-				//Does header check
-				if (state.Flag == 0)
-				{
-					if (state.SimpleMessage == null)
-						state.SimpleMessage = new SimpleMessage(state, this, true);
-					await state.SimpleMessage.ReadBytesAndBuildMessage(receive);
-				}
-				else if (receive > 0)
-				{
-					await state.SimpleMessage.ReadBytesAndBuildMessage(receive);
+				if (receive > 0) {
+					if (state.UnhandledBytes != null && state.UnhandledBytes.Length > 0)
+					{
+						receive += state.UnhandledBytes.Length;
+						state.UnhandledBytes = null;
+					}
+
+					//Does header check
+					if (state.Flag == 0)
+					{
+						if (state.SimpleMessage == null)
+							state.SimpleMessage = new SimpleMessage(state, this, true);
+						await state.SimpleMessage.ReadBytesAndBuildMessage(receive);
+					}
+					else if (receive > 0)
+					{
+						await state.SimpleMessage.ReadBytesAndBuildMessage(receive);
+					}
 				}
 
 				_mreReceiving.Set();
@@ -245,7 +267,6 @@ namespace SimpleSockets.Client
 				state.Reset();
 				RaiseErrorThrown(ex);
 				_mreReceiving.Set();
-				// Receive(state);
 			}
 		}
 		
