@@ -52,5 +52,6 @@
 		/// </summary>
 		string LocalIPv6 { get; }
 
+
 	}
 }

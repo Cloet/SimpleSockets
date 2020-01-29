@@ -68,7 +68,7 @@ namespace SimpleSockets.Client
 
 		//--Public
 		/// <summary>
-		/// This is how many seconds te client waits to try and reconnect to the server
+		/// This is how many seconds the client waits to try and reconnect to the server
 		/// </summary>
 		public int ReconnectInSeconds { get; protected set; }
 
@@ -184,9 +184,6 @@ namespace SimpleSockets.Client
 			KeepAliveTimer.Elapsed += KeepAlive;
 			KeepAliveTimer.AutoReset = true;
 			KeepAliveTimer.Enabled = false;
-
-
-			//SendBasicAuthMessage();
 		}
 
 		#endregion
@@ -254,8 +251,8 @@ namespace SimpleSockets.Client
 		{
 			if (!Disposed)
 			{
-				Disposed = true;
 				Close();
+				Disposed = true;
 				ConnectedMre.Dispose();
 				SentMre.Dispose();
 				KeepAliveTimer.Enabled = false;
@@ -294,6 +291,11 @@ namespace SimpleSockets.Client
 		//Timer that tries reconnecting every x seconds
 		private void KeepAlive(object source, ElapsedEventArgs e)
 		{
+			if (Disposed) {
+				KeepAliveTimer.Stop();
+				return;
+			}
+
 			if (Token.IsCancellationRequested)
 			{
 				Close();

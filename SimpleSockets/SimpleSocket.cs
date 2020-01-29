@@ -576,13 +576,11 @@ namespace SimpleSockets
 		protected internal void Log(string log)
 		{
 			RaiseLog(log);
-			//Console.WriteLine(log);
 		}
 
 		protected internal void Log(Exception ex)
 		{
 			RaiseLog(ex);
-			//Console.WriteLine(ex.Message);
 		}
 
 		#endregion

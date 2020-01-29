@@ -28,6 +28,8 @@ namespace SimpleSockets.Messaging.Metadata
 
 		ManualResetEvent MreReceiving { get; }
 
+		ManualResetEvent MreTimeout { get; }
+
 		/// <summary>
 		/// get how much bytes have been read.
 		/// </summary>
@@ -86,6 +88,8 @@ namespace SimpleSockets.Messaging.Metadata
 		/// </summary>
 		/// <param name="bytes"></param>
 		void AppendBytes(byte[] bytes);
+
+		void DisposeListener();
 
 	}
 }

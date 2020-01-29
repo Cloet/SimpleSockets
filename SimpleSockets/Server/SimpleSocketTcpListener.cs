@@ -88,7 +88,6 @@ namespace SimpleSockets.Server
 
 					state = new ClientMetadata(((Socket)result.AsyncState).EndAccept(result), id);
 
-
 					//If the server shouldn't accept the IP do nothing.
 					if (!IsConnectionAllowed(state))
 						return;
@@ -125,39 +124,70 @@ namespace SimpleSockets.Server
 
 		protected internal override void Receive(IClientMetadata state, int offset = 0)
 		{
-			var firstRead = true;
+			try {
+				var firstRead = true;
 
-			while (!Token.IsCancellationRequested)
-			{
-				state.MreReceiving.WaitOne();
-				state.MreReceiving.Reset();
-
-				if (!firstRead)
-					offset = state.Buffer.Length;
-
-				if (offset > 0)
+				while (!Token.IsCancellationRequested)
 				{
-					state.UnhandledBytes = state.Buffer;
-				}
+					state.MreTimeout.Reset();
+					state.MreReceiving.WaitOne();
+					state.MreReceiving.Reset();
 
-				if (state.Buffer.Length < state.BufferSize)
-				{
-					state.ChangeBuffer(new byte[state.BufferSize]);
+					if (!firstRead)
+						offset = state.Buffer.Length;
+
 					if (offset > 0)
-						Array.Copy(state.UnhandledBytes, 0, state.Buffer, 0, state.UnhandledBytes.Length);
+					{
+						state.UnhandledBytes = state.Buffer;
+					}
+
+					if (state.Buffer.Length < state.BufferSize)
+					{
+						state.ChangeBuffer(new byte[state.BufferSize]);
+						if (offset > 0)
+							Array.Copy(state.UnhandledBytes, 0, state.Buffer, 0, state.UnhandledBytes.Length);
+					}
+
+					firstRead = false;
+
+					state.Listener.BeginReceive(state.Buffer, offset, state.BufferSize - offset, SocketFlags.None, ReceiveCallback, state);
+					if (!state.MreTimeout.WaitOne(Timeout, false))
+					{
+						throw new SocketException((int)SocketError.TimedOut);
+					}
 				}
-
-				firstRead = false;
-
-				state.Listener.BeginReceive(state.Buffer, offset, state.BufferSize - offset, SocketFlags.None, ReceiveCallback, state);
+			}
+			catch (SocketException se)
+			{
+				if (se.SocketErrorCode == SocketError.TimedOut)
+				{
+					Log("Socket has timed out.");
+					RaiseClientTimedOut(state);
+				}
+				else
+					RaiseErrorThrown(se);
+			}
+			catch (Exception ex)
+			{
+				Log("Error trying to receive from client with id:" + state.Id + " and Guid: " + state.Guid);
+				RaiseErrorThrown(ex);
+			}
+			finally
+			{
+				Log("Closing socket from client with id:" + state.Id + " and Guid: " + state.Guid);
+				Close(state.Id);
+				Log("Socket from client with id:" + state.Id + " and Guid: " + state.Guid + " has been closed.");
 			}
 		}
 
 		protected override async void ReceiveCallback(IAsyncResult result)
 		{
 			var state = (ClientMetadata)result.AsyncState;
+			state.MreTimeout.Set();
 			try
 			{
+				if (state.Listener == null)
+					return;
 
 				//Check if client is still connected.
 				//If client is disconnected, send disconnected message
@@ -192,7 +222,7 @@ namespace SimpleSockets.Server
 						await ParallelQueue.Enqueue(() => state.SimpleMessage.ReadBytesAndBuildMessage(receive));
 					}
 
-					// Receive(state, state.Buffer.Length);
+					state.MreReceiving.Set();
 				}
 			}
 			catch (Exception ex)
