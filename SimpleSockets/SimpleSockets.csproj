@@ -4,10 +4,10 @@
     <TargetFramework>netstandard2.0</TargetFramework>
     <Description>Stable Release of an Async Client Server implementation supporting Ssl.
 See https://github.com/Cloet/SimpleSockets for more info.</Description>
-    <PackageId>AsyncClientServer</PackageId>
+    <PackageId>SimpleSockets</PackageId>
     <Version>1.1.2</Version>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    <PackageTags>AsyncClientServer Tcp Ssl Socket</PackageTags>
+    <PackageTags>SimpleSockets AsyncClientServer Tcp Ssl Socket</PackageTags>
     <PackageProjectUrl>https://github.com/Cloet/SimpleSockets</PackageProjectUrl>
     <RepositoryUrl>https://github.com/Cloet/SimpleSockets</RepositoryUrl>
     <RepositoryType>open source</RepositoryType>
