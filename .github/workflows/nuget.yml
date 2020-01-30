@@ -16,7 +16,7 @@ jobs:
     - run: dotnet build SimpleSockets --configuration Release
     - name: Publish nuget
       run: |
-           for f in ./[repository]/bin/Release/*.nupkg
+           for f in ./bin/Release/*.nupkg
            do
             dotnet nuget push $f -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
            done
