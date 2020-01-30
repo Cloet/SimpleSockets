@@ -10,12 +10,15 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
     - name: Build with dotnet
-      run: dotnet build --configuration Release ${GITHUB_REF:10}
-      shell: bash
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '3.1.100' # SDK Version to use.
+    - run: dotnet build SimpleSockets --configuration Release
+    - run: dotnet pack SimpleSockets --configuration Release -p:Version=${GITHUB_REF:11}-build-$(date +%Y%m%d)
     - name: Publish nuget
       run: |
-           for f in ./[repository]/bin/Release/*.nupkg
+           for f in ./SimpleSockets/bin/Release/*.nupkg
            do
-            curl -vX PUT -u "[user]:${{ secrets.NUGET_API_KEY }}" -F package=@$f https://nuget.pkg.github.com/[user]/
+            dotnet nuget push $f -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
            done
       shell: bash
