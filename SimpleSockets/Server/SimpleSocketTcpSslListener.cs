@@ -354,7 +354,7 @@ namespace SimpleSockets.Server
 					state.MreRead.WaitOne();
 					state.MreRead.Reset();
 					sslStream.BeginRead(state.Buffer, offset, state.BufferSize - offset, ReceiveCallback, state);
-					if (!state.MreTimeout.WaitOne(Timeout, false)) { 
+					if (Timeout.TotalMilliseconds > 0 && !state.MreTimeout.WaitOne((int)Timeout.TotalMilliseconds, false)) { 
 						throw new SocketException((int) SocketError.TimedOut);
 					}
 				}
@@ -386,26 +386,17 @@ namespace SimpleSockets.Server
 			state.MreTimeout.Set();
 			try
 			{
-				if (state.Listener == null)
+
+				// Listener has already been disposed of.
+				if (state.Listener == null || state.SslStream != null) {
+					Log("Unable to read sslstream, client has been disposed.");
 					return;
-
-				//Check if client is still connected.
-				//If client is disconnected, send disconnected message
-				//and remove from clients list
-				if (!IsConnected(state.Id))
-				{
-					RaiseClientDisconnected(state);
-					lock (ConnectedClients)
-					{
-						ConnectedClients.Remove(state.Id);
-					}
 				}
-				//Else start receiving and handle the message.
-				else
+
+				var receive = state.SslStream.EndRead(result);
+
+				if (receive > 0)
 				{
-
-					var receive = state.SslStream.EndRead(result);
-
 					if (state.UnhandledBytes != null && state.UnhandledBytes.Length > 0)
 					{
 						receive += state.UnhandledBytes.Length;
@@ -417,21 +408,31 @@ namespace SimpleSockets.Server
 						if (state.SimpleMessage == null)
 							state.SimpleMessage = new SimpleMessage(state, this, Debug);
 						await ParallelQueue.Enqueue(() => state.SimpleMessage.ReadBytesAndBuildMessage(receive));
-					}else if (receive > 0)
+					}
+					else if (receive > 0)
 						await ParallelQueue.Enqueue(() => state.SimpleMessage.ReadBytesAndBuildMessage(receive));
-
-					state.MreReceiving.Set();
-					state.MreRead.Set();
 				}
+
+				Log("Received " + receive + "bytes from client with id: " + state.Id + " and guid:" + state.Guid);
+
+			}
+			catch (SocketException se) {
+				state.Reset();
+				RaiseErrorThrown(se);
+				Log("Client with id: " + state.Id + " and guid:" + state.Guid + " has thrown a socketerror.");
+				Log(se);
 			}
 			catch (Exception ex)
 			{
 				state.Reset();
+				Log("Error handling message from client with guid : " + state.Guid + ".");
 				Log(ex);
-				Log("Error handling message from client with guid : " + state.Guid  + ".");
+				RaiseErrorThrown(ex);
+			}
+			finally
+			{
 				state.MreReceiving.Set();
 				state.MreRead.Set();
-				RaiseErrorThrown(ex);
 			}
 		}
 

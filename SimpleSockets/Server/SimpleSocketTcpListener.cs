@@ -151,10 +151,9 @@ namespace SimpleSockets.Server
 					firstRead = false;
 
 					state.Listener.BeginReceive(state.Buffer, offset, state.BufferSize - offset, SocketFlags.None, ReceiveCallback, state);
-					if (!state.MreTimeout.WaitOne(Timeout, false))
-					{
+					if (Timeout.TotalMilliseconds > 0 && !state.MreTimeout.WaitOne((int)Timeout.TotalMilliseconds, false))
 						throw new SocketException((int)SocketError.TimedOut);
-					}
+
 				}
 			}
 			catch (SocketException se)
@@ -186,25 +185,19 @@ namespace SimpleSockets.Server
 			state.MreTimeout.Set();
 			try
 			{
+				// Listener has already been disposed of.
 				if (state.Listener == null)
+				{
+					Log("Unable to receive data from client, client has been disposed.");
 					return;
-
-				//Check if client is still connected.
-				//If client is disconnected, send disconnected message
-				//and remove from clients list
-				if (!IsConnected(state.Id))
-				{
-					RaiseClientDisconnected(state);
-					lock (ConnectedClients)
-					{
-						ConnectedClients.Remove(state.Id);
-					}
 				}
-				//Else start receiving and handle the message.
-				else
-				{
-					var receive = state.Listener.EndReceive(result);
 
+				var receive = state.Listener.EndReceive(result, out var soError);
+
+				if (soError != SocketError.Success)
+					throw new SocketException((int)soError);
+
+				if (receive > 0) {
 					if (state.UnhandledBytes != null && state.UnhandledBytes.Length > 0)
 					{
 						receive += state.UnhandledBytes.Length;
@@ -217,22 +210,32 @@ namespace SimpleSockets.Server
 						if (state.SimpleMessage == null)
 							state.SimpleMessage = new SimpleMessage(state, this, Debug);
 						await ParallelQueue.Enqueue(() => state.SimpleMessage.ReadBytesAndBuildMessage(receive));
-					}else if (receive > 0)
+					}
+					else if (receive > 0)
 					{
 						await ParallelQueue.Enqueue(() => state.SimpleMessage.ReadBytesAndBuildMessage(receive));
 					}
-
-					state.MreReceiving.Set();
 				}
+
+				Log("Received " + receive + "bytes from client with id: " + state.Id + " and guid:" + state.Guid);
+
+			}
+			catch (SocketException se)
+			{
+				state.Reset();
+				RaiseErrorThrown(se);
+				Log("Client with id: " + state.Id + " and guid:" + state.Guid + " has thrown a socketerror.");
+				Log(se);
 			}
 			catch (Exception ex)
 			{
 				state.Reset();
 				RaiseErrorThrown(ex);
-				RaiseLog(ex);
-				RaiseLog("Error handling message from client with guid : " + state.Guid + ".");
+				Log("Error handling message from client with guid : " + state.Guid + ".");
+				Log(ex);
+			}
+			finally {
 				state.MreReceiving.Set();
-				// Receive(state, state.Buffer.Length);
 			}
 		}
 

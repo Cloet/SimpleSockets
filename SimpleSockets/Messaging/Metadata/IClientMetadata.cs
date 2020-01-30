@@ -24,10 +24,19 @@ namespace SimpleSockets.Messaging.Metadata
 		/// </summary>
 		SslStream SslStream { get; set; }
 
+		/// <summary>
+		/// Manual reset event used to check when a client is busy reading data.
+		/// </summary>
 		ManualResetEvent MreRead { get; }
 
+		/// <summary>
+		/// Manual reset event used to check if a client is busy receiving data
+		/// </summary>
 		ManualResetEvent MreReceiving { get; }
 
+		/// <summary>
+		/// Manual reset event used to check if a client has timed out.
+		/// </summary>
 		ManualResetEvent MreTimeout { get; }
 
 		/// <summary>
@@ -89,6 +98,9 @@ namespace SimpleSockets.Messaging.Metadata
 		/// <param name="bytes"></param>
 		void AppendBytes(byte[] bytes);
 
+		/// <summary>
+		/// Disposes the listener object.
+		/// </summary>
 		void DisposeListener();
 
 	}

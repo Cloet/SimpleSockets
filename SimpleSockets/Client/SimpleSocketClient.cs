@@ -228,10 +228,8 @@ namespace SimpleSockets.Client
 				TokenSource.Cancel();
 				IsRunning = false;
 
-				if (!IsConnected())
-				{
+				if (Listener == null)
 					return;
-				}
 
 				Listener.Shutdown(SocketShutdown.Both);
 				Listener.Close();
@@ -255,8 +253,8 @@ namespace SimpleSockets.Client
 				Disposed = true;
 				ConnectedMre.Dispose();
 				SentMre.Dispose();
+				KeepAliveTimer.Stop();
 				KeepAliveTimer.Enabled = false;
-				//KeepAliveTimer.Dispose();
 				GC.SuppressFinalize(this);
 			}
 		}
@@ -291,11 +289,6 @@ namespace SimpleSockets.Client
 		//Timer that tries reconnecting every x seconds
 		private void KeepAlive(object source, ElapsedEventArgs e)
 		{
-			if (Disposed) {
-				KeepAliveTimer.Stop();
-				return;
-			}
-
 			if (Token.IsCancellationRequested)
 			{
 				Close();

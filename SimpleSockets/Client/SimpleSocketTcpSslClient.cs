@@ -339,12 +339,20 @@ namespace SimpleSockets.Client
 			var state = (ClientMetadata)result.AsyncState;
 			try
 			{
+				if (state.SslStream == null)
+				{
+					Log("Unable to read data from sslstream, the stream has been disposed.");
+					return;
+				}
+
 				var receive = state.SslStream.EndRead(result);
 				_mreRead.Set();
 
 				// if 0 bytes are received this mostly means the socket has been closed => timeout etc...
-				if (receive == 0) {
-					if (!IsConnected()) {
+				if (receive == 0)
+				{
+					if (!IsConnected())
+					{
 						Log("Client has been closed due to timeout.");
 						RaiseDisconnected();
 						Dispose();
@@ -352,7 +360,8 @@ namespace SimpleSockets.Client
 					}
 				}
 
-				if (receive > 0) {
+				if (receive > 0)
+				{
 					if (state.UnhandledBytes != null && state.UnhandledBytes.Length > 0)
 					{
 						receive += state.UnhandledBytes.Length;
@@ -369,17 +378,16 @@ namespace SimpleSockets.Client
 						await state.SimpleMessage.ReadBytesAndBuildMessage(receive);
 				}
 
-				_mreReceiving.Set();
-				// Receive(state, state.Buffer.Length);
 			}
 			catch (Exception ex)
 			{
-				_mreReceiving.Set();
 				_mreRead.Set();
 				state.Reset();
 				DisposeSslStream();
 				RaiseErrorThrown(ex);
-				// Receive(state);
+			}
+			finally {
+				_mreReceiving.Set();
 			}
 		}
 
@@ -394,8 +402,8 @@ namespace SimpleSockets.Client
 			try
 			{
 				base.Dispose();
-				_mreRead.Dispose();
-				_mreWriting.Dispose();
+				// _mreRead.Dispose();
+				// _mreWriting.Dispose();
 			}
 			catch (Exception ex)
 			{
