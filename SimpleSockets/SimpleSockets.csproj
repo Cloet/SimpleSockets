@@ -10,8 +10,7 @@ See https://github.com/Cloet/SimpleSockets for more info.</Description>
     <PackageProjectUrl>https://github.com/Cloet/SimpleSockets</PackageProjectUrl>
     <RepositoryUrl>https://github.com/Cloet/SimpleSockets</RepositoryUrl>
     <RepositoryType>open source</RepositoryType>
-    <PackageReleaseNotes>First stable release.
-Added a lot of features and stability.</PackageReleaseNotes>
+    <PackageReleaseNotes></PackageReleaseNotes>
     <SignAssembly>false</SignAssembly>
     <AssemblyVersion>1.1.2.0</AssemblyVersion>
     <FileVersion>1.1.2.0</FileVersion>
