@@ -234,7 +234,6 @@ namespace SimpleSockets.Client
 						Log("Client has been closed due to timeout.");
 						RaiseDisconnected();
 						Close();
-						Dispose();
 						return;
 					}
 				}

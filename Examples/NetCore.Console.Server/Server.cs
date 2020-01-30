@@ -37,7 +37,7 @@ namespace NetCore.Console.Server
 
 			// _listener = new SimpleSocketTcpSslListener(cert);
 			_listener = new SimpleSocketTcpListener();
-			_listener.Timeout = new TimeSpan(0, 0, 5);
+			_listener.Timeout = new TimeSpan(0,5,0);
 
 			_listener.ObjectSerializer = jsonSer;
 			_listener.AllowReceivingFiles = true;
