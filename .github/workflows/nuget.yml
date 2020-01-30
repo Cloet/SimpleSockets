@@ -18,6 +18,6 @@ jobs:
       run: |
            for f in ./[repository]/bin/Release/*.nupkg
            do
-            curl -vX PUT -u "[user]:${{ secrets.NUGET_API_KEY }}" -F package=@$f https://nuget.pkg.github.com/[user]/
+            dotnet nuget push $f -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
            done
       shell: bash
