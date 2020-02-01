@@ -402,8 +402,8 @@ namespace SimpleSockets.Client
 			try
 			{
 				base.Dispose();
-				// _mreRead.Dispose();
-				// _mreWriting.Dispose();
+				_mreRead.Dispose();
+				_mreWriting.Dispose();
 			}
 			catch (Exception ex)
 			{
