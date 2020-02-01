@@ -388,7 +388,7 @@ namespace SimpleSockets.Server
 			{
 
 				// Listener has already been disposed of.
-				if (state.Listener == null || state.SslStream != null) {
+				if (state.Listener == null || state.SslStream == null) {
 					Log("Unable to read sslstream, client has been disposed.");
 					return;
 				}
@@ -415,6 +415,9 @@ namespace SimpleSockets.Server
 
 				Log("Received " + receive + "bytes from client with id: " + state.Id + " and guid:" + state.Guid);
 
+				state.MreReceiving.Set();
+				state.MreRead.Set();
+
 			}
 			catch (SocketException se) {
 				state.Reset();
@@ -428,11 +431,6 @@ namespace SimpleSockets.Server
 				Log("Error handling message from client with guid : " + state.Guid + ".");
 				Log(ex);
 				RaiseErrorThrown(ex);
-			}
-			finally
-			{
-				state.MreReceiving.Set();
-				state.MreRead.Set();
 			}
 		}
 

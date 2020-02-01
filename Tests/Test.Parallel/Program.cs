@@ -55,8 +55,8 @@ namespace Test.Parallel
 
 		private static void StartServer()
 		{
-			//_server = new SimpleSocketTcpSslListener(cert);
-			_server = new SimpleSocketTcpListener();
+			_server = new SimpleSocketTcpSslListener(cert);
+			//_server = new SimpleSocketTcpListener();
 			_server.Timeout = new TimeSpan(1, 0, 0);
 			//_server = new SimpleSocketTcpSslListener(@"C:\Users\CloetOMEN\Desktop\Test\cert.pfx", "Password");
 			_server.ServerHasStarted += ServerOnServerHasStarted;
@@ -79,8 +79,8 @@ namespace Test.Parallel
 		{
 			//using (var client = new SimpleSocketTcpClient())
 			//{
-				//var client = new SimpleSocketTcpSslClient(cert);
-				var client = new SimpleSocketTcpClient();
+				var client = new SimpleSocketTcpSslClient(cert);
+				// var client = new SimpleSocketTcpClient();
 				//var client = new SimpleSocketTcpSslClient(@"", "");
 				_clientId++;
 				client.MessageReceived += ClientOnMessageReceived;
