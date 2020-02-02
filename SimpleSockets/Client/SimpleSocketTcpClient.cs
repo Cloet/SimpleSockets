@@ -109,6 +109,9 @@ namespace SimpleSockets.Client
 			}
 			catch (SocketException)
 			{
+				if (Disposed)
+					return;
+
 				ConnectedMre.Reset();
 
 				Thread.Sleep(ReconnectInSeconds * 1000);
