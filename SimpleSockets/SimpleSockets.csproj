@@ -15,7 +15,7 @@ See https://github.com/Cloet/SimpleSockets for more info.</Description>
     <SignAssembly>false</SignAssembly>
     <AssemblyVersion>1.1.2.0</AssemblyVersion>
     <FileVersion>1.1.2.0</FileVersion>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <ItemGroup>
