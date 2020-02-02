@@ -206,8 +206,13 @@ namespace SimpleSockets.Client
 					state.Listener.BeginReceive(state.Buffer, offset, state.BufferSize - offset, SocketFlags.None, this.ReceiveCallback, state);
 				}
 			}
-			catch (Exception ex) {
-				throw new Exception(ex.Message, ex);
+			catch (SocketException se)
+			{
+				Log("Socket error thrown: " + se.Message);
+			}
+			catch (Exception ex)
+			{
+				RaiseErrorThrown(ex);
 			}
 
 		}

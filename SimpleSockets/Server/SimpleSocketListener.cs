@@ -429,13 +429,18 @@ namespace SimpleSockets.Server
 		{
 			try
 			{
-				if (this.GetClient(id) is IClientMetadata state && state.Listener is Socket socket)
+				var state = this.GetClient(id);
+
+				if (state.Listener == null)
+					return false;
+
+				if (state is IClientMetadata  && state.Listener is Socket socket)
 				{
 					return !((socket.Poll(1000, SelectMode.SelectRead) && (socket.Available == 0)) || !socket.Connected);
 				}
 			}
-			catch (ObjectDisposedException de) { 
-				
+			catch (ObjectDisposedException de) {
+				return false;
 			}
 			catch (Exception ex)
 			{

@@ -16,8 +16,8 @@ namespace Test.Parallel
 		private static SimpleSocketListener _server;
 		private static Random _random = new Random((int) DateTime.Now.Ticks);
 		private static int _clientId;
-		private static int _numMsg = 1000;
-		private static int _clientThreads = 8;
+		private static int _numMsg = 100;
+		private static int _clientThreads = 10;
 		private static int _totalToReceive = _numMsg * _clientThreads;
 		private static Counter _received = new Counter();
 		private static Counter _receivedSubmitted = new Counter();

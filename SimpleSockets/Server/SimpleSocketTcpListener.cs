@@ -192,6 +192,13 @@ namespace SimpleSockets.Server
 					return;
 				}
 
+				if (!IsConnected(state.Id))
+				{
+					Log("Can't read a message from a disconnected client. Client: " + state.Id + " and guid: " + state.Guid + ".");
+					RaiseClientDisconnected(state);
+					return;
+				}
+
 				var receive = state.Listener.EndReceive(result, out var soError);
 
 				if (soError != SocketError.Success)
@@ -219,6 +226,7 @@ namespace SimpleSockets.Server
 
 				Log("Received " + receive + "bytes from client with id: " + state.Id + " and guid:" + state.Guid);
 
+				state.MreReceiving.Set();
 			}
 			catch (SocketException se)
 			{
@@ -233,9 +241,6 @@ namespace SimpleSockets.Server
 				RaiseErrorThrown(ex);
 				Log("Error handling message from client with guid : " + state.Guid + ".");
 				Log(ex);
-			}
-			finally {
-				state.MreReceiving.Set();
 			}
 		}
 

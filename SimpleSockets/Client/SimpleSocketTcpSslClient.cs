@@ -328,9 +328,12 @@ namespace SimpleSockets.Client
 					state.SslStream.BeginRead(state.Buffer, offset, state.BufferSize - offset, ReceiveCallback, state);
 				}
 			}
+			catch (SocketException se) {
+				Log("Socket error thrown: " + se.Message);
+			}
 			catch (Exception ex)
 			{
-				throw new Exception(ex.Message, ex);
+				RaiseErrorThrown(ex);
 			}
 		}
 
