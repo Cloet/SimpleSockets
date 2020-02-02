@@ -1,5 +1,5 @@
 # SimpleSockets
-[![NuGet version](https://badge.fury.io/nu/AsyncClientServer.svg)](https://badge.fury.io/nu/AsyncClientServer)
+[![NuGet version](https://badge.fury.io/nu/SimpleSockets.svg)](https://badge.fury.io/nu/SimpleSockets)
 
 .NET Library implementing Asynchronous usage of Sockets. The Library is written in .NET Standard 2.0 and supports Ssl.
 
