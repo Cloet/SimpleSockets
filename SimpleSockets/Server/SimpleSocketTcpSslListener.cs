@@ -393,6 +393,12 @@ namespace SimpleSockets.Server
 					return;
 				}
 
+				if (!IsConnected(state.Id)) {
+					Log("Can't read a message from a disconnected client. Client: " + state.Id + " and guid: " + state.Guid + ".");
+					RaiseClientDisconnected(state);
+					return;
+				}
+
 				var receive = state.SslStream.EndRead(result);
 
 				if (receive > 0)
@@ -424,7 +430,7 @@ namespace SimpleSockets.Server
 				RaiseErrorThrown(se);
 				Log("Client with id: " + state.Id + " and guid:" + state.Guid + " has thrown a socketerror.");
 				Log(se);
-			}
+			} 
 			catch (Exception ex)
 			{
 				state.Reset();
