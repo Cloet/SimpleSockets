@@ -150,10 +150,15 @@ namespace SimpleSockets.Client
 			}
 			catch (SocketException)
 			{
+				ConnectedMre.Reset();
 				DisposeSslStream();
 
 				Thread.Sleep(ReconnectInSeconds * 1000);
-				Listener.BeginConnect(Endpoint, OnConnectCallback, Listener);
+				if (Listener != null && !Disposed)
+					Listener.BeginConnect(Endpoint, OnConnectCallback, Listener);
+				else if (Listener == null && !Disposed)
+					StartClient(Ip, Port, ReconnectInSeconds);
+
 			}
 			catch (Exception ex)
 			{
@@ -292,42 +297,43 @@ namespace SimpleSockets.Client
 
 		protected internal override void Receive(IClientMetadata state, int offset = 0)
 		{
-			try
+			bool firstRead = true;
+
+			while (!Token.IsCancellationRequested)
 			{
-				bool firstRead = true;
+				_mreReceiving.WaitOne();
 
-				while (!Token.IsCancellationRequested)
-				{
-					_mreReceiving.WaitOne();
-					_mreReceiving.Reset();
-
-					state.SslStream = _sslStream;
-
-					if (!firstRead && state.Buffer.Length != state.BufferSize)
-						offset = state.Buffer.Length;
-
-					if (offset > 0)
-					{
-						state.UnhandledBytes = state.Buffer;
-					}
-
-					if (state.Buffer.Length < state.BufferSize)
-					{
-						state.ChangeBuffer(new byte[state.BufferSize]);
-						if (offset > 0)
-							Array.Copy(state.UnhandledBytes, 0, state.Buffer, 0, state.UnhandledBytes.Length);
-					}
-
-					firstRead = false;
-
-					_mreRead.WaitOne();
-					_mreRead.Reset();
-					state.SslStream.BeginRead(state.Buffer, offset, state.BufferSize - offset, ReceiveCallback, state);
+				if (_sslStream == null) {
+					if (IsRunning == true)
+						RaiseDisconnected();
+					Close();
+					throw new SocketException((int)SocketError.NotConnected);
 				}
-			}
-			catch (Exception ex)
-			{
-				throw new Exception(ex.Message, ex);
+
+				_mreReceiving.Reset();
+
+				state.SslStream = _sslStream;
+
+				if (!firstRead && state.Buffer.Length != state.BufferSize)
+					offset = state.Buffer.Length;
+
+				if (offset > 0)
+				{
+					state.UnhandledBytes = state.Buffer;
+				}
+
+				if (state.Buffer.Length < state.BufferSize)
+				{
+					state.ChangeBuffer(new byte[state.BufferSize]);
+					if (offset > 0)
+						Array.Copy(state.UnhandledBytes, 0, state.Buffer, 0, state.UnhandledBytes.Length);
+				}
+
+				firstRead = false;
+
+				_mreRead.WaitOne();
+				_mreRead.Reset();
+				state.SslStream.BeginRead(state.Buffer, offset, state.BufferSize - offset, ReceiveCallback, state);
 			}
 		}
 
@@ -336,34 +342,55 @@ namespace SimpleSockets.Client
 			var state = (ClientMetadata)result.AsyncState;
 			try
 			{
+				if (state.Listener == null || state.SslStream == null)
+				{
+					_mreRead.Set();
+					_mreReceiving.Set();
+					return;
+				}
+
+				if (!state.Listener.Connected) {
+					throw new SocketException((int)SocketError.NotConnected);
+				}
+
 				var receive = state.SslStream.EndRead(result);
+
+				if (receive > 0)
+				{
+					if (state.UnhandledBytes != null && state.UnhandledBytes.Length > 0)
+					{
+						receive += state.UnhandledBytes.Length;
+						state.UnhandledBytes = null;
+					}
+
+					if (state.Flag == 0)
+					{
+						if (state.SimpleMessage == null)
+							state.SimpleMessage = new SimpleMessage(state, this, Debug);
+						await state.SimpleMessage.ReadBytesAndBuildMessage(receive);
+					}
+					else if (receive > 0)
+						await state.SimpleMessage.ReadBytesAndBuildMessage(receive);
+				}
+
 				_mreRead.Set();
-
-				if (state.UnhandledBytes != null && state.UnhandledBytes.Length > 0)
-				{
-					receive += state.UnhandledBytes.Length;
-					state.UnhandledBytes = null;
-				}
-
-				if (state.Flag == 0)
-				{
-					if (state.SimpleMessage == null)
-						state.SimpleMessage = new SimpleMessage(state, this, Debug);
-					await state.SimpleMessage.ReadBytesAndBuildMessage(receive);
-				}
-				else if (receive > 0)
-					await state.SimpleMessage.ReadBytesAndBuildMessage(receive);
-
 				_mreReceiving.Set();
-				// Receive(state, state.Buffer.Length);
+			}
+			catch (SocketException se)
+			{
+				RaiseLog("Server was forcibly closed.");
+				state.Reset();
+				DisposeSslStream();
+				_mreRead.Set();
+				_mreReceiving.Set();
 			}
 			catch (Exception ex)
 			{
+				DisposeSslStream();
+				RaiseErrorThrown(ex);
 				_mreReceiving.Set();
 				_mreRead.Set();
 				state.Reset();
-				DisposeSslStream();
-				RaiseErrorThrown(ex);
 				// Receive(state);
 			}
 		}

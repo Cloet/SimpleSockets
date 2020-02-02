@@ -1,0 +1,24 @@
+name: release NuGet
+on:
+  push:
+    tags:
+      - "v*"
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+    - name: Build with dotnet
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '3.1.100' # SDK Version to use.
+    - run: dotnet build SimpleSockets --configuration Release
+    - run: dotnet pack SimpleSockets --configuration Release -p:Version=${GITHUB_REF:11}
+    - name: Publish nuget
+      run: |
+           for f in ./SimpleSockets/bin/Release/*.nupkg
+           do
+            dotnet nuget push $f -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
+           done
+      shell: bash

@@ -209,6 +209,9 @@ namespace SimpleSockets.Client
 		{
 			try
 			{
+				if (Listener == null)
+					return false;
+
 				return !((Listener.Poll(1000, SelectMode.SelectRead) && (Listener.Available == 0)) || !Listener.Connected);
 			}
 			catch (Exception)
@@ -231,15 +234,12 @@ namespace SimpleSockets.Client
 				TokenSource.Cancel();
 				IsRunning = false;
 
-				if (!IsConnected())
-				{
-					return;
+				if (Listener != null) {
+					Listener.Shutdown(SocketShutdown.Both);
+					Listener.Close();
+					Listener = null;
+					RaiseDisconnected();
 				}
-
-				Listener.Shutdown(SocketShutdown.Both);
-				Listener.Close();
-				Listener = null;
-				RaiseDisconnected();
 			}
 			catch (SocketException se)
 			{
@@ -333,6 +333,7 @@ namespace SimpleSockets.Client
 					if (IsConnected())
 					{
 						BlockingMessageQueue.TryDequeue(out var message);
+						ConnectedMre.WaitOne();
 						BeginSendFromQueue(message);
 					}
 					else
@@ -340,7 +341,6 @@ namespace SimpleSockets.Client
 						Close();
 						ConnectedMre.Reset();
 					}
-
 				}
 			}
 			catch (Exception ex)

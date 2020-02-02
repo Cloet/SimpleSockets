@@ -109,9 +109,13 @@ namespace SimpleSockets.Client
 			}
 			catch (SocketException)
 			{
+				ConnectedMre.Reset();
+
 				Thread.Sleep(ReconnectInSeconds * 1000);
-				if (!Token.IsCancellationRequested && !Disposed)
+				if (Listener != null && !Disposed)
 					Listener.BeginConnect(Endpoint, OnConnectCallback, Listener);
+				else if (Listener == null && !Disposed)
+					StartClient(Ip, Port, ReconnectInSeconds);
 			}
 			catch (Exception ex)
 			{
@@ -182,6 +186,11 @@ namespace SimpleSockets.Client
 			while (!Token.IsCancellationRequested)
 			{
 				_mreReceiving.WaitOne();
+
+				if (state.Listener == null || Listener == null) {
+					throw new SocketException((int)SocketError.NotConnected);
+				}
+
 				_mreReceiving.Reset();
 
 				if (!firstRead)
@@ -207,34 +216,40 @@ namespace SimpleSockets.Client
 
 		protected override async void ReceiveCallback(IAsyncResult result)
 		{
+			var state = (ClientMetadata)result.AsyncState;
+
 			if (!IsConnected())
 			{
 				RaiseLog(new Exception("Socket is not connected, can't receive messages."));
+				Close();
+				state.Listener = null;
+				_mreReceiving.Set();
 				return;
 			}
 
-			var state = (ClientMetadata)result.AsyncState;
 			try
 			{
 
 				var receive = state.Listener.EndReceive(result);
 
-				if (state.UnhandledBytes != null && state.UnhandledBytes.Length > 0)
-				{
-					receive += state.UnhandledBytes.Length;
-					state.UnhandledBytes = null;
-				}
+				if (receive > 0) {
+					if (state.UnhandledBytes != null && state.UnhandledBytes.Length > 0)
+					{
+						receive += state.UnhandledBytes.Length;
+						state.UnhandledBytes = null;
+					}
 
-				//Does header check
-				if (state.Flag == 0)
-				{
-					if (state.SimpleMessage == null)
-						state.SimpleMessage = new SimpleMessage(state, this, true);
-					await state.SimpleMessage.ReadBytesAndBuildMessage(receive);
-				}
-				else if (receive > 0)
-				{
-					await state.SimpleMessage.ReadBytesAndBuildMessage(receive);
+					//Does header check
+					if (state.Flag == 0)
+					{
+						if (state.SimpleMessage == null)
+							state.SimpleMessage = new SimpleMessage(state, this, true);
+						await state.SimpleMessage.ReadBytesAndBuildMessage(receive);
+					}
+					else if (receive > 0)
+					{
+						await state.SimpleMessage.ReadBytesAndBuildMessage(receive);
+					}
 				}
 
 				_mreReceiving.Set();

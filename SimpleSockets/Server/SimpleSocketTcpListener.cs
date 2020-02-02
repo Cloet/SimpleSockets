@@ -125,37 +125,61 @@ namespace SimpleSockets.Server
 
 		protected internal override void Receive(IClientMetadata state, int offset = 0)
 		{
-			var firstRead = true;
-
-			while (!Token.IsCancellationRequested)
+			try
 			{
-				state.MreReceiving.WaitOne();
-				state.MreReceiving.Reset();
 
-				if (!firstRead)
-					offset = state.Buffer.Length;
+				var firstRead = true;
 
-				if (offset > 0)
+				while (!Token.IsCancellationRequested)
 				{
-					state.UnhandledBytes = state.Buffer;
-				}
+					state.MreReceiving.WaitOne();
+					state.MreTimeout.Reset();
+					state.MreReceiving.Reset();
 
-				if (state.Buffer.Length < state.BufferSize)
-				{
-					state.ChangeBuffer(new byte[state.BufferSize]);
+					if (!firstRead)
+						offset = state.Buffer.Length;
+
 					if (offset > 0)
-						Array.Copy(state.UnhandledBytes, 0, state.Buffer, 0, state.UnhandledBytes.Length);
+					{
+						state.UnhandledBytes = state.Buffer;
+					}
+
+					if (state.Buffer.Length < state.BufferSize)
+					{
+						state.ChangeBuffer(new byte[state.BufferSize]);
+						if (offset > 0)
+							Array.Copy(state.UnhandledBytes, 0, state.Buffer, 0, state.UnhandledBytes.Length);
+					}
+
+					firstRead = false;
+
+					state.Listener.BeginReceive(state.Buffer, offset, state.BufferSize - offset, SocketFlags.None, ReceiveCallback, state);
+					if (Timeout.TotalMilliseconds > 0 && !state.MreTimeout.WaitOne(Timeout, false))
+						throw new SocketException((int)SocketError.TimedOut);
 				}
-
-				firstRead = false;
-
-				state.Listener.BeginReceive(state.Buffer, offset, state.BufferSize - offset, SocketFlags.None, ReceiveCallback, state);
+			}
+			catch (SocketException se) { 
+				if (se.SocketErrorCode == SocketError.TimedOut)
+				{
+					Log("Client with id: " + state.Id + " and guid: " + state.Guid + " has timed out.");
+					RaiseClientTimedOut(state);
+				}else
+				{
+					RaiseErrorThrown(se);
+				}
+				Close(state.Id);
+			}
+			catch (Exception ex)
+			{
+				RaiseErrorThrown(ex);
+				Close(state.Id);
 			}
 		}
 
 		protected override async void ReceiveCallback(IAsyncResult result)
 		{
 			var state = (ClientMetadata)result.AsyncState;
+			state.MreTimeout.Set();
 			try
 			{
 
@@ -175,24 +199,27 @@ namespace SimpleSockets.Server
 				{
 					var receive = state.Listener.EndReceive(result);
 
-					if (state.UnhandledBytes != null && state.UnhandledBytes.Length > 0)
-					{
-						receive += state.UnhandledBytes.Length;
-						state.UnhandledBytes = null;
+					if (receive > 0) {
+						if (state.UnhandledBytes != null && state.UnhandledBytes.Length > 0)
+						{
+							receive += state.UnhandledBytes.Length;
+							state.UnhandledBytes = null;
+						}
+
+						//Does header check
+						if (state.Flag == 0)
+						{
+							if (state.SimpleMessage == null)
+								state.SimpleMessage = new SimpleMessage(state, this, Debug);
+							await ParallelQueue.Enqueue(() => state.SimpleMessage.ReadBytesAndBuildMessage(receive));
+						}
+						else if (receive > 0)
+						{
+							await ParallelQueue.Enqueue(() => state.SimpleMessage.ReadBytesAndBuildMessage(receive));
+						}
 					}
 
-					//Does header check
-					if (state.Flag == 0)
-					{
-						if (state.SimpleMessage == null)
-							state.SimpleMessage = new SimpleMessage(state, this, Debug);
-						await ParallelQueue.Enqueue(() => state.SimpleMessage.ReadBytesAndBuildMessage(receive));
-					}else if (receive > 0)
-					{
-						await ParallelQueue.Enqueue(() => state.SimpleMessage.ReadBytesAndBuildMessage(receive));
-					}
-
-					// Receive(state, state.Buffer.Length);
+					state.MreReceiving.Set();
 				}
 			}
 			catch (Exception ex)

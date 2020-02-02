@@ -21,6 +21,8 @@ namespace SimpleSockets.Server
 
 	#region Delegates
 
+	public delegate void ClientTimedOutDelegate(IClientInfo client);
+
 	public delegate void MessageReceivedDelegate(IClientInfo client, string message);
 
 	public delegate void CustomHeaderReceivedDelegate(IClientInfo client, string message, string header);
@@ -61,6 +63,7 @@ namespace SimpleSockets.Server
 	{
 
 		private static System.Timers.Timer _keepAliveTimer;
+		private TimeSpan _timeout = new TimeSpan(0, 0, 0);
 		internal IDictionary<int, IClientMetadata> ConnectedClients = new ConcurrentDictionary<int, IClientMetadata>();
 
 		protected int Limit = 500;
@@ -84,6 +87,22 @@ namespace SimpleSockets.Server
 		/// It will still be added.
 		/// </summary>
 		public IList<IPAddress> BlackList { get; set; }
+
+		/// <summary>
+		/// Time until a client will timeout.
+		/// Value cannot be less then 5 seconds
+		/// Default value is 0 which means the server will wait indefinitely until it gets a response. 
+		/// </summary>
+		public TimeSpan Timeout
+		{
+			get => _timeout;
+			set
+			{
+				if (value.TotalSeconds < 5)
+					throw new ArgumentOutOfRangeException(nameof(Timeout));
+				_timeout = value;
+			}
+		}
 
 		#region Events
 
@@ -185,8 +204,13 @@ namespace SimpleSockets.Server
 		/// </summary>
 		public event ServerLogsDelegate ServerLogs;
 
+		/// <summary>
+		/// Event that's fired when a client times out.
+		/// </summary>
+		public event ClientTimedOutDelegate ClientTimedOut;
+
 		#endregion
-		
+
 		/// <summary>
 		/// Base constructor
 		/// </summary>
@@ -409,6 +433,9 @@ namespace SimpleSockets.Server
 				{
 					return !((socket.Poll(1000, SelectMode.SelectRead) && (socket.Available == 0)) || !socket.Connected);
 				}
+			} catch (ObjectDisposedException de)
+			{
+				return false;
 			}
 			catch (Exception ex)
 			{
@@ -478,6 +505,7 @@ namespace SimpleSockets.Server
 				{
 					state.Listener.Shutdown(SocketShutdown.Both);
 					state.Listener.Close();
+					state.Listener = null;
 				}
 			}
 			catch (SocketException se)
@@ -488,9 +516,8 @@ namespace SimpleSockets.Server
 			{
 				lock (ConnectedClients)
 				{
-					var client = GetClient(id);
 					ConnectedClients.Remove(id);
-					ClientDisconnected?.Invoke(client);
+					ClientDisconnected?.Invoke(state);
 				}
 			}
 		}
@@ -535,6 +562,11 @@ namespace SimpleSockets.Server
 		#endregion
 		
 		#region Global-Event-Invokers
+
+		protected void RaiseClientTimedOut(IClientInfo client)
+		{
+			ClientTimedOut?.Invoke(client);
+		}
 
 		protected void RaiseAuthFailed(IClientInfo client)
 		{

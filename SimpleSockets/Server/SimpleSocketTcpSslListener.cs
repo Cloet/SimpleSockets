@@ -332,6 +332,7 @@ namespace SimpleSockets.Server
 				while (!Token.IsCancellationRequested)
 				{
 					state.MreReceiving.WaitOne();
+					state.MreTimeout.Reset();
 					state.MreReceiving.Reset();
 
 					if (!firstRead && state.Buffer.Length != state.BufferSize)
@@ -353,6 +354,8 @@ namespace SimpleSockets.Server
 					state.MreRead.WaitOne();
 					state.MreRead.Reset();
 					sslStream.BeginRead(state.Buffer, offset, state.BufferSize - offset, ReceiveCallback, state);
+					if (Timeout.TotalMilliseconds > 0 && !state.MreTimeout.WaitOne(Timeout, false))
+						throw new SocketException((int)SocketError.TimedOut);
 				}
 			}
 			catch (Exception ex)
@@ -366,6 +369,7 @@ namespace SimpleSockets.Server
 		protected override async void ReceiveCallback(IAsyncResult result)
 		{
 			var state = (ClientMetadata)result.AsyncState;
+			state.MreTimeout.Set();
 			try
 			{
 
@@ -386,23 +390,26 @@ namespace SimpleSockets.Server
 
 					var receive = state.SslStream.EndRead(result);
 
-					if (state.UnhandledBytes != null && state.UnhandledBytes.Length > 0)
-					{
-						receive += state.UnhandledBytes.Length;
-						state.UnhandledBytes = null;
-					}
 
-					if (state.Flag == 0)
-					{
-						if (state.SimpleMessage == null)
-							state.SimpleMessage = new SimpleMessage(state, this, Debug);
-						await ParallelQueue.Enqueue(() => state.SimpleMessage.ReadBytesAndBuildMessage(receive));
-					}else if (receive > 0)
-						await ParallelQueue.Enqueue(() => state.SimpleMessage.ReadBytesAndBuildMessage(receive));
+					if (receive > 0) {
+						if (state.UnhandledBytes != null && state.UnhandledBytes.Length > 0)
+						{
+							receive += state.UnhandledBytes.Length;
+							state.UnhandledBytes = null;
+						}
+
+						if (state.Flag == 0)
+						{
+							if (state.SimpleMessage == null)
+								state.SimpleMessage = new SimpleMessage(state, this, Debug);
+							await ParallelQueue.Enqueue(() => state.SimpleMessage.ReadBytesAndBuildMessage(receive));
+						}
+						else if (receive > 0)
+							await ParallelQueue.Enqueue(() => state.SimpleMessage.ReadBytesAndBuildMessage(receive));
+					}
 
 					state.MreReceiving.Set();
 					state.MreRead.Set();
-					// Receive(state, state.Buffer.Length);
 				}
 			}
 			catch (Exception ex)
