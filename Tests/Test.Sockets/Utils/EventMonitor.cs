@@ -31,7 +31,7 @@ namespace Test.Sockets.Utils
 		private Exception exception = null;
 
 		public EventMonitor(object objectUnderTest, string eventName, Delegate handler, Mode mode = Mode.AUTOMATIC)
-			: this(objectUnderTest, eventName, handler, TimeSpan.FromMilliseconds(500), mode)
+			: this(objectUnderTest, eventName, handler, TimeSpan.FromMilliseconds(5000), mode)
 		{ }
 
 		public EventMonitor(object objectUnderTest, string eventName, Delegate handler, TimeSpan timeout, Mode mode = Mode.AUTOMATIC)

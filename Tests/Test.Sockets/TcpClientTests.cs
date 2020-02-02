@@ -33,7 +33,7 @@ namespace Test.Sockets
 
 			_client.StartClient("127.0.0.1", 13000);
 
-			mre.WaitOne(500);
+			mre.WaitOne(5000);
 			_server.ClientConnected -= con;
 
 		}
