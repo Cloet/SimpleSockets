@@ -4,10 +4,12 @@ using SimpleSockets.Server;
 using SimpleSockets;
 using System.Threading;
 using Test.Sockets.Utils;
+using System;
+using SimpleSockets.Messaging.Metadata;
 
 namespace Test.Sockets
 {
-	public class Tests
+	public class TcpClientTests
 	{
 
 		private SimpleSocketTcpClient _client = null;
@@ -76,5 +78,29 @@ namespace Test.Sockets
 				monitor.Verify();
 			}
 		}
+
+
+		[Test]
+		public void TestSendMessageContract()
+		{
+			string message = "This is a test message contract message.";
+
+			var contract = new MessageContractImpl();
+			_client.AddMessageContract(contract);
+			_server.AddMessageContract(contract);
+
+			contract.Message = message;
+
+			Action<SimpleSocket, IClientInfo, object, string> msgRec = (socket, client, msg, head) => {
+				Assert.AreEqual(message, msg);
+			};
+
+			using (var monitor = new EventMonitor(contract, "OnMessageReceived", msgRec, Mode.MANUAL))
+			{
+				_client.SendMessageContract(contract);
+				monitor.Verify();
+			}
+		}
+
 	}
 }
