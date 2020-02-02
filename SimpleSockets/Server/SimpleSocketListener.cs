@@ -98,7 +98,7 @@ namespace SimpleSockets.Server
 			get => _timeout;
 			set
 			{
-				if (value.TotalSeconds < 5)
+				if (value.TotalSeconds > 0 && value.TotalSeconds < 5)
 					throw new ArgumentOutOfRangeException(nameof(Timeout));
 				_timeout = value;
 			}
