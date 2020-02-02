@@ -64,6 +64,7 @@ namespace SimpleSockets.Server
 
 		private static System.Timers.Timer _keepAliveTimer;
 		private TimeSpan _timeout = new TimeSpan(0, 0, 0);
+    
 		internal IDictionary<int, IClientMetadata> ConnectedClients = new ConcurrentDictionary<int, IClientMetadata>();
 
 		protected int Limit = 500;
@@ -74,6 +75,21 @@ namespace SimpleSockets.Server
 		protected IList<Task> ClientThreads { get; set; }
 
 		protected ParallelQueue ParallelQueue { get; set; }
+
+		/// <summary>
+		/// Time until a client will timeout.
+		/// Value cannot be less then 5 seconds
+		/// Default value is 0 which means the server will wait indefinitely until it gets a response. 
+		/// </summary>
+		public TimeSpan Timeout { 
+			get => _timeout;
+			set {
+				if (value.TotalSeconds > 0 && value.TotalSeconds < 5) {
+					throw new ArgumentOutOfRangeException(nameof(Timeout));
+				}
+				_timeout = value;
+			}
+		}
 
 		/// <summary>
 		/// Server will only accept IP Addresses that are in the whitelist.
@@ -429,12 +445,20 @@ namespace SimpleSockets.Server
 		{
 			try
 			{
-				if (this.GetClient(id) is IClientMetadata state && state.Listener is Socket socket)
+				var state = this.GetClient(id);
+
+				if (state.Listener == null)
+					return false;
+
+				if (state is IClientMetadata  && state.Listener is Socket socket)
 				{
 					return !((socket.Poll(1000, SelectMode.SelectRead) && (socket.Available == 0)) || !socket.Connected);
 				}
 			} catch (ObjectDisposedException de)
 			{
+				return false;
+			}
+			catch (ObjectDisposedException de) {
 				return false;
 			}
 			catch (Exception ex)
@@ -664,6 +688,10 @@ namespace SimpleSockets.Server
 		protected void RaiseClientDisconnected(IClientInfo client)
 		{
 			ClientDisconnected?.Invoke(client);
+		}
+
+		protected void RaiseClientTimedOut(IClientInfo client) {
+			ClientTimedOut?.Invoke(client);
 		}
 
 		#endregion

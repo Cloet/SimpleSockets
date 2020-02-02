@@ -88,7 +88,6 @@ namespace SimpleSockets.Server
 
 					state = new ClientMetadata(((Socket)result.AsyncState).EndAccept(result), id);
 
-
 					//If the server shouldn't accept the IP do nothing.
 					if (!IsConnectionAllowed(state))
 						return;
@@ -143,7 +142,7 @@ namespace SimpleSockets.Server
 					{
 						state.UnhandledBytes = state.Buffer;
 					}
-
+          
 					if (state.Buffer.Length < state.BufferSize)
 					{
 						state.ChangeBuffer(new byte[state.BufferSize]);
@@ -182,22 +181,19 @@ namespace SimpleSockets.Server
 			state.MreTimeout.Set();
 			try
 			{
+				// Listener has already been disposed of.
+				if (state.Listener == null)
+				{
+					Log("Unable to receive data from client, client has been disposed.");
+					return;
+				}
 
-				//Check if client is still connected.
-				//If client is disconnected, send disconnected message
-				//and remove from clients list
 				if (!IsConnected(state.Id))
 				{
+					Log("Can't read a message from a disconnected client. Client: " + state.Id + " and guid: " + state.Guid + ".");
 					RaiseClientDisconnected(state);
-					lock (ConnectedClients)
-					{
-						ConnectedClients.Remove(state.Id);
-					}
+					return;
 				}
-				//Else start receiving and handle the message.
-				else
-				{
-					var receive = state.Listener.EndReceive(result);
 
 					if (receive > 0) {
 						if (state.UnhandledBytes != null && state.UnhandledBytes.Length > 0)
@@ -220,16 +216,26 @@ namespace SimpleSockets.Server
 					}
 
 					state.MreReceiving.Set();
+
 				}
+
+				Log("Received " + receive + "bytes from client with id: " + state.Id + " and guid:" + state.Guid);
+
+				state.MreReceiving.Set();
+			}
+			catch (SocketException se)
+			{
+				state.Reset();
+				RaiseErrorThrown(se);
+				Log("Client with id: " + state.Id + " and guid:" + state.Guid + " has thrown a socketerror.");
+				Log(se);
 			}
 			catch (Exception ex)
 			{
 				state.Reset();
 				RaiseErrorThrown(ex);
-				RaiseLog(ex);
-				RaiseLog("Error handling message from client with guid : " + state.Guid + ".");
-				state.MreReceiving.Set();
-				// Receive(state, state.Buffer.Length);
+				Log("Error handling message from client with guid : " + state.Guid + ".");
+				Log(ex);
 			}
 		}
 

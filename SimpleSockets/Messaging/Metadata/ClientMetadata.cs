@@ -29,11 +29,29 @@ namespace SimpleSockets.Messaging.Metadata
 		private static int _bufferSize = 4096;
 		private IList<byte> _receivedBytes = new List<byte>();
 
+		/// <summary>
+		/// Every client connected to a server generates a unique Guid
+		/// </summary>
 		public string Guid { get; set; }
+
+		/// <summary>
+		/// The Remote IPv4 address of the client
+		/// </summary>
 		public string RemoteIPv4 { get; set; }
+
+		/// <summary>
+		/// The Remote IPv6 address of the client
+		/// </summary>
 		public string RemoteIPv6 { get; set; }
 
+		/// <summary>
+		/// The local IPv4 address of the client (Local on host machine)
+		/// </summary>
 		public string LocalIPv4 { get; set; }
+
+		/// <summary>
+		/// The local IPv6 address of the client (Local on host machine)
+		/// </summary>
 		public string LocalIPv6 { get; set; }
 
 		/// <summary>
@@ -47,6 +65,7 @@ namespace SimpleSockets.Messaging.Metadata
 			MreRead = new ManualResetEvent(false);
 			MreReceiving = new ManualResetEvent(true);
 			MreTimeout = new ManualResetEvent(true);
+
 
 			SetIps();
 
@@ -66,9 +85,9 @@ namespace SimpleSockets.Messaging.Metadata
 				LocalIPv6 = ((IPEndPoint)Listener.LocalEndPoint).Address.MapToIPv6().ToString();
 
 			}
-			catch (Exception ex)
+			catch (Exception)
 			{
-				throw new Exception(ex.Message, ex);
+				// Don't throw errors
 			}
 		}
 
@@ -89,10 +108,21 @@ namespace SimpleSockets.Messaging.Metadata
 			_bufferSize = size;
 		}
 
+		/// <summary>
+		/// Manual reset event used to check when a client is busy reading data.
+		/// </summary>
 		public ManualResetEvent MreRead { get; set; }
 
+		/// <summary>
+		/// Manual reset event used to check if a client is busy receiving data
+		/// </summary>
 		public ManualResetEvent MreReceiving { get; set; }
 
+		public ManualResetEvent MreTimeout { get; set; }
+
+		/// <summary>
+		/// Manual reset event used to check if a client has timed out.
+		/// </summary>
 		public ManualResetEvent MreTimeout { get; set; }
 
 		/// <summary>
@@ -219,6 +249,21 @@ namespace SimpleSockets.Messaging.Metadata
 			// MreReceiving.Set();
 			Read = 0;
 			Flag = 0;
+		}
+
+		/// <summary>
+		/// Dispose the listener object.
+		/// </summary>
+		public void DisposeListener() {
+			if (SslStream != null) {
+				SslStream.Close();
+				SslStream = null;
+			}
+			if (Listener != null) {
+				Listener.Shutdown(SocketShutdown.Both);
+				Listener.Close();
+				Listener = null;
+			}
 		}
 
 	}

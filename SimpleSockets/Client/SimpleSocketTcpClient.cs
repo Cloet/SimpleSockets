@@ -119,6 +119,7 @@ namespace SimpleSockets.Client
 			}
 			catch (Exception ex)
 			{
+				Dispose();
 				RaiseErrorThrown(ex);
 			}
 		}
@@ -181,7 +182,7 @@ namespace SimpleSockets.Client
 
 		protected internal override void Receive(IClientMetadata state, int offset = 0)
 		{
-			bool firstRead = true;
+			try {
 
 			while (!Token.IsCancellationRequested)
 			{
@@ -198,20 +199,38 @@ namespace SimpleSockets.Client
 
 				if (offset > 0)
 				{
-					state.UnhandledBytes = state.Buffer;
-				}
+					_mreReceiving.WaitOne();
+					_mreReceiving.Reset();
 
-				if (state.Buffer.Length < state.BufferSize)
-				{
-					state.ChangeBuffer(new byte[state.BufferSize]);
+					if (!firstRead)
+						offset = state.Buffer.Length;
+
 					if (offset > 0)
-						Array.Copy(state.UnhandledBytes, 0, state.Buffer, 0, state.UnhandledBytes.Length);
+					{
+						state.UnhandledBytes = state.Buffer;
+					}
+
+					if (state.Buffer.Length < state.BufferSize)
+					{
+						state.ChangeBuffer(new byte[state.BufferSize]);
+						if (offset > 0)
+							Array.Copy(state.UnhandledBytes, 0, state.Buffer, 0, state.UnhandledBytes.Length);
+					}
+
+					firstRead = false;
+
+					state.Listener.BeginReceive(state.Buffer, offset, state.BufferSize - offset, SocketFlags.None, this.ReceiveCallback, state);
 				}
-
-				firstRead = false;
-
-				state.Listener.BeginReceive(state.Buffer, offset, state.BufferSize - offset, SocketFlags.None, this.ReceiveCallback, state);
 			}
+			catch (SocketException se)
+			{
+				Log("Socket error thrown: " + se.Message);
+			}
+			catch (Exception ex)
+			{
+				RaiseErrorThrown(ex);
+			}
+
 		}
 
 		protected override async void ReceiveCallback(IAsyncResult result)
@@ -226,12 +245,11 @@ namespace SimpleSockets.Client
 				_mreReceiving.Set();
 				return;
 			}
-
+      
 			try
 			{
 
 				var receive = state.Listener.EndReceive(result);
-
 				if (receive > 0) {
 					if (state.UnhandledBytes != null && state.UnhandledBytes.Length > 0)
 					{
@@ -260,7 +278,6 @@ namespace SimpleSockets.Client
 				state.Reset();
 				RaiseErrorThrown(ex);
 				_mreReceiving.Set();
-				// Receive(state);
 			}
 		}
 		

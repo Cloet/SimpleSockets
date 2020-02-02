@@ -162,6 +162,8 @@ namespace SimpleSockets.Client
 			}
 			catch (Exception ex)
 			{
+				DisposeSslStream();
+				Dispose();
 				RaiseErrorThrown(ex);
 				// throw new Exception(ex.Message, ex);
 			}
