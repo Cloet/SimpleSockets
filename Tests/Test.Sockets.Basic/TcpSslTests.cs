@@ -23,29 +23,13 @@ namespace Test.Sockets
 
 		private MessageContractImpl _contract;
 
-		private byte[] GetCertFileContents()
-		{
-			using (var stream = this.GetType().Assembly.GetManifestResourceStream("Test.Sockets.Resources.TestCertificate.pfx"))
-			{
-				byte[] buffer = new byte[16 * 1024];
-				using (MemoryStream ms = new MemoryStream())
-				{
-					int read;
-					while ((read = stream.Read(buffer, 0, buffer.Length)) > 0)
-					{
-						ms.Write(buffer, 0, read);
-					}
-					return ms.ToArray();
-				}
-			}
 
-		}
 
 		[OneTimeSetUp]
 		public void Setup()
 		{
 			ManualResetEvent mre = new ManualResetEvent(false);
-			var cert = new X509Certificate2(GetCertFileContents(), "Password");
+			var cert = new X509Certificate2(new SocketHelper().GetCertFileContents(), "Password");
 
 			_server = new SimpleSocketTcpSslListener(cert);
 			_client = new SimpleSocketTcpSslClient(cert);
