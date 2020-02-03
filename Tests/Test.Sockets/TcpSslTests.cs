@@ -50,6 +50,9 @@ namespace Test.Sockets
 			_server = new SimpleSocketTcpSslListener(cert);
 			_client = new SimpleSocketTcpSslClient(cert);
 
+			_client.ObjectSerializer = new JsonSerialization();
+			_server.ObjectSerializer = new JsonSerialization();
+
 			new Thread(() => _server.StartListening(13000)).Start();
 
 			ClientConnectedDelegate con = (client) =>

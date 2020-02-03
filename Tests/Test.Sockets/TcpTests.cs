@@ -33,6 +33,9 @@ namespace Test.Sockets
 				mre.Set();
 			};
 
+			_client.ObjectSerializer = new JsonSerialization();
+			_server.ObjectSerializer = new JsonSerialization();
+
 			_contract = new MessageContractImpl();
 			_client.AddMessageContract(_contract);
 			_server.AddMessageContract(_contract);
@@ -88,7 +91,6 @@ namespace Test.Sockets
 			}
 		}
 
-
 		[Test]
 		public void Client_MessageContract_Server()
 		{
@@ -105,6 +107,36 @@ namespace Test.Sockets
 				_client.SendMessageContract(_contract);
 				monitor.Verify();
 			}
+		}
+
+		[Test]
+		public void Client_Object_Server() {
+
+			string name = "Cloet";
+			string text = "This is the text of a custom object send to the server from the client.";
+			DateTime date = new DateTime(2000, 1, 1);
+			double number = 50.5989;
+
+			var customObject = new DataObject(name, text, number, date);
+
+			SimpleSockets.Server.ObjectReceivedDelegate msgRec = (client, obj, objType) => {
+				if (objType == typeof(DataObject))
+				{
+					var rec = (DataObject)Convert.ChangeType(obj, objType);
+					Assert.AreEqual(name, rec.Name);
+					Assert.AreEqual(text, rec.Text);
+					Assert.AreEqual(date, rec.Date);
+					Assert.AreEqual(number, rec.Number);
+				}
+				else
+					Assert.IsTrue(false);
+			};
+
+			using (var monitor = new EventMonitor(_server, "ObjectReceived", msgRec, Mode.MANUAL)) {
+				_client.SendObject(customObject);
+				monitor.Verify();
+			}
+
 		}
 
 		// Server sending messages to client
@@ -143,7 +175,6 @@ namespace Test.Sockets
 			}
 		}
 
-
 		[Test]
 		public void Server_MessageContract_Client()
 		{
@@ -160,6 +191,38 @@ namespace Test.Sockets
 				_server.SendMessageContract(_clientid, _contract);
 				monitor.Verify();
 			}
+		}
+
+		[Test]
+		public void Server_Object_Client()
+		{
+
+			string name = "Cloet";
+			string text = "This is the text of a custom object send to a client from the server.";
+			DateTime date = new DateTime(2000, 1, 1);
+			double number = 50.5989;
+
+			var customObject = new DataObject(name, text, number, date);
+
+			SimpleSockets.Client.ObjectReceivedDelegate msgRec = (client, obj, objType) => {
+				if (objType == typeof(DataObject))
+				{
+					var rec = (DataObject)Convert.ChangeType(obj, objType);
+					Assert.AreEqual(name, rec.Name);
+					Assert.AreEqual(text, rec.Text);
+					Assert.AreEqual(date, rec.Date);
+					Assert.AreEqual(number, rec.Number);
+				}
+				else
+					Assert.IsTrue(false);
+			};
+
+			using (var monitor = new EventMonitor(_client, "ObjectReceived", msgRec, Mode.MANUAL))
+			{
+				_server.SendObject(_clientid, customObject);
+				monitor.Verify();
+			}
+
 		}
 
 	}
