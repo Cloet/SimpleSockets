@@ -35,32 +35,34 @@ namespace Test.Sockets
 						
 		}
 
-		[SetUp]
+		[OneTimeSetUp]
 		public void Setup()
 		{
-			ManualResetEvent mre = new ManualResetEvent(false);
+			if (_client == null || _server == null) {
+				ManualResetEvent mre = new ManualResetEvent(false);
 
-			var cert = new X509Certificate2(GetCertFileContents(), "Password");
-			_server = new SimpleSocketTcpSslListener(cert);
-			_client = new SimpleSocketTcpSslClient(cert);
+				var cert = new X509Certificate2(GetCertFileContents(), "Password");
+				_server = new SimpleSocketTcpSslListener(cert);
+				_client = new SimpleSocketTcpSslClient(cert);
 
-			new Thread(() => _server.StartListening(13000)).Start();
+				new Thread(() => _server.StartListening(13000)).Start();
 
-			ClientConnectedDelegate con = (client) =>
-			{
-				mre.Set();
-			};
+				ClientConnectedDelegate con = (client) =>
+				{
+					mre.Set();
+				};
 
-			_server.ClientConnected += con;
+				_server.ClientConnected += con;
 
-			_client.StartClient("127.0.0.1", 13000);
+				_client.StartClient("127.0.0.1", 13000);
 
-			mre.WaitOne(5000);
-			_server.ClientConnected -= con;
+				mre.WaitOne(5000);
+				_server.ClientConnected -= con;
+			}
 
 		}
 
-		[TearDown]
+		[OneTimeTearDown]
 		public void TearDown()
 		{
 			_client.Close();

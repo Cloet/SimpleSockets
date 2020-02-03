@@ -9,13 +9,16 @@ using SimpleSockets.Messaging.Metadata;
 
 namespace Test.Sockets
 {
+	[TestFixture]
 	public class TcpClientTests
 	{
 
 		private SimpleSocketTcpClient _client = null;
 		private SimpleSocketTcpListener _server = null;
 
-		[SetUp]
+
+
+		[OneTimeSetUp]
 		public void Setup()
 		{
 			ManualResetEvent mre = new ManualResetEvent(false);
@@ -38,7 +41,7 @@ namespace Test.Sockets
 
 		}
 
-		[TearDown]
+		[OneTimeTearDown]
 		public void TearDown() {
 			_server.Dispose();
 			_client.Dispose();
