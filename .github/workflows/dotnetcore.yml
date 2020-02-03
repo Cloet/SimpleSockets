@@ -13,5 +13,4 @@ jobs:
       with:
         dotnet-version: '3.1.100' # SDK Version to use.
     - run: dotnet build SimpleSockets --configuration Release
-    - run: dotnet build Tests/Test.Sockets
-    - run: dotnet test Tests/Test.Sockets
+    - run: dotnet test Tests/Test.Sockets --configuration Release
