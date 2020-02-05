@@ -27,7 +27,6 @@ namespace SimpleSockets.Messaging.Metadata
 		//private static int _bufferSize = 524288; //Buffer Size bigger then 85000 will use LOH => can cause high memory usage
 		//private static int _bufferSize = 65536;
 		private static int _bufferSize = 4096;
-		private IList<byte> _receivedBytes = new List<byte>();
 
 		public string Guid { get; set; }
 		public string RemoteIPv4 { get; set; }
@@ -96,11 +95,6 @@ namespace SimpleSockets.Messaging.Metadata
 		public ManualResetEvent MreTimeout { get; set; }
 
 		/// <summary>
-		/// How many bytes have been read
-		/// </summary>
-		public int Read { get; private set; }
-
-		/// <summary>
 		/// Bytes that have been read but are not yet handled
 		/// </summary>
 		public byte[] UnhandledBytes { get; set; }
@@ -108,7 +102,7 @@ namespace SimpleSockets.Messaging.Metadata
 		/// <summary>
 		/// The flag of the state
 		/// </summary>
-		public int Flag { get; set; }
+		public MessageFlag Flag { get; set; }
 
 		/// <summary>
 		/// Get the id
@@ -157,41 +151,6 @@ namespace SimpleSockets.Messaging.Metadata
 		public Socket Listener { get; set;  }
 
 		/// <summary>
-		/// Gets how much bytes have been received.
-		/// </summary>
-		public byte[] ReceivedBytes => _receivedBytes.ToArray();
-
-		/// <summary>
-		/// Appends a byte array
-		/// </summary>
-		/// <param name="bytes"></param>
-		public void AppendBytes(byte[] bytes)
-		{
-			foreach (var b in bytes)
-			{
-				_receivedBytes.Add(b);
-			}
-		}
-
-		/// <summary>
-		/// Appends how much bytes have been read
-		/// </summary>
-		/// <param name="length"></param>
-		public void AppendRead(int length)
-		{
-			Read += length;
-		}
-
-		/// <summary>
-		/// Removes some bytes that have been read
-		/// </summary>
-		/// <param name="length"></param>
-		public void SubtractRead(int length)
-		{
-			Read -= length;
-		}
-
-		/// <summary>
 		/// Change the buffer
 		/// </summary>
 		/// <param name="bytes"></param>
@@ -199,25 +158,13 @@ namespace SimpleSockets.Messaging.Metadata
 		{
 			Buffer = bytes;
 		}
-
-		/// <summary>
-		/// Change the received bytes.
-		/// </summary>
-		/// <param name="bytes"></param>
-		public void ChangeReceivedBytes(byte[] bytes)
-		{
-			_receivedBytes = bytes.ToList();
-		}
 		
 		/// <summary>
 		/// Resets the stringBuilder and other properties
 		/// </summary>
 		public void Reset()
 		{
-			_receivedBytes = new List<byte>();
 			MreRead.Set();
-			// MreReceiving.Set();
-			Read = 0;
 			Flag = 0;
 		}
 

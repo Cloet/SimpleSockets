@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -18,7 +19,7 @@ namespace SimpleSockets.Client
 
 	public delegate void MessageReceivedDelegate(SimpleSocketClient client, string msg);
 
-	public delegate void CustomHeaderReceivedDelegate(SimpleSocketClient client, string message, string header);
+	public delegate void MessageWithMetadataReceivedDelegate(SimpleSocketClient client, object message, IDictionary<object,object> metadata);
 
 	public delegate void BytesReceivedDelegate(SimpleSocketClient client, byte[] messageBytes);
 
@@ -107,7 +108,7 @@ namespace SimpleSockets.Client
 		/// Event that is triggered when a client receives a custom message from a server
 		/// Format = SimpleSocketClient:MESSAGE:HEADER
 		/// </summary>
-		public event CustomHeaderReceivedDelegate CustomHeaderReceived;
+		public event MessageWithMetadataReceivedDelegate MessageWithMetadataReceived;
 
 		/// <summary>
 		/// Event that is triggered when a client receives bytes from the connected server.
@@ -382,9 +383,9 @@ namespace SimpleSockets.Client
 			contract.RaiseOnMessageReceived(this, client, contract.DeserializeToObject(data), contract.MessageHeader);
 		}
 
-		protected internal override void RaiseCustomHeaderReceived(IClientInfo client, string header, string message)
+		protected internal override void RaiseMessageWithMetaDataReceived(IClientInfo client, object message, IDictionary<object,object> metadata)
 		{
-			CustomHeaderReceived?.Invoke(this, message, header);
+			MessageWithMetadataReceived?.Invoke(this, message, metadata);
 		}
 
 		protected internal override void RaiseBytesReceived(IClientInfo client, byte[] data)
@@ -590,53 +591,32 @@ namespace SimpleSockets.Client
 
 		#region Message-CustomHeader
 
-		public void SendCustomHeader(string message, string header, bool compress = false, bool encrypt = false, bool close = false)
+		public void SendMessageWithMetadata(object message, IDictionary<object, object> metadata, bool compress = false, bool encrypt = false, bool close = false)
 		{
-			var builder = new SimpleMessage(MessageType.CustomHeader, this, Debug)
+			var builder = new SimpleMessage(MessageType.MessageWithMetadata, this, Debug)
 				.CompressMessage(compress)
 				.EncryptMessage(encrypt)
-				.SetHeaderString(header)
-				.SetMessage(message);
+				.SetMetadata(metadata)
+				.SetBytes(ObjectSerializer.SerializeObjectToBytes(message))
+				.SetHeaderString(message.GetType().AssemblyQualifiedName);
 
 			builder.Build();
 			SendToSocket(builder.PayLoad, close, false);
 		}
 
-		public void SendCustomHeader(byte[] data, byte[] header, bool compress = false, bool encrypt = false, bool close = false)
+		public async Task SendMessageWithMetadataAsync(object message, IDictionary<object, object> metadata, bool compress = false, bool encrypt = false, bool close = false)
 		{
-			var builder = new SimpleMessage(MessageType.CustomHeader, this, Debug)
+			var builder = new SimpleMessage(MessageType.MessageWithMetadata, this, Debug)
 				.CompressMessage(compress)
 				.EncryptMessage(encrypt)
-				.SetHeader(header)
-				.SetBytes(data);
-
-			builder.Build();
-			SendToSocket(builder.PayLoad, close, false);
-		}
-
-		public async Task SendCustomHeaderAsync(string message, string header, bool compress = false, bool encrypt = false, bool close = false)
-		{
-			var builder = new SimpleMessage(MessageType.CustomHeader, this, Debug)
-				.CompressMessage(compress)
-				.EncryptMessage(encrypt)
-				.SetHeaderString(header)
-				.SetMessage(message);
+				.SetMetadata(metadata)
+				.SetBytes(ObjectSerializer.SerializeObjectToBytes(message))
+				.SetHeaderString(message.GetType().AssemblyQualifiedName);
 
 			await builder.BuildAsync();
 			SendToSocket(builder.PayLoad, close, false);
 		}
 
-		public async Task SendCustomHeaderAsync(byte[] data, byte[] header, bool compress = false, bool encrypt = false, bool close = false)
-		{
-			var builder = new SimpleMessage(MessageType.CustomHeader, this, Debug)
-				.CompressMessage(compress)
-				.EncryptMessage(encrypt)
-				.SetHeader(header)
-				.SetBytes(data);
-
-			await builder.BuildAsync();
-			SendToSocket(builder.PayLoad, close, false);
-		}
 
 		#endregion
 

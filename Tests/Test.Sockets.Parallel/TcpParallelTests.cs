@@ -27,8 +27,6 @@ namespace Test.Sockets.Parallel
 			ManualResetEvent mre = new ManualResetEvent(false);
 			_server = new SimpleSocketTcpListener();
 
-			_server.ObjectSerializer = new JsonSerialization();
-
 			new Thread(() => _server.StartListening(13000)).Start();
 
 			ClientConnectedDelegate con = (client) =>
@@ -57,7 +55,6 @@ namespace Test.Sockets.Parallel
 
 		private void initClient() {
 			var client = new SimpleSocketTcpClient();
-			client.ObjectSerializer = new JsonSerialization();
 			_clients.Add(client);
 			client.StartClient("127.0.0.1", 13000);
 		}

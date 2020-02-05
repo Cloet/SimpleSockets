@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace SimpleSockets.Messaging.MessageContracts
+namespace SimpleSockets.Messaging.Serialization
 {
 
 	/// <summary>
@@ -9,6 +9,9 @@ namespace SimpleSockets.Messaging.MessageContracts
 	/// </summary>
 	public interface IObjectSerializer
 	{
+
+		T DeserializeJson<T>(byte[] bytes);
+
 		/// <summary>
 		/// Serialize an object to bytes.
 		/// e.g. you could serialize an object using json or xml

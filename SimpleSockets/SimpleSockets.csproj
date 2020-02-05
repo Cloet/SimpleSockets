@@ -29,5 +29,9 @@ See https://github.com/Cloet/SimpleSockets for more info.</Description>
     </None>
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+  </ItemGroup>
+
 
 </Project>

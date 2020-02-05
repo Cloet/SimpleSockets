@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Reflection.Metadata.Ecma335;
 using System.Security.Cryptography.X509Certificates;
@@ -144,13 +145,20 @@ namespace NetCore.Console.Client
 		private static async void SendCustom()
 		{
 			System.Console.Clear();
-			Write("Enter the header you want to use for the transmission...  ");
-			var header = System.Console.ReadLine();
+			// Write("Enter the header you want to use for the transmission...  ");
+			// var header = System.Console.ReadLine();
 
 			Write("Enter the message you want to send...  ");
 			var message = System.Console.ReadLine();
 
-			await _client.SendCustomHeaderAsync(message, header, _compress, _encrypt);
+			var dictionary = new Dictionary<object, object>();
+
+			dictionary.Add("Test", "This is a value");
+			dictionary.Add("Test2", "This is a second value");
+
+			await _client.SendMessageWithMetadataAsync("This is a message", dictionary);
+
+			// await _client.SendCustomHeaderAsync(message, header, _compress, _encrypt);
 		}
 
 		private static async void SendFile()
@@ -204,7 +212,7 @@ namespace NetCore.Console.Client
 			_client.MessageReceived += ServerMessageReceived;
 			_client.MessageSubmitted += ClientMessageSubmitted;
 			_client.MessageFailed += MessageFailed;
-			_client.CustomHeaderReceived += CustomHeader;
+			_client.MessageWithMetadataReceived += CustomHeader;
 			_client.ObjectReceived += ClientOnObjectReceived;
 		}
 
@@ -318,9 +326,10 @@ namespace NetCore.Console.Client
 				WriteLine("File received and stored at location: " + loc);
 		}
 
-		private static void CustomHeader(SimpleSocket a, string msg, string header)
+		private static void CustomHeader(SimpleSocket a, object msg, IDictionary<object, object> dict)
 		{
-			WriteLine("Bytes received from server with header = " + header + " and message = " + msg);
+			WriteLine("Test");
+			// WriteLine("Bytes received from server with header = " + header + " and message = " + msg);
 		}
 
 		private static void ErrorThrown(SimpleSocket socketClient, Exception error)

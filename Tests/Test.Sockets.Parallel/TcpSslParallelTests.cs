@@ -30,8 +30,6 @@ namespace Test.Sockets.Parallel
 
 			_server = new SimpleSocketTcpSslListener(_cert);
 
-			_server.ObjectSerializer = new JsonSerialization();
-
 			new Thread(() => _server.StartListening(13000)).Start();
 
 			ClientConnectedDelegate con = (client) =>
@@ -61,7 +59,6 @@ namespace Test.Sockets.Parallel
 		private void initClient()
 		{
 			var client = new SimpleSocketTcpSslClient(_cert);
-			client.ObjectSerializer = new JsonSerialization();
 			_clients.Add(client);
 			client.StartClient("127.0.0.1", 13000);
 		}

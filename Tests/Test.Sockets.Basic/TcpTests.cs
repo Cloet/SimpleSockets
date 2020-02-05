@@ -33,9 +33,6 @@ namespace Test.Sockets
 				mre.Set();
 			};
 
-			_client.ObjectSerializer = new JsonSerialization();
-			_server.ObjectSerializer = new JsonSerialization();
-
 			_contract = new MessageContractImpl();
 			_client.AddMessageContract(_contract);
 			_server.AddMessageContract(_contract);
@@ -80,13 +77,13 @@ namespace Test.Sockets
 			string message = "This is a test custom header message.";
 			string header = "This is a message header.";
 			
-			SimpleSockets.Server.CustomHeaderReceivedDelegate msgRec = (client, msg, head) => {
+			SimpleSockets.Server.MessageWithMetadataReceivedDelegate msgRec = (client, msg, head) => {
 				Assert.AreEqual(message, msg);
 				Assert.AreEqual(header, head);
 			};
 
 			using (var monitor = new EventMonitor(_server, "CustomHeaderReceived", msgRec, Mode.MANUAL)) {
-				_client.SendCustomHeader(message, header);
+				// _client.SendCustomHeader(message, header);
 				monitor.Verify();
 			}
 		}
@@ -163,14 +160,14 @@ namespace Test.Sockets
 			string message = "This is a test custom header message.";
 			string header = "This is a message header.";
 
-			SimpleSockets.Client.CustomHeaderReceivedDelegate msgRec = (client, msg, head) => {
+			SimpleSockets.Client.MessageWithMetadataReceivedDelegate msgRec = (client, msg, head) => {
 				Assert.AreEqual(message, msg);
 				Assert.AreEqual(header, head);
 			};
 
 			using (var monitor = new EventMonitor(_client, "CustomHeaderReceived", msgRec, Mode.MANUAL))
 			{
-				_server.SendCustomHeader(_clientid, message, header);
+				// _server.SendCustomHeader(_clientid, message, header);
 				monitor.Verify();
 			}
 		}

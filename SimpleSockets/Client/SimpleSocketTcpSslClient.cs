@@ -363,7 +363,7 @@ namespace SimpleSockets.Client
 						state.UnhandledBytes = null;
 					}
 
-					if (state.Flag == 0)
+					if (state.Flag == MessageFlag.Idle)
 					{
 						if (state.SimpleMessage == null)
 							state.SimpleMessage = new SimpleMessage(state, this, Debug);

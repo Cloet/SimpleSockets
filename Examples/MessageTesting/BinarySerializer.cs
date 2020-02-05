@@ -2,6 +2,7 @@
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 using SimpleSockets.Messaging.MessageContracts;
+using SimpleSockets.Messaging.Serialization;
 
 namespace MessageTesting
 {
@@ -25,5 +26,9 @@ namespace MessageTesting
 			}
 		}
 
+		public T DeserializeJson<T>(byte[] bytes)
+		{
+			throw new NotImplementedException();
+		}
 	}
 }

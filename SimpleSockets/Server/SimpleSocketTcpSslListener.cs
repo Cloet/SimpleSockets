@@ -305,7 +305,7 @@ namespace SimpleSockets.Server
 
 				if (!IsConnected(id))
 				{
-					RaiseClientDisconnected(state);
+					RaiseClientDisconnected(state, DisconnectReason.Unknown);
 					Close(id);
 					throw new Exception("Message failed to send because the destination socket is not connected.");
 				}
@@ -378,7 +378,7 @@ namespace SimpleSockets.Server
 				//and remove from clients list
 				if (!IsConnected(state.Id))
 				{
-					RaiseClientDisconnected(state);
+					RaiseClientDisconnected(state, DisconnectReason.Unknown);
 					lock (ConnectedClients)
 					{
 						ConnectedClients.Remove(state.Id);

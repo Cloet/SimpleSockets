@@ -4,7 +4,7 @@
 	{
 		Message=0,
 		Bytes = 1,
-		CustomHeader = 2,
+		MessageWithMetadata=2,
 		MessageContract =3,
 		File=4,
 		Folder=5,
