@@ -84,16 +84,18 @@ namespace Test.Sockets
 		public void Cient_CustomMessage_Server()
 		{
 			string message = "This is a test custom header message.";
-			string header = "This is a message header.";
+			var dictionary = new Dictionary<object, object>();
+
+			dictionary.Add("Test", "This is a test");
 
 			SimpleSockets.Server.MessageWithMetadataReceivedDelegate msgRec = (client, msg, head) => {
 				Assert.AreEqual(message, msg);
-				Assert.AreEqual(header, head);
+				Assert.AreEqual(dictionary, head);
 			};
 
-			using (var monitor = new EventMonitor(_server, "CustomHeaderReceived", msgRec, Mode.MANUAL))
+			using (var monitor = new EventMonitor(_server, "MessageWithMetaDataReceived", msgRec, Mode.MANUAL))
 			{
-				// _client.SendCustomHeader(message, header);
+				_client.SendMessageWithMetadata(message, dictionary);
 				monitor.Verify();
 			}
 		}
@@ -139,15 +141,18 @@ namespace Test.Sockets
 		public void Server_CustomMessage_Client()
 		{
 			string message = "This is a test custom header message.";
-			string header = "This is a message header.";
+			var dictionary = new Dictionary<object, object>();
+
+			dictionary.Add("Test", "This is a test");
 
 			SimpleSockets.Client.MessageWithMetadataReceivedDelegate msgRec = (client, msg, head) => {
 				Assert.AreEqual(message, msg);
-				Assert.AreEqual(header, head);
+				Assert.AreEqual(dictionary, head);
 			};
 
-			using (var monitor = new EventMonitor(_client, "CustomHeaderReceived", msgRec, Mode.MANUAL))
+			using (var monitor = new EventMonitor(_client, "MessageWithMetadataReceived", msgRec, Mode.MANUAL))
 			{
+				_server.SendMessageWithMetadata(_clientid, message, dictionary);
 				// _server.SendCustomHeader(_clientid, message, header);
 				monitor.Verify();
 			}
