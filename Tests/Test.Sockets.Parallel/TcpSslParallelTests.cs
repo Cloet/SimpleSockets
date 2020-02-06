@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using Test.Sockets.Utils;
 
 namespace Test.Sockets.Parallel
@@ -16,8 +17,8 @@ namespace Test.Sockets.Parallel
 
 		private IList<SimpleSocketClient> _clients = new List<SimpleSocketClient>();
 
-		private int _numClients = 4;
-		private int _numMessages = 100;
+		private int _numClients = 25;
+		private int _numMessages = 1000;
 		private X509Certificate2 _cert;
 
 		[OneTimeSetUp]
@@ -44,7 +45,7 @@ namespace Test.Sockets.Parallel
 
 			for (var i = 0; i < _numClients; i++)
 			{
-				new Thread(() => initClient()).Start();
+				initClient();
 			}
 
 
@@ -58,9 +59,12 @@ namespace Test.Sockets.Parallel
 
 		private void initClient()
 		{
-			var client = new SimpleSocketTcpSslClient(_cert);
-			_clients.Add(client);
-			client.StartClient("127.0.0.1", 13000);
+			var t1 = Task.Run(() => {
+				var client = new SimpleSocketTcpSslClient(_cert);
+				_clients.Add(client);
+				client.StartClient("127.0.0.1", 13000);
+			});
+			t1.Wait();
 		}
 
 		[OneTimeTearDown]

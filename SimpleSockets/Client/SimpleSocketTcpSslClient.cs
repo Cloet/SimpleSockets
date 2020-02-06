@@ -89,12 +89,14 @@ namespace SimpleSockets.Client
 			TokenSource = new CancellationTokenSource();
 			Token = TokenSource.Token;
 
+
 			Task.Run(SendFromQueue, Token);
 
 			Task.Run(() =>
 			{
 				try
 				{
+
 					//Try and connect
 					Listener = new Socket(Endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 					Listener.BeginConnect(Endpoint, OnConnectCallback, Listener);
@@ -122,7 +124,7 @@ namespace SimpleSockets.Client
 			}, Token);
 		}
 
-		protected override void OnConnectCallback(IAsyncResult result)
+		protected override async void OnConnectCallback(IAsyncResult result)
 		{
 			var client = (Socket)result.AsyncState;
 
@@ -134,7 +136,7 @@ namespace SimpleSockets.Client
 				var stream = new NetworkStream(Listener);
 				_sslStream = new SslStream(stream, false, ValidateCertificate, null);
 
-				var success = Authenticate(_sslStream).Result;
+				var success = await Authenticate(_sslStream);
 
 				if (success)
 				{

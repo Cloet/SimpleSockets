@@ -362,6 +362,8 @@ namespace SimpleSockets
 
 		/// <summary>
 		/// Change the buffer size of the server.
+		/// Warning: setting this value to something larger then 85 000 bytes can cause high memory usage 
+		/// because data will be stored to the Large Object Heap.
 		/// </summary>
 		/// <param name="bufferSize"></param>
 		public void ChangeSocketBufferSize(int bufferSize)
@@ -369,7 +371,7 @@ namespace SimpleSockets
 			if (bufferSize < 1024)
 				throw new ArgumentException("The buffer size cannot be less then 1024 bytes.");
 			if (bufferSize >= 85000)
-				RaiseLog("A buffer size larger then 85 000 bytes will allocate bytes to Large Object Heap. This will cause higher memory usage.");
+				Log("A buffer size larger then 85 000 bytes will allocate bytes to Large Object Heap. This will cause higher memory usage.");
 
 			ClientMetadata.ChangeBufferSize(bufferSize);
 		}

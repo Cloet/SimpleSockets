@@ -35,7 +35,7 @@ namespace Test.Parallel
 
 			for (var i = 0; i < _clientThreads; i++)
 			{
-				Task.Run(() => ClientTask());
+				var t = Task.Run(() => ClientTask());
 			}
 
 			//Console.WriteLine("Received " + _received + " messages.");
@@ -61,7 +61,13 @@ namespace Test.Parallel
 			_server.ServerHasStarted += ServerOnServerHasStarted;
 			_server.MessageReceived += ServerOnMessageReceived;
 			_server.ServerErrorThrown += ServerOnServerErrorThrown;
+			_server.ClientConnected += _server_ClientConnected;
 			_server.StartListening(13000);
+		}
+
+		private static void _server_ClientConnected(IClientInfo clientInfo)
+		{
+			Console.WriteLine("A client has connected to the server. Client with id: " + clientInfo.Id);
 		}
 
 		private static void ServerOnServerErrorThrown(Exception ex)
@@ -131,7 +137,7 @@ namespace Test.Parallel
 		private static void ServerOnMessageReceived(IClientInfo client, string message)
 		{
 			_received.Count();
-			Console.WriteLine("Server has received a message from client " + client.Id + "|" + client.Guid + ", " + message);
+			// Console.WriteLine("Server has received a message from client " + client.Id + "|" + client.Guid + ", " + message);
 
 			if (string.IsNullOrEmpty(message))
 				_receivedEmpty.Count();
@@ -151,7 +157,7 @@ namespace Test.Parallel
 
 		private static void ClientOnConnectedToServer(SimpleSocketClient client)
 		{
-			Console.WriteLine("Client has connected to the server.");
+			// Console.WriteLine("Client has connected to the server.");
 		}
 
 		private static void ClientOnMessageReceived(SimpleSocketClient client, string msg)

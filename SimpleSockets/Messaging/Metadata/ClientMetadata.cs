@@ -25,8 +25,8 @@ namespace SimpleSockets.Messaging.Metadata
 		//16384 = 16kb
 		//131072 = 0.131072Mb
 		//private static int _bufferSize = 524288; //Buffer Size bigger then 85000 will use LOH => can cause high memory usage
-		//private static int _bufferSize = 65536;
-		private static int _bufferSize = 4096;
+		private static int _bufferSize = 65536;
+		// private static int _bufferSize = 4096;
 
 		public string Guid { get; set; }
 		public string RemoteIPv4 { get; set; }

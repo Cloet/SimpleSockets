@@ -17,8 +17,8 @@ namespace Test.Sockets.Parallel
 
 		private IList<SimpleSocketClient> _clients = new List<SimpleSocketClient>();
 
-		private int _numClients = 10;
-		private int _numMessages = 100;
+		private int _numClients = 15;
+		private int _numMessages = 1000;
 
 		[OneTimeSetUp]
 		public void Setup()
