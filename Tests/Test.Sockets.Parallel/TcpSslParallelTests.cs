@@ -17,7 +17,7 @@ namespace Test.Sockets.Parallel
 
 		private IList<SimpleSocketClient> _clients = new List<SimpleSocketClient>();
 
-		private int _numClients = 25;
+		private int _numClients = 15;
 		private int _numMessages = 1000;
 		private X509Certificate2 _cert;
 

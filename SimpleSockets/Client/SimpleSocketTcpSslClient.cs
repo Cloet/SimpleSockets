@@ -388,13 +388,19 @@ namespace SimpleSockets.Client
 			}
 			catch (Exception ex)
 			{
-				DisposeSslStream();
 				RaiseErrorThrown(ex);
-				_mreReceiving.Set();
-				_mreRead.Set();
-				state.Reset();
-				// Receive(state);
+				if (!Disposed)
+				{
+					DisposeSslStream();
+					if (_mreReceiving != null)
+						_mreReceiving.Set();
+					if (_mreRead != null)
+						_mreRead.Set();
+					state.Reset();
+				}
+
 			}
+
 		}
 
 		#endregion
