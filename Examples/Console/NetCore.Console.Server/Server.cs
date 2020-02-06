@@ -5,7 +5,6 @@ using System.Reflection.Metadata.Ecma335;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
-using BasicLogger.Core.Logging;
 using MessageTesting;
 using SimpleSockets;
 using SimpleSockets.Messaging;
@@ -22,7 +21,6 @@ namespace NetCore.Console.Server
 		private static bool _compress;
 		private static ProgressBar progress;
 		private static long totalmsg;
-		private static ILogger extendedLogger = LogManager.GetLogger("Server Logger");
 
 		private static void Main(string[] args)
 		{
@@ -175,7 +173,7 @@ namespace NetCore.Console.Server
 			Write("Enter the message you want to send...  ");
 			var message = System.Console.ReadLine();
 
-			await _listener.SendCustomHeaderAsync(id, message, header, _compress, _encrypt, false);
+			// await _listener.SendCustomHeaderAsync(id, message, header, _compress, _encrypt, false);
 		}
 
 		private static async void SendFile()
@@ -231,7 +229,7 @@ namespace NetCore.Console.Server
 			_listener.FolderReceiver += ListenerOnFolderReceiver;
 			_listener.MessageReceived += MessageReceived;
 			_listener.MessageSubmitted += MessageSubmitted;
-			_listener.CustomHeaderReceived += CustomHeaderReceived;
+			_listener.MessageWithMetaDataReceived += CustomHeaderReceived;
 			_listener.ClientDisconnected += ClientDisconnected;
 			_listener.ClientConnected += ClientConnected;
 			_listener.ServerHasStarted += ServerHasStarted;
@@ -360,9 +358,10 @@ namespace NetCore.Console.Server
 				WriteLine("File received and stored at location: " + loc);
 		}
 
-		private static void CustomHeaderReceived(IClientInfo client, string msg, string header)
+		private static void CustomHeaderReceived(IClientInfo client, object msg, IDictionary<object, object> metadata, Type objectType)
 		{
-			WriteLine("The server received a message from the client with ID " + client.Id + " the header is : " + header + " and the message is : " + msg);
+			WriteLine("Test");
+			// WriteLine("The server received a message from the client with ID " + client.Id + " the header is : " + header + " and the message is : " + msg);
 		}
 
 		private static void MessageReceived(IClientInfo client, string msg)
@@ -401,7 +400,7 @@ namespace NetCore.Console.Server
 			WriteLine("Client " + client.Id + " with IPv4 " + client.RemoteIPv4 + " has connected to the server.");
 		}
 
-		private static void ClientDisconnected(IClientInfo client)
+		private static void ClientDisconnected(IClientInfo client, DisconnectReason reason)
 		{
 			WriteLine("Client " + client.Id + " has disconnected from the server.");
 		}
@@ -411,13 +410,11 @@ namespace NetCore.Console.Server
 
 		private static void Write(string text)
 		{
-			extendedLogger.Debug(text);
 			System.Console.Write(text);
 		}
 
 		private static void WriteLine(string text)
 		{
-			extendedLogger.Debug(text);
 			System.Console.WriteLine(text);
 		}
 

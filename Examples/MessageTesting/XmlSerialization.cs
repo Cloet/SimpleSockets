@@ -3,7 +3,7 @@ using System.IO;
 using System.Text;
 using System.Xml;
 using System.Xml.Serialization;
-using SimpleSockets.Messaging.MessageContracts;
+using SimpleSockets.Messaging.Serialization;
 
 namespace MessageTesting
 {
@@ -46,6 +46,11 @@ namespace MessageTesting
 			{
 				throw new Exception("Unable to convert xml string back to an object of type " + objType + ".\n" + ex.ToString());
 			}
+		}
+
+		public T DeserializeJson<T>(byte[] bytes)
+		{
+			throw new NotImplementedException();
 		}
 	}
 }

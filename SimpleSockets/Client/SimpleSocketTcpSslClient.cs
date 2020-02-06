@@ -83,6 +83,8 @@ namespace SimpleSockets.Client
 
 			if (EnableExtendedAuth)
 				SendAuthMessage();
+			else
+				SendBasicAuthMessage();
 
 			Endpoint = new IPEndPoint(GetIp(ipServer), port);
 
@@ -95,6 +97,7 @@ namespace SimpleSockets.Client
 			{
 				try
 				{
+
 					//Try and connect
 					Listener = new Socket(Endpoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 					Listener.BeginConnect(Endpoint, OnConnectCallback, Listener);
@@ -122,7 +125,7 @@ namespace SimpleSockets.Client
 			}, Token);
 		}
 
-		protected override void OnConnectCallback(IAsyncResult result)
+		protected override async void OnConnectCallback(IAsyncResult result)
 		{
 			var client = (Socket)result.AsyncState;
 
@@ -134,7 +137,7 @@ namespace SimpleSockets.Client
 				var stream = new NetworkStream(Listener);
 				_sslStream = new SslStream(stream, false, ValidateCertificate, null);
 
-				var success = Authenticate(_sslStream).Result;
+				var success = await Authenticate(_sslStream);
 
 				if (success)
 				{
@@ -337,7 +340,7 @@ namespace SimpleSockets.Client
 			}
 		}
 
-		protected override async void ReceiveCallback(IAsyncResult result)
+		protected override void ReceiveCallback(IAsyncResult result)
 		{
 			var state = (ClientMetadata)result.AsyncState;
 			try
@@ -363,14 +366,14 @@ namespace SimpleSockets.Client
 						state.UnhandledBytes = null;
 					}
 
-					if (state.Flag == 0)
+					if (state.Flag == MessageFlag.Idle)
 					{
 						if (state.SimpleMessage == null)
 							state.SimpleMessage = new SimpleMessage(state, this, Debug);
-						await state.SimpleMessage.ReadBytesAndBuildMessage(receive);
+						state.SimpleMessage.ReadBytesAndBuildMessage(receive);
 					}
 					else if (receive > 0)
-						await state.SimpleMessage.ReadBytesAndBuildMessage(receive);
+						state.SimpleMessage.ReadBytesAndBuildMessage(receive);
 				}
 
 				_mreRead.Set();
@@ -378,7 +381,8 @@ namespace SimpleSockets.Client
 			}
 			catch (SocketException se)
 			{
-				RaiseLog("Server was forcibly closed.");
+				Log("Server was forcibly closed.");
+				Log(se);
 				state.Reset();
 				DisposeSslStream();
 				_mreRead.Set();
@@ -386,13 +390,19 @@ namespace SimpleSockets.Client
 			}
 			catch (Exception ex)
 			{
-				DisposeSslStream();
 				RaiseErrorThrown(ex);
-				_mreReceiving.Set();
-				_mreRead.Set();
-				state.Reset();
-				// Receive(state);
+				if (!Disposed)
+				{
+					DisposeSslStream();
+					if (_mreReceiving != null)
+						_mreReceiving.Set();
+					if (_mreRead != null)
+						_mreRead.Set();
+					state.Reset();
+				}
+
 			}
+
 		}
 
 		#endregion

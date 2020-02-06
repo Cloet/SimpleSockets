@@ -31,14 +31,9 @@ namespace SimpleSockets.Messaging.Metadata
 		ManualResetEvent MreTimeout { get; }
 
 		/// <summary>
-		/// get how much bytes have been read.
-		/// </summary>
-		int Read { get; }
-
-		/// <summary>
 		/// The flag of the stateObject, used to check  in which state the object is.
 		/// </summary>
-		int Flag { get; set; }
+		MessageFlag Flag { get; set; }
 		
 		/// <summary>
 		/// If the state should be closed after this message
@@ -56,18 +51,6 @@ namespace SimpleSockets.Messaging.Metadata
 		Socket Listener { get; set;  }
 
 		/// <summary>
-		/// Append byte
-		/// </summary>
-		/// <param name="length"></param>
-		void AppendRead(int length);
-
-		/// <summary>
-		/// Subtract from bytes
-		/// </summary>
-		/// <param name="length"></param>
-		void SubtractRead(int length);
-
-		/// <summary>
 		/// Change the value of the buffer
 		/// </summary>
 		/// <param name="newBuffer"></param>
@@ -77,17 +60,6 @@ namespace SimpleSockets.Messaging.Metadata
 		/// Reset the current state object.
 		/// </summary>
 		void Reset();
-
-		/// <summary>
-		/// Gets how much bytes have been received
-		/// </summary>
-		byte[] ReceivedBytes { get; }
-
-		/// <summary>
-		/// Append the bytes to the state.
-		/// </summary>
-		/// <param name="bytes"></param>
-		void AppendBytes(byte[] bytes);
 
 	}
 }

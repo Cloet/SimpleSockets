@@ -112,7 +112,7 @@ namespace SimpleSockets.Server
 						while (!Token.IsCancellationRequested)
 						{
 							CanAcceptConnections.Reset();
-							listener.BeginAccept(this.OnClientConnect, listener);
+							listener.BeginAccept(OnClientConnect, listener);
 							CanAcceptConnections.WaitOne();
 						}
 					}
@@ -126,7 +126,6 @@ namespace SimpleSockets.Server
 
 		protected override void OnClientConnect(IAsyncResult result)
 		{
-			CanAcceptConnections.Set();
 			try
 			{
 				IClientMetadata state;
@@ -136,22 +135,30 @@ namespace SimpleSockets.Server
 				{
 					id = !ConnectedClients.Any() ? 1 : ConnectedClients.Keys.Max() + 1;
 
-					state = new ClientMetadata(((Socket) result.AsyncState).EndAccept(result), id);
+					state = new ClientMetadata(((Socket)result.AsyncState).EndAccept(result), id);
+					CanAcceptConnections.Set();
 
 					ConnectedClients.Add(id, state);
 				}
 
 				//If the server shouldn't accept the IP do nothing.
 				if (!IsConnectionAllowed(state))
+				{
+					Log("A blacklisted ip tried to connect to the server: ipv4:" + state.RemoteIPv4 + " ipv6: " + state.RemoteIPv6);
+					lock (ConnectedClients)
+					{
+						ConnectedClients.Remove(id);
+					}
 					return;
-
-				var stream = new NetworkStream(state.Listener);
-
-				//Create SslStream
-				state.SslStream = new SslStream(stream, false,AcceptCertificate);
+				}
 
 				Task.Run(() =>
 				{
+					var stream = new NetworkStream(state.Listener);
+
+					//Create SslStream
+					state.SslStream = new SslStream(stream, false, AcceptCertificate);
+
 					var success = Authenticate(state).Result;
 
 					if (success)
@@ -165,8 +172,7 @@ namespace SimpleSockets.Server
 						{
 							ConnectedClients.Remove(id);
 						}
-						RaiseLog("Unable to authenticate server.");
-						// throw new AuthenticationException("Unable to authenticate server.");
+						Log("Unable to authenticate server.");
 					}
 
 				}, new CancellationTokenSource(10000).Token);
@@ -174,6 +180,7 @@ namespace SimpleSockets.Server
 			}
 			catch (Exception ex)
 			{
+				CanAcceptConnections.Set();
 				RaiseLog(ex);
 				RaiseErrorThrown(ex);
 			}
@@ -305,7 +312,7 @@ namespace SimpleSockets.Server
 
 				if (!IsConnected(id))
 				{
-					RaiseClientDisconnected(state);
+					RaiseClientDisconnected(state, DisconnectReason.Unknown);
 					Close(id);
 					throw new Exception("Message failed to send because the destination socket is not connected.");
 				}
@@ -366,7 +373,7 @@ namespace SimpleSockets.Server
 			}
 		}
 
-		protected override async void ReceiveCallback(IAsyncResult result)
+		protected override void ReceiveCallback(IAsyncResult result)
 		{
 			var state = (ClientMetadata)result.AsyncState;
 			state.MreTimeout.Set();
@@ -378,7 +385,7 @@ namespace SimpleSockets.Server
 				//and remove from clients list
 				if (!IsConnected(state.Id))
 				{
-					RaiseClientDisconnected(state);
+					RaiseClientDisconnected(state, DisconnectReason.Unknown);
 					lock (ConnectedClients)
 					{
 						ConnectedClients.Remove(state.Id);
@@ -402,10 +409,10 @@ namespace SimpleSockets.Server
 						{
 							if (state.SimpleMessage == null)
 								state.SimpleMessage = new SimpleMessage(state, this, Debug);
-							await ParallelQueue.Enqueue(() => state.SimpleMessage.ReadBytesAndBuildMessage(receive));
+							state.SimpleMessage.ReadBytesAndBuildMessage(receive);
 						}
 						else if (receive > 0)
-							await ParallelQueue.Enqueue(() => state.SimpleMessage.ReadBytesAndBuildMessage(receive));
+							state.SimpleMessage.ReadBytesAndBuildMessage(receive);
 					}
 
 					state.MreReceiving.Set();

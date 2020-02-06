@@ -31,11 +31,10 @@ namespace Test.Parallel
 			Console.WriteLine("Starting Test...");
 			StartServer();
 			Thread.Sleep(1000);
-			Task task = null;
 
 			for (var i = 0; i < _clientThreads; i++)
 			{
-				Task.Run(() => ClientTask());
+				var t = Task.Run(() => ClientTask());
 			}
 
 			//Console.WriteLine("Received " + _received + " messages.");
@@ -55,13 +54,19 @@ namespace Test.Parallel
 
 		private static void StartServer()
 		{
-			// _server = new SimpleSocketTcpSslListener(cert);
-			_server = new SimpleSocketTcpListener();
+			_server = new SimpleSocketTcpSslListener(cert);
+			// _server = new SimpleSocketTcpListener();
 			//_server = new SimpleSocketTcpSslListener(@"C:\Users\CloetOMEN\Desktop\Test\cert.pfx", "Password");
 			_server.ServerHasStarted += ServerOnServerHasStarted;
 			_server.MessageReceived += ServerOnMessageReceived;
 			_server.ServerErrorThrown += ServerOnServerErrorThrown;
+			_server.ClientConnected += _server_ClientConnected;
 			_server.StartListening(13000);
+		}
+
+		private static void _server_ClientConnected(IClientInfo clientInfo)
+		{
+			Console.WriteLine("A client has connected to the server. Client with id: " + clientInfo.Id);
 		}
 
 		private static void ServerOnServerErrorThrown(Exception ex)
@@ -78,8 +83,8 @@ namespace Test.Parallel
 		{
 			//using (var client = new SimpleSocketTcpClient())
 			//{
-				// var client = new SimpleSocketTcpSslClient(cert);
-				var client = new SimpleSocketTcpClient();
+				var client = new SimpleSocketTcpSslClient(cert);
+				// var client = new SimpleSocketTcpClient();
 				//var client = new SimpleSocketTcpSslClient(@"", "");
 				_clientId++;
 				client.MessageReceived += ClientOnMessageReceived;
@@ -151,7 +156,7 @@ namespace Test.Parallel
 
 		private static void ClientOnConnectedToServer(SimpleSocketClient client)
 		{
-			Console.WriteLine("Client has connected to the server.");
+			// Console.WriteLine("Client has connected to the server.");
 		}
 
 		private static void ClientOnMessageReceived(SimpleSocketClient client, string msg)

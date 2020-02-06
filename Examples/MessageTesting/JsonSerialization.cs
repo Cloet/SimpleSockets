@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using SimpleSockets.Messaging.MessageContracts;
+using SimpleSockets.Messaging.Serialization;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -10,6 +11,15 @@ namespace MessageTesting
 {
 	public class JsonSerialization : IObjectSerializer
 	{
+
+		public T DeserializeJson<T>(byte[] bytes)
+		{
+			if (bytes.Length == 0 || bytes == null)
+				throw new ArgumentNullException(nameof(bytes));
+
+			return JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(bytes));
+		}
+
 		public object DeserializeBytesToObject(byte[] bytes, Type objType)
 		{
 			return JsonConvert.DeserializeObject(Encoding.UTF8.GetString(bytes),objType);

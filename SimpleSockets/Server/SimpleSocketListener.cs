@@ -21,11 +21,9 @@ namespace SimpleSockets.Server
 
 	#region Delegates
 
-	public delegate void ClientTimedOutDelegate(IClientInfo client);
-
 	public delegate void MessageReceivedDelegate(IClientInfo client, string message);
 
-	public delegate void CustomHeaderReceivedDelegate(IClientInfo client, string message, string header);
+	public delegate void MessageWithMetadataReceivedDelegate(IClientInfo client, object message, IDictionary<object,object> metadata, Type objType);
 
 	public delegate void BytesReceivedDelegate(IClientInfo client, byte[] messageData);
 
@@ -41,7 +39,7 @@ namespace SimpleSockets.Server
 
 	public delegate void MessageSubmittedDelegate(IClientInfo client, bool close);
 
-	public delegate void ClientDisconnectedDelegate(IClientInfo client);
+	public delegate void ClientDisconnectedDelegate(IClientInfo client, DisconnectReason reason);
 
 	public delegate void ClientConnectedDelegate(IClientInfo clientInfo);
 
@@ -70,8 +68,6 @@ namespace SimpleSockets.Server
 		protected readonly ManualResetEvent CanAcceptConnections = new ManualResetEvent(false);
 		protected Socket Listener { get; set; }
 		protected bool Disposed { get; set; }
-
-		protected IList<Task> ClientThreads { get; set; }
 
 		protected ParallelQueue ParallelQueue { get; set; }
 
@@ -126,7 +122,7 @@ namespace SimpleSockets.Server
 		/// Event that is triggered when the server receives a Message with a custom header.
 		/// Format is ID:MESSAGE:HEADER
 		/// </summary>
-		public event CustomHeaderReceivedDelegate CustomHeaderReceived;
+		public event MessageWithMetadataReceivedDelegate MessageWithMetaDataReceived;
 
 		/// <summary>
 		/// Event that is triggered when the server receives bytes from a client.
@@ -204,11 +200,6 @@ namespace SimpleSockets.Server
 		/// </summary>
 		public event ServerLogsDelegate ServerLogs;
 
-		/// <summary>
-		/// Event that's fired when a client times out.
-		/// </summary>
-		public event ClientTimedOutDelegate ClientTimedOut;
-
 		#endregion
 
 		/// <summary>
@@ -228,7 +219,6 @@ namespace SimpleSockets.Server
 			AllowReceivingFiles = false;
 
 			ParallelQueue = new ParallelQueue(50);
-			ClientThreads = new List<Task>();
 
 			ByteCompressor = new DeflateByteCompression();
 			MessageEncryption = new Aes256();
@@ -379,7 +369,7 @@ namespace SimpleSockets.Server
 			if (!IsConnected(id))
 			{
 				var client = GetClient(id);
-				ClientDisconnected?.Invoke(client);
+				ClientDisconnected?.Invoke(client, DisconnectReason.Unknown);
 				ConnectedClients.Remove(id);
 			}
 		}
@@ -433,7 +423,7 @@ namespace SimpleSockets.Server
 				{
 					return !((socket.Poll(1000, SelectMode.SelectRead) && (socket.Available == 0)) || !socket.Connected);
 				}
-			} catch (ObjectDisposedException de)
+			} catch (ObjectDisposedException)
 			{
 				return false;
 			}
@@ -517,7 +507,7 @@ namespace SimpleSockets.Server
 				lock (ConnectedClients)
 				{
 					ConnectedClients.Remove(id);
-					ClientDisconnected?.Invoke(state);
+					ClientDisconnected?.Invoke(state, DisconnectReason.Normal);
 				}
 			}
 		}
@@ -563,11 +553,6 @@ namespace SimpleSockets.Server
 		
 		#region Global-Event-Invokers
 
-		protected void RaiseClientTimedOut(IClientInfo client)
-		{
-			ClientTimedOut?.Invoke(client);
-		}
-
 		protected void RaiseAuthFailed(IClientInfo client)
 		{
 			AuthFailure?.Invoke(client);
@@ -589,9 +574,9 @@ namespace SimpleSockets.Server
 			contract.RaiseOnMessageReceived(this,client, contract.DeserializeToObject(data), contract.MessageHeader);
 		}
 
-		protected internal override void RaiseCustomHeaderReceived(IClientInfo client, string header, string message)
+		protected internal override void RaiseMessageWithMetaDataReceived(IClientInfo client, object message, IDictionary<object,object> metadata, Type objType)
 		{
-			CustomHeaderReceived?.Invoke(client, message, header);
+			MessageWithMetaDataReceived?.Invoke(client, message, metadata, objType);
 		}
 
 		protected internal override void RaiseBytesReceived(IClientInfo client, byte[] data)
@@ -661,9 +646,9 @@ namespace SimpleSockets.Server
 			ClientConnected?.Invoke(clientInfo);
 		}
 
-		protected void RaiseClientDisconnected(IClientInfo client)
+		protected void RaiseClientDisconnected(IClientInfo client, DisconnectReason reason)
 		{
-			ClientDisconnected?.Invoke(client);
+			ClientDisconnected?.Invoke(client, reason);
 		}
 
 		#endregion
@@ -762,63 +747,79 @@ namespace SimpleSockets.Server
 
 		#endregion
 
-		#region Message-CustomHeader
+		#region MessageWithMetadata
 
-		public void SendCustomHeader(int id, string message, string header, bool compress = false, bool encrypt = false,bool close = false)
-		{
+		public void SendMessageWithMetadata(int id, byte[] data, IDictionary<object, object> metadata, bool compress = false, bool encrypt = false, bool close = false) {
+			if (ObjectSerializer == null)
+				throw new ArgumentNullException(nameof(ObjectSerializer));
+
 			var client = GetClient(id);
-			var builder = new SimpleMessage(MessageType.CustomHeader, this, Debug)
+			var builder = new SimpleMessage(MessageType.MessageWithMetadata, this, Debug)
 				.CompressMessage(compress)
 				.EncryptMessage(encrypt)
-				.SetHeaderString(header)
-				.SetMessage(message)
+				.SetMetadata(metadata)
+				.SetBytes(data)
+				.SetHeaderString("ByteArray")
 				.SetSendClient(client);
 
 			builder.Build();
 			SendToSocket(builder.PayLoad, close, false, id);
 		}
 
-		public void SendCustomHeader(int id, byte[] data, byte[] header, bool compress = false, bool encrypt = false,bool close = false)
+		public async Task SendMessageWithMetadataAsync(int id, byte[] data, IDictionary<object, object> metadata, bool compress = false, bool encrypt = false, bool close = false)
 		{
+			if (ObjectSerializer == null)
+				throw new ArgumentNullException(nameof(ObjectSerializer));
+
 			var client = GetClient(id);
-			var builder = new SimpleMessage(MessageType.CustomHeader, this, Debug)
+			var builder = new SimpleMessage(MessageType.MessageWithMetadata, this, Debug)
 				.CompressMessage(compress)
 				.EncryptMessage(encrypt)
-				.SetHeader(header)
+				.SetMetadata(metadata)
 				.SetBytes(data)
+				.SetHeaderString("ByteArray")
+				.SetSendClient(client);
+
+			await builder.BuildAsync();
+			SendToSocket(builder.PayLoad, close, false, id);
+		}
+
+		public void SendMessageWithMetadata(int id, object message, IDictionary<object,object> metadata, bool compress = false, bool encrypt = false,bool close = false)
+		{
+			if (ObjectSerializer == null)
+				throw new ArgumentNullException(nameof(ObjectSerializer));
+
+			var client = GetClient(id);
+			var builder = new SimpleMessage(MessageType.MessageWithMetadata, this, Debug)
+				.CompressMessage(compress)
+				.EncryptMessage(encrypt)
+				.SetMetadata(metadata)
+				.SetBytes(ObjectSerializer.SerializeObjectToBytes(message))
+				.SetHeaderString(message.GetType().AssemblyQualifiedName)
 				.SetSendClient(client);
 
 			builder.Build();
 			SendToSocket(builder.PayLoad, close, false, id);
 		}
 
-		public async Task SendCustomHeaderAsync(int id, string message, string header, bool compress = false, bool encrypt = false, bool close = false)
+		public async Task SendCustomHeaderAsync(int id, object message, IDictionary<object,object> metadata, bool compress = false, bool encrypt = false, bool close = false)
 		{
+			if (ObjectSerializer == null)
+				throw new ArgumentNullException(nameof(ObjectSerializer));
+
 			var client = GetClient(id);
-			var builder = new SimpleMessage(MessageType.CustomHeader, this, Debug)
+			var builder = new SimpleMessage(MessageType.MessageWithMetadata, this, Debug)
 				.CompressMessage(compress)
 				.EncryptMessage(encrypt)
-				.SetHeaderString(header)
-				.SetMessage(message)
+				.SetMetadata(metadata)
+				.SetBytes(ObjectSerializer.SerializeObjectToBytes(message))
+				.SetHeaderString(message.GetType().AssemblyQualifiedName)
 				.SetSendClient(client);
 
 			await builder.BuildAsync();
 			SendToSocket(builder.PayLoad, close, false, id);
 		}
 
-		public async Task SendCustomHeaderAsync(int id, byte[] data, byte[] header, bool compress = false, bool encrypt = false, bool close = false)
-		{
-			var client = GetClient(id);
-			var builder = new SimpleMessage(MessageType.CustomHeader, this, Debug)
-				.CompressMessage(compress)
-				.EncryptMessage(encrypt)
-				.SetHeader(header)
-				.SetBytes(data)
-				.SetSendClient(client);
-
-			await builder.BuildAsync();
-			SendToSocket(builder.PayLoad, close, false, id);
-		}
 
 		#endregion
 
@@ -859,7 +860,7 @@ namespace SimpleSockets.Server
 		public async Task SendObjectAsync(int id, object obj, bool compress = false, bool encrypt = false,bool close = false)
 		{
 			if (ObjectSerializer == null)
-				throw new Exception("No ObjectSerializer is currently set.");
+				throw new ArgumentNullException(nameof(ObjectSerializer));
 
 			var client = GetClient(id);
 			var builder = new SimpleMessage(MessageType.Object, this, Debug)
@@ -877,7 +878,7 @@ namespace SimpleSockets.Server
 		public void SendObject(int id, object obj, bool compress = false, bool encrypt = false, bool close = false)
 		{
 			if (ObjectSerializer == null)
-				throw new Exception("No ObjectSerializer is currently set.");
+				throw new ArgumentNullException(nameof(ObjectSerializer));
 
 			var client = GetClient(id);
 			var builder = new SimpleMessage(MessageType.Object, this, Debug)

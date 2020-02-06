@@ -162,7 +162,7 @@ namespace SimpleSockets.Server
 				if (se.SocketErrorCode == SocketError.TimedOut)
 				{
 					Log("Client with id: " + state.Id + " and guid: " + state.Guid + " has timed out.");
-					RaiseClientTimedOut(state);
+					RaiseClientDisconnected(state, DisconnectReason.Timeout);
 				}else
 				{
 					RaiseErrorThrown(se);
@@ -176,7 +176,7 @@ namespace SimpleSockets.Server
 			}
 		}
 
-		protected override async void ReceiveCallback(IAsyncResult result)
+		protected override void ReceiveCallback(IAsyncResult result)
 		{
 			var state = (ClientMetadata)result.AsyncState;
 			state.MreTimeout.Set();
@@ -188,7 +188,7 @@ namespace SimpleSockets.Server
 				//and remove from clients list
 				if (!IsConnected(state.Id))
 				{
-					RaiseClientDisconnected(state);
+					RaiseClientDisconnected(state, DisconnectReason.Unknown);
 					lock (ConnectedClients)
 					{
 						ConnectedClients.Remove(state.Id);
@@ -207,15 +207,15 @@ namespace SimpleSockets.Server
 						}
 
 						//Does header check
-						if (state.Flag == 0)
+						if (state.Flag == MessageFlag.Idle)
 						{
 							if (state.SimpleMessage == null)
 								state.SimpleMessage = new SimpleMessage(state, this, Debug);
-							await ParallelQueue.Enqueue(() => state.SimpleMessage.ReadBytesAndBuildMessage(receive));
+							state.SimpleMessage.ReadBytesAndBuildMessage(receive);
 						}
 						else if (receive > 0)
 						{
-							await ParallelQueue.Enqueue(() => state.SimpleMessage.ReadBytesAndBuildMessage(receive));
+							state.SimpleMessage.ReadBytesAndBuildMessage(receive);
 						}
 					}
 
@@ -266,7 +266,7 @@ namespace SimpleSockets.Server
 					if (!IsConnected(state.Id))
 					{
 						//Sets client with id to disconnected
-						RaiseClientDisconnected(state);
+						RaiseClientDisconnected(state, DisconnectReason.Unknown);
 						throw new Exception("Message failed to send because the destination socket is not connected.");
 					}
 					else

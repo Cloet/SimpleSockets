@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
@@ -14,6 +14,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\SimpleSockets\SimpleSockets.csproj" />
+    <ProjectReference Include="..\Test.Sockets.Basic\Test.Sockets.Basic.csproj" />
   </ItemGroup>
 
 </Project>
