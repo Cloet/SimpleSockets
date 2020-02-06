@@ -80,7 +80,7 @@ namespace Test.Sockets
 
 			dictionary.Add("Test", "This is a test");
 
-			SimpleSockets.Server.MessageWithMetadataReceivedDelegate msgRec = (client, msg, head) => {
+			SimpleSockets.Server.MessageWithMetadataReceivedDelegate msgRec = (client, msg, head, type) => {
 				Assert.AreEqual(message, msg);
 				Assert.AreEqual(dictionary, head);
 			};
@@ -165,7 +165,7 @@ namespace Test.Sockets
 
 			dictionary.Add("Test", "This is a test");
 
-			SimpleSockets.Client.MessageWithMetadataReceivedDelegate msgRec = (client, msg, head) => {
+			SimpleSockets.Client.MessageWithMetadataReceivedDelegate msgRec = (client, msg, head, type) => {
 				Assert.AreEqual(message, msg);
 				Assert.AreEqual(dictionary, head);
 			};

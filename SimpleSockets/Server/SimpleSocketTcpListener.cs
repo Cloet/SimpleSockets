@@ -176,7 +176,7 @@ namespace SimpleSockets.Server
 			}
 		}
 
-		protected override async void ReceiveCallback(IAsyncResult result)
+		protected override void ReceiveCallback(IAsyncResult result)
 		{
 			var state = (ClientMetadata)result.AsyncState;
 			state.MreTimeout.Set();
@@ -211,11 +211,11 @@ namespace SimpleSockets.Server
 						{
 							if (state.SimpleMessage == null)
 								state.SimpleMessage = new SimpleMessage(state, this, Debug);
-							await ParallelQueue.Enqueue(() => state.SimpleMessage.ReadBytesAndBuildMessage(receive));
+							state.SimpleMessage.ReadBytesAndBuildMessage(receive);
 						}
 						else if (receive > 0)
 						{
-							await ParallelQueue.Enqueue(() => state.SimpleMessage.ReadBytesAndBuildMessage(receive));
+							state.SimpleMessage.ReadBytesAndBuildMessage(receive);
 						}
 					}
 

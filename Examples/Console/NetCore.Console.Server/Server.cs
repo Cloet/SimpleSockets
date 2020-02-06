@@ -358,7 +358,7 @@ namespace NetCore.Console.Server
 				WriteLine("File received and stored at location: " + loc);
 		}
 
-		private static void CustomHeaderReceived(IClientInfo client, object msg, IDictionary<object, object> metadata)
+		private static void CustomHeaderReceived(IClientInfo client, object msg, IDictionary<object, object> metadata, Type objectType)
 		{
 			WriteLine("Test");
 			// WriteLine("The server received a message from the client with ID " + client.Id + " the header is : " + header + " and the message is : " + msg);

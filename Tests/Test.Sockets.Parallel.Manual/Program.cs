@@ -31,7 +31,6 @@ namespace Test.Parallel
 			Console.WriteLine("Starting Test...");
 			StartServer();
 			Thread.Sleep(1000);
-			Task task = null;
 
 			for (var i = 0; i < _clientThreads; i++)
 			{
@@ -137,7 +136,7 @@ namespace Test.Parallel
 		private static void ServerOnMessageReceived(IClientInfo client, string message)
 		{
 			_received.Count();
-			// Console.WriteLine("Server has received a message from client " + client.Id + "|" + client.Guid + ", " + message);
+			Console.WriteLine("Server has received a message from client " + client.Id + "|" + client.Guid + ", " + message);
 
 			if (string.IsNullOrEmpty(message))
 				_receivedEmpty.Count();

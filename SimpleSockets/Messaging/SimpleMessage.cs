@@ -86,8 +86,11 @@ namespace SimpleSockets.Messaging
 		//Message processing helpers
 		private byte[] _receivedBytes = new byte[0];
 		private byte[] _receivedMetadataBytes = new byte[0];
+		private byte[] _receivedHeaderBytes = new byte[0];
+		private int _readHeaderBytes = 0;
 		private int _readBytes = 0;
-		private int _readMetadataBytes;
+		private int _readMetadataBytes = 0;
+
 
 		/// <summary>
 		/// Constructor
@@ -515,7 +518,7 @@ namespace SimpleSockets.Messaging
 		/// Call from socket receiver and create a message from this.
 		/// </summary>
 		/// <param name="receive"></param>
-		internal async Task<bool> ReadBytesAndBuildMessage(int receive) {
+		internal bool ReadBytesAndBuildMessage(int receive) {
 
 			var processing = true;
 
@@ -556,12 +559,12 @@ namespace SimpleSockets.Messaging
 				}
 
 				if (_state.Flag == MessageFlag.ProcessingMetadata) {
-					processing = await ReadMetaData(receive);
+					processing = ReadMetaData(receive);
 					receive = _state.Buffer.Length;
 				}
 
 				if (_state.Flag == MessageFlag.ProcessingData) {
-					processing = await ReadData(receive);
+					processing = ReadData(receive);
 					receive = _state.Buffer.Length;
 				}
 			}
@@ -667,7 +670,7 @@ namespace SimpleSockets.Messaging
 
 		#region Read message-data
 
-		private async Task<bool> ReadMetaData(int receive) {
+		private bool ReadMetaData(int receive) {
 
 			if (receive <= 0) 
 				return false;
@@ -726,7 +729,7 @@ namespace SimpleSockets.Messaging
 		}
 
 		//Returns true if there is more data to read.
-		private async Task<bool> ReadData(int receive)
+		private bool ReadData(int receive)
 		{
 			if (receive <= 0)
 				return false;
@@ -882,133 +885,145 @@ namespace SimpleSockets.Messaging
 
 				case MessageType.Auth:
 				{
-					var message = Encoding.UTF8.GetString(_receivedBytes);
-					var arr = message.Split('|');
-					_state.ClientName = arr[0];
-					_state.Guid = arr[1];
-					_state.UserDomainName = arr[2];
-					_state.OsVersion = arr[3];
-					break;
+						var message = Encoding.UTF8.GetString(_receivedBytes);
+						var arr = message.Split('|');
+						_state.ClientName = arr[0];
+						_state.Guid = arr[1];
+						_state.UserDomainName = arr[2];
+						_state.OsVersion = arr[3];
+						break;
 				}
 				case MessageType.BasicAuth:
 				{
-					var message = Encoding.UTF8.GetString(_receivedBytes);
-					var arr = message.Split('|');
-					_state.Guid = arr[0];
-					_state.OsVersion = arr[1];
-					break;
+						var message = Encoding.UTF8.GetString(_receivedBytes);
+						var arr = message.Split('|');
+						_state.Guid = arr[0];
+						_state.OsVersion = arr[1];
+						break;
 				}
 				case MessageType.Object:
 				{
-					var type = Type.GetType(Encoding.UTF8.GetString(Header));
-					var obj = _socket.ObjectSerializer.DeserializeBytesToObject(_receivedBytes, type);
-					_socket.RaiseObjectReceived(_state, obj, obj.GetType());
-					break;
+						var type = Type.GetType(Encoding.UTF8.GetString(Header));
+						var obj = _socket.ObjectSerializer.DeserializeBytesToObject(_receivedBytes, type);
+						_socket.RaiseObjectReceived(_state, obj, obj.GetType());
+						break;
 				}
 				case MessageType.Message:
-					_socket.RaiseMessageReceived(_state, Encoding.UTF8.GetString(_receivedBytes));
-					break;
+						_socket.RaiseMessageReceived(_state, Encoding.UTF8.GetString(_receivedBytes));
+						break;
 				case MessageType.Bytes:
-					_socket.RaiseBytesReceived(_state, _receivedBytes);
-					break;
+						_socket.RaiseBytesReceived(_state, _receivedBytes);
+						break;
 				case MessageType.File:
 				{
-					var file = Encoding.UTF8.GetString(Header);
-					var output = file;
+						var file = Encoding.UTF8.GetString(Header);
+						var output = file;
 
-					_socket.RaiseFileReceiver(_state, _partNumber, _totalParts, output, MessageState.ReceivingData);
+						_socket.RaiseFileReceiver(_state, _partNumber, _totalParts, output, MessageState.ReceivingData);
 
-					if (_totalParts == _partNumber)
-					{
-						file = GetTempPath(file);
-
-						if (Encrypted)
+						if (_totalParts == _partNumber)
 						{
-							_socket.RaiseFileReceiver(_state, _partNumber, _totalParts, output, MessageState.Decrypting);
-							Log("Decrypting file from path : " + file);
-							var tmp = file;
-							file = _socket.DecryptFile(file, _socket.TempPath + Path.GetRandomFileName()).FullName;
-							File.Delete(tmp);
-							Log("File has been decrypted from path: " + file);
-							_socket.RaiseFileReceiver(_state, _partNumber, _totalParts, output,MessageState.DecryptingDone);
-						}
+							file = GetTempPath(file);
 
-						if (Compressed)
-						{
-							_socket.RaiseFileReceiver(_state, _partNumber, _totalParts, output,MessageState.Decompressing);
-							Log("Decompressing file from path : " + file);
-							var tmp = file;
-							file = _socket.DecompressFile(new FileInfo(file), _socket.TempPath + Path.GetRandomFileName()).FullName;
 							if (Encrypted)
+							{
+								_socket.RaiseFileReceiver(_state, _partNumber, _totalParts, output, MessageState.Decrypting);
+								Log("Decrypting file from path : " + file);
+								var tmp = file;
+								file = _socket.DecryptFile(file, _socket.TempPath + Path.GetRandomFileName()).FullName;
 								File.Delete(tmp);
-							Log("File Decompressed from path : " + file);
-							_socket.RaiseFileReceiver(_state, _partNumber, _totalParts, output,MessageState.DecompressingDone);
+								Log("File has been decrypted from path: " + file);
+								_socket.RaiseFileReceiver(_state, _partNumber, _totalParts, output,MessageState.DecryptingDone);
+							}
+
+							if (Compressed)
+							{
+								_socket.RaiseFileReceiver(_state, _partNumber, _totalParts, output,MessageState.Decompressing);
+								Log("Decompressing file from path : " + file);
+								var tmp = file;
+								file = _socket.DecompressFile(new FileInfo(file), _socket.TempPath + Path.GetRandomFileName()).FullName;
+								if (Encrypted)
+									File.Delete(tmp);
+								Log("File Decompressed from path : " + file);
+								_socket.RaiseFileReceiver(_state, _partNumber, _totalParts, output,MessageState.DecompressingDone);
+							}
+
+
+							if (Encrypted || Compressed)
+							{
+								if (File.Exists(output))
+									File.Delete(output);
+								Log("Deleting file: " + output);
+								File.Move(file, output);
+								Log("Moving " + file + " to " + output);
+								File.Delete(file); // Delete encrypted/compressed file.
+								Log("Deleting temp file : " + file);
+							}
+
+							_socket.RaiseFileReceiver(_state, _partNumber, _totalParts, output, MessageState.Completed);
+							Log("File has been received and saved to path : " + output);
 						}
-
-
-						if (Encrypted || Compressed)
-						{
-							if (File.Exists(output))
-								File.Delete(output);
-							Log("Deleting file: " + output);
-							File.Move(file, output);
-							Log("Moving " + file + " to " + output);
-							File.Delete(file); // Delete encrypted/compressed file.
-							Log("Deleting temp file : " + file);
-						}
-
-						_socket.RaiseFileReceiver(_state, _partNumber, _totalParts, output, MessageState.Completed);
-						Log("File has been received and saved to path : " + output);
-					}
-					
-					break;
+						
+						break;
 				}
 				case MessageType.MessageWithMetadata:
 				{
-					var type = Type.GetType(Encoding.UTF8.GetString(Header));
-					var metadata = _socket.ObjectSerializer.DeserializeJson<IDictionary<object, object>>(_receivedMetadataBytes);
-					var obj = _socket.ObjectSerializer.DeserializeBytesToObject(_receivedBytes, type);
-					_socket.RaiseMessageWithMetaDataReceived(_state, obj, metadata);
-					break;
+						var header = Encoding.UTF8.GetString(Header);
+						object obj = null;
+						Type objType = null;
+
+						if (header != "ByteArray")
+						{
+							objType = Type.GetType(header);
+							obj = _socket.ObjectSerializer.DeserializeBytesToObject(_receivedBytes, objType);
+						}
+						else {
+							obj = _receivedBytes;
+							objType = obj.GetType();
+						}
+
+						var metadata = _socket.ObjectSerializer.DeserializeJson<IDictionary<object, object>>(_receivedMetadataBytes);
+						_socket.RaiseMessageWithMetaDataReceived(_state, obj, metadata, objType);
+						break;
 				}
 				case MessageType.MessageContract:
 				{
-					var contractHeader = Encoding.UTF8.GetString(Header);
-					var contract = GetCorrespondingMessageContract(contractHeader);
-					if (contract != null)
-						_socket.RaiseMessageContractReceived(_state, contract, _receivedBytes);
-					else if (_debug)
-						Log("MessageContract with Header '" + contractHeader + "' does not exist.");
-					break;
+						var contractHeader = Encoding.UTF8.GetString(Header);
+						var contract = GetCorrespondingMessageContract(contractHeader);
+						if (contract != null)
+							_socket.RaiseMessageContractReceived(_state, contract, _receivedBytes);
+						else if (_debug)
+							Log("MessageContract with Header '" + contractHeader + "' does not exist.");
+						break;
 				}
 				case MessageType.Folder:
 				{
-					var folder = Encoding.UTF8.GetString(Header);
-					var output = folder;
+						var folder = Encoding.UTF8.GetString(Header);
+						var output = folder;
 
-					_socket.RaiseFolderReceiver(_state, _partNumber, _totalParts, output, MessageState.ReceivingData);
+						_socket.RaiseFolderReceiver(_state, _partNumber, _totalParts, output, MessageState.ReceivingData);
 
-					if (_totalParts == _partNumber)
-					{
-						folder = GetTempPath(folder);
-
-						if (Encrypted)
+						if (_totalParts == _partNumber)
 						{
-							var tmp = _socket.DecryptFile(folder, _socket.TempPath + Path.GetRandomFileName()).FullName;
-							File.Delete(folder);
-							folder = tmp;
+							folder = GetTempPath(folder);
+
+							if (Encrypted)
+							{
+								var tmp = _socket.DecryptFile(folder, _socket.TempPath + Path.GetRandomFileName()).FullName;
+								File.Delete(folder);
+								folder = tmp;
+							}
+
+
+							_socket.ExtractToFolder(folder, output);
+							File.Delete(folder); //Delete extracted folder.
+
+							_socket.RaiseFolderReceiver(_state, _partNumber, _totalParts, output, MessageState.Completed);
 						}
-
-
-						_socket.ExtractToFolder(folder, output);
-						File.Delete(folder); //Delete extracted folder.
-
-						_socket.RaiseFolderReceiver(_state, _partNumber, _totalParts, output, MessageState.Completed);
-					}
-					break;
+						break;
 				}
 				default:
-					throw new ArgumentOutOfRangeException();
+						throw new ArgumentOutOfRangeException();
 			}
 
 			ResetReadData();
@@ -1046,8 +1061,10 @@ namespace SimpleSockets.Messaging
 			Data = new byte[0];
 			_receivedBytes = new byte[0];
 			_receivedMetadataBytes = new byte[0];
+			_receivedHeaderBytes = new byte[0];
 			_readBytes = 0;
 			_readMetadataBytes = 0;
+			_readHeaderBytes = 0;
 		}
 
 	}

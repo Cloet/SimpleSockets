@@ -326,7 +326,7 @@ namespace NetCore.Console.Client
 				WriteLine("File received and stored at location: " + loc);
 		}
 
-		private static void CustomHeader(SimpleSocket a, object msg, IDictionary<object, object> dict)
+		private static void CustomHeader(SimpleSocket a, object msg, IDictionary<object, object> dict, Type objectType)
 		{
 			WriteLine("Test");
 			// WriteLine("Bytes received from server with header = " + header + " and message = " + msg);

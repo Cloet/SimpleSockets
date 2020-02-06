@@ -81,14 +81,14 @@ namespace Test.Sockets
 		}
 
 		[Test]
-		public void Cient_CustomMessage_Server()
+		public void Cient_MessageWithMetadata_Server()
 		{
 			string message = "This is a test custom header message.";
 			var dictionary = new Dictionary<object, object>();
 
 			dictionary.Add("Test", "This is a test");
 
-			SimpleSockets.Server.MessageWithMetadataReceivedDelegate msgRec = (client, msg, head) => {
+			SimpleSockets.Server.MessageWithMetadataReceivedDelegate msgRec = (client, msg, head, type) => {
 				Assert.AreEqual(message, msg);
 				Assert.AreEqual(dictionary, head);
 			};
@@ -145,7 +145,7 @@ namespace Test.Sockets
 
 			dictionary.Add("Test", "This is a test");
 
-			SimpleSockets.Client.MessageWithMetadataReceivedDelegate msgRec = (client, msg, head) => {
+			SimpleSockets.Client.MessageWithMetadataReceivedDelegate msgRec = (client, msg, head, type) => {
 				Assert.AreEqual(message, msg);
 				Assert.AreEqual(dictionary, head);
 			};

@@ -43,6 +43,8 @@ namespace SimpleSockets.Client
 
 			if (EnableExtendedAuth)
 				SendAuthMessage();
+			else
+				SendBasicAuthMessage();
 
 			Endpoint = new IPEndPoint(GetIp(ipServer), port);
 
@@ -217,7 +219,7 @@ namespace SimpleSockets.Client
 			}
 		}
 
-		protected override async void ReceiveCallback(IAsyncResult result)
+		protected override void ReceiveCallback(IAsyncResult result)
 		{
 			var state = (ClientMetadata)result.AsyncState;
 
@@ -247,11 +249,11 @@ namespace SimpleSockets.Client
 					{
 						if (state.SimpleMessage == null)
 							state.SimpleMessage = new SimpleMessage(state, this, true);
-						await state.SimpleMessage.ReadBytesAndBuildMessage(receive);
+						state.SimpleMessage.ReadBytesAndBuildMessage(receive);
 					}
 					else if (receive > 0)
 					{
-						await state.SimpleMessage.ReadBytesAndBuildMessage(receive);
+						state.SimpleMessage.ReadBytesAndBuildMessage(receive);
 					}
 				}
 

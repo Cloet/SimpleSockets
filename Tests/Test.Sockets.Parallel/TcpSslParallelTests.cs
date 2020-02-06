@@ -17,8 +17,8 @@ namespace Test.Sockets.Parallel
 
 		private IList<SimpleSocketClient> _clients = new List<SimpleSocketClient>();
 
-		private int _numClients = 15;
-		private int _numMessages = 1000;
+		private int _numClients = 50;
+		private int _numMessages = 10000;
 		private X509Certificate2 _cert;
 
 		[OneTimeSetUp]
@@ -137,6 +137,51 @@ namespace Test.Sockets.Parallel
 
 			_server.ObjectReceived -= msgRec;
 			Assert.AreEqual((_numMessages * _numClients), counter.GetCount); // True if all messages have been received.
+		}
+
+		[Test]
+		public void Client_ParallelMessagesWithMetaData_Server()
+		{
+
+			Counter counter = new Counter();
+
+			ManualResetEvent mre = new ManualResetEvent(false);
+
+
+			SimpleSockets.Server.MessageWithMetadataReceivedDelegate msgRec = (client, msg, metadata, type) => {
+				counter.Count();
+
+				if (counter.GetCount == _numClients * _numMessages)
+					mre.Set();
+			};
+
+			_server.MessageWithMetaDataReceived += msgRec;
+
+			foreach (var client in _clients)
+			{
+				new Thread(() => SendMessageWithMetadata(client)).Start();
+			}
+
+			// If it can't complete in 30 minutes fail
+			mre.WaitOne(new TimeSpan(0, 30, 0));
+
+			_server.MessageWithMetaDataReceived -= msgRec;
+			Assert.AreEqual((_numMessages * _numClients), counter.GetCount); // True if all messages have been received.
+
+		}
+
+		private void SendMessageWithMetadata(SimpleSocketClient client)
+		{
+			string message = "This is test message nr ";
+			IDictionary<object, object> dictionary = new Dictionary<object, object>();
+			dictionary.Add("Key1", new DataObject("Test", "This is a text", 10.56, new DateTime(2000, 1, 1)));
+			dictionary.Add("Key2", new DataObject("Test2", "This is a second test", 11, new DateTime(2000, 1, 1)));
+
+
+			for (var i = 0; i < _numMessages; i++)
+			{
+				client.SendMessageWithMetadata(message + (i + 1), dictionary);
+			}
 		}
 
 		private void SendMessages(SimpleSocketClient client, bool sendObjects)

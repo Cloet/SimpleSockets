@@ -19,7 +19,7 @@ namespace SimpleSockets.Client
 
 	public delegate void MessageReceivedDelegate(SimpleSocketClient client, string msg);
 
-	public delegate void MessageWithMetadataReceivedDelegate(SimpleSocketClient client, object message, IDictionary<object,object> metadata);
+	public delegate void MessageWithMetadataReceivedDelegate(SimpleSocketClient client, object message, IDictionary<object,object> metadata, Type ObjectType);
 
 	public delegate void BytesReceivedDelegate(SimpleSocketClient client, byte[] messageBytes);
 
@@ -383,9 +383,9 @@ namespace SimpleSockets.Client
 			contract.RaiseOnMessageReceived(this, client, contract.DeserializeToObject(data), contract.MessageHeader);
 		}
 
-		protected internal override void RaiseMessageWithMetaDataReceived(IClientInfo client, object message, IDictionary<object,object> metadata)
+		protected internal override void RaiseMessageWithMetaDataReceived(IClientInfo client, object message, IDictionary<object,object> metadata, Type objectType)
 		{
-			MessageWithMetadataReceived?.Invoke(this, message, metadata);
+			MessageWithMetadataReceived?.Invoke(this, message, metadata, objectType);
 		}
 
 		protected internal override void RaiseBytesReceived(IClientInfo client, byte[] data)

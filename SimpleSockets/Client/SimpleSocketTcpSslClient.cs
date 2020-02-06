@@ -83,12 +83,13 @@ namespace SimpleSockets.Client
 
 			if (EnableExtendedAuth)
 				SendAuthMessage();
+			else
+				SendBasicAuthMessage();
 
 			Endpoint = new IPEndPoint(GetIp(ipServer), port);
 
 			TokenSource = new CancellationTokenSource();
 			Token = TokenSource.Token;
-
 
 			Task.Run(SendFromQueue, Token);
 
@@ -339,7 +340,7 @@ namespace SimpleSockets.Client
 			}
 		}
 
-		protected override async void ReceiveCallback(IAsyncResult result)
+		protected override void ReceiveCallback(IAsyncResult result)
 		{
 			var state = (ClientMetadata)result.AsyncState;
 			try
@@ -369,10 +370,10 @@ namespace SimpleSockets.Client
 					{
 						if (state.SimpleMessage == null)
 							state.SimpleMessage = new SimpleMessage(state, this, Debug);
-						await state.SimpleMessage.ReadBytesAndBuildMessage(receive);
+						state.SimpleMessage.ReadBytesAndBuildMessage(receive);
 					}
 					else if (receive > 0)
-						await state.SimpleMessage.ReadBytesAndBuildMessage(receive);
+						state.SimpleMessage.ReadBytesAndBuildMessage(receive);
 				}
 
 				_mreRead.Set();
@@ -380,7 +381,8 @@ namespace SimpleSockets.Client
 			}
 			catch (SocketException se)
 			{
-				RaiseLog("Server was forcibly closed.");
+				Log("Server was forcibly closed.");
+				Log(se);
 				state.Reset();
 				DisposeSslStream();
 				_mreRead.Set();

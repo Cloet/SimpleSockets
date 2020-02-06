@@ -23,7 +23,7 @@ namespace SimpleSockets.Server
 
 	public delegate void MessageReceivedDelegate(IClientInfo client, string message);
 
-	public delegate void MessageWithMetadataReceivedDelegate(IClientInfo client, object message, IDictionary<object,object> metadata);
+	public delegate void MessageWithMetadataReceivedDelegate(IClientInfo client, object message, IDictionary<object,object> metadata, Type objType);
 
 	public delegate void BytesReceivedDelegate(IClientInfo client, byte[] messageData);
 
@@ -423,7 +423,7 @@ namespace SimpleSockets.Server
 				{
 					return !((socket.Poll(1000, SelectMode.SelectRead) && (socket.Available == 0)) || !socket.Connected);
 				}
-			} catch (ObjectDisposedException de)
+			} catch (ObjectDisposedException)
 			{
 				return false;
 			}
@@ -574,9 +574,9 @@ namespace SimpleSockets.Server
 			contract.RaiseOnMessageReceived(this,client, contract.DeserializeToObject(data), contract.MessageHeader);
 		}
 
-		protected internal override void RaiseMessageWithMetaDataReceived(IClientInfo client, object message, IDictionary<object,object> metadata)
+		protected internal override void RaiseMessageWithMetaDataReceived(IClientInfo client, object message, IDictionary<object,object> metadata, Type objType)
 		{
-			MessageWithMetaDataReceived?.Invoke(client, message, metadata);
+			MessageWithMetaDataReceived?.Invoke(client, message, metadata, objType);
 		}
 
 		protected internal override void RaiseBytesReceived(IClientInfo client, byte[] data)
@@ -748,6 +748,41 @@ namespace SimpleSockets.Server
 		#endregion
 
 		#region MessageWithMetadata
+
+		public void SendMessageWithMetadata(int id, byte[] data, IDictionary<object, object> metadata, bool compress = false, bool encrypt = false, bool close = false) {
+			if (ObjectSerializer == null)
+				throw new ArgumentNullException(nameof(ObjectSerializer));
+
+			var client = GetClient(id);
+			var builder = new SimpleMessage(MessageType.MessageWithMetadata, this, Debug)
+				.CompressMessage(compress)
+				.EncryptMessage(encrypt)
+				.SetMetadata(metadata)
+				.SetBytes(data)
+				.SetHeaderString("ByteArray")
+				.SetSendClient(client);
+
+			builder.Build();
+			SendToSocket(builder.PayLoad, close, false, id);
+		}
+
+		public async Task SendMessageWithMetadataAsync(int id, byte[] data, IDictionary<object, object> metadata, bool compress = false, bool encrypt = false, bool close = false)
+		{
+			if (ObjectSerializer == null)
+				throw new ArgumentNullException(nameof(ObjectSerializer));
+
+			var client = GetClient(id);
+			var builder = new SimpleMessage(MessageType.MessageWithMetadata, this, Debug)
+				.CompressMessage(compress)
+				.EncryptMessage(encrypt)
+				.SetMetadata(metadata)
+				.SetBytes(data)
+				.SetHeaderString("ByteArray")
+				.SetSendClient(client);
+
+			await builder.BuildAsync();
+			SendToSocket(builder.PayLoad, close, false, id);
+		}
 
 		public void SendMessageWithMetadata(int id, object message, IDictionary<object,object> metadata, bool compress = false, bool encrypt = false,bool close = false)
 		{

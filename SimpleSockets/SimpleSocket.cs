@@ -551,7 +551,7 @@ namespace SimpleSockets
 
 		protected internal abstract void RaiseMessageContractReceived(IClientInfo clientInfo, IMessageContract contract, byte[] data);
 
-		protected internal abstract void RaiseMessageWithMetaDataReceived(IClientInfo clientInfo, object message, IDictionary<object,object> metadata);
+		protected internal abstract void RaiseMessageWithMetaDataReceived(IClientInfo clientInfo, object message, IDictionary<object,object> metadata, Type ObjectType);
 
 		protected internal abstract void RaiseBytesReceived(IClientInfo clientInfo, byte[] data);
 
