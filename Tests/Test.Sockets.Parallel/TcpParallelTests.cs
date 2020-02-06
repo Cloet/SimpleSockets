@@ -153,7 +153,7 @@ namespace Test.Sockets.Parallel
 			}
 
 			// If it can't complete in 30 minutes fail
-			mre.WaitOne(new TimeSpan(0, 30, 0));
+			mre.WaitOne(new TimeSpan(0, 3, 0));
 
 			_server.ObjectReceived -= msgRec;
 			Assert.AreEqual((_numMessages * _numClients), counter.GetCount); // True if all messages have been received.
