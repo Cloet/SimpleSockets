@@ -40,22 +40,6 @@ When framing a normal message this will be a lot smaller:
 
 ## Customization
 I've added several classes that can be used to augment how the messaging of your sockets work.
-### MessageContracts
-With MessageContracts you can send custom type of message to a connected socket.
-You have to implement the interface IMessageContract and add both the contract to the server and client.
-```C
-//**Server
-//Create a new MessageContract, MessageA and add it to the server.
-//Bind OnmessageReceived of the Contract to receive the message sent from the clients.
-_messageAContract = new MessageA("MessageAHeader");
-_listener.AddMessageContract(_messageAContract);
-_messageAContract.OnMessageReceived += MessageAContractOnOnMessageReceived;
-//**Client
-//Create the MessageContract implementation and add to the client
-_messageAContract = new MessageA("MessageAHeader");
-_client.AddMessageContract(_messageAContract);
-_messageAContract.OnMessageReceived += MessageAContractOnOnMessageReceived;
-```
 ### Encryption
 If you don't want to use Ssl, but don't want to send plaintext over the internet you can use the default Encryption added to the Library, which uses AES, the salt and key can be changed but have to correspond between client and server.
 #### Warning
@@ -89,72 +73,7 @@ There are two different options of SimpleSocketListener
 | SimpleSocketTcpListener    | Server using Async calls without using Ssl. |
 | SimpleSocketTcpSslListener | Server using Async calls that uses a Ssl certificate to encrypt incoming & outgoing data.| 
 
-
-Creating the Server
-```C#
-//Create Regular server
-SimpleSocketListener listener = new SimpleSocketTcpListener();
-//Create Ssl server
-//(Certificate will be a .pfx) file
-SimpleSocketListener listener = new SimpleSocketTcpSslListener("path to certificate","password");
-```
-
-Starts the server
-```C#
-//Starts the server
-string ip = "127.0.0.1"
-int port = 13000;
-listener.StartListening(ip,port);
-
-Events
-The server has various events that have to be bound.
-Below is an example of how I bind my events.
-    
-```C#
-//Events
-_listener.AuthFailure += ListenerOnAuthFailure;
-_listener.AuthSuccess += ListenerOnAuthSuccess;
-_listener.FileReceiver += ListenerOnFileReceiver;
-_listener.FolderReceiver += ListenerOnFolderReceiver;
-_listener.MessageReceived += MessageReceived;
-_listener.MessageSubmitted += MessageSubmitted;
-_listener.CustomHeaderReceived += CustomHeaderReceived;
-_listener.ClientDisconnected += ClientDisconnected;
-_listener.ClientConnected += ClientConnected;
-_listener.ServerHasStarted += ServerHasStarted;
-_listener.MessageFailed += MessageFailed;
-_listener.ServerErrorThrown += ErrorThrown;
-_listener.ObjectReceived += ListenerOnObjectReceived;
-_listener.MessageUpdateFileTransfer += ListenerOnMessageUpdateFileTransfer;
-_listener.MessageUpdate += ListenerOnMessageUpdate;
-```
-Methods used to send messages to clients
-```C#
-//Send
-public void SendMessage(int id,string message, bool compress = false, bool encrypt = false, bool close = false);
-public async Task SendMessageAsync(int id,string message, bool compress = false, bool encrypt = false, bool close = false);
-
-public void SendBytes(int id,byte[] data, bool compress = false, bool encrypt = false, bool close = false);
-public async Task SendBytesAsync(int id,byte[] data, bool compress = false, bool encrypt = false, bool close = false);
-
-public void SendMessageContract(int id,IMessageContract contract, bool compress = false, bool encrypt = false,bool close = false);
-public async Task SendMessageContractAsync(int id,IMessageContract contract, bool compress = false, bool encrypt = false, bool close = false);
-
-public void SendCustomHeader(int id,string message, string header, bool compress = false, bool encrypt = false, bool close = false);
-public void SendCustomHeader(int id,byte[] data, byte[] header, bool compress = false, bool encrypt = false, bool close = false);
-public async Task SendCustomHeaderAsync(int id,string message, string header, bool compress = false, bool encrypt = false, bool close = false);
-public async Task SendCustomHeaderAsync(int id,byte[] data, byte[] header, bool compress = false, bool encrypt = false, bool close = false);
-
-public async Task SendFileAsync(int id,string fileLocation, string remoteSaveLocation, bool compress = true, bool encrypt = false, bool close = false);
-public void SendFile(int id,string fileLocation, string remoteSaveLocation, bool compress = true, bool encrypt = false, bool close = false);
-
-public async Task SendFolderAsync(int id,string folderLocation, string remoteSaveLocation,bool encrypt = false, bool close = false);
-public void SendFolder(int id,string folderLocation, string remoteSaveLocation,bool encrypt = false, bool close = false);
-
-public async Task SendObjectAsync(int id,object obj, bool compress = false, bool encrypt = false, bool close = false);
-public void SendObject(int id,object obj, bool compress = false, bool encrypt = false, bool close = false);
-
-```
+[Wiki](https://github.com/Cloet/SimpleSockets/wiki/Server)
 
 ### Client
 
@@ -166,68 +85,6 @@ There are two different options of async client:
 | SimpleSocketTcpClient    | Client using Async Calls without using Ssl. |
 | SimpleSocketTcpSslClient | An async client that uses an ssl certificate to encrypt incoming & outgoing data. By default the client does not need to authenticate. Only the server requires to be authenticated, the constructor has the option to require server and client authentication.| 
 
-Creating a client
-```C#
-//Regular async client
-SimpleSocketClient client = new SimpleSocketTcpClient();
-//Ssl async client
-//(Certificate will be a .pfx) file
-SimpleSocketClient client = new SimpleSocketTcpSslClient("Path to Certificate","Password");
-```
+[Wiki](https://github.com/Cloet/SimpleSockets/wiki/Client)
 
-Starts the client
-```C#
-//Start the client
-SimpleSocketClient client = new SimpleSocketTcpClient();
-String ipServer = "127.0.0.1";
-int portServer = 13000;
-client.Startclient(ipServer,portServer);
-```
 
-Binding the events
-The events have to be bound just once per client.
-```C#
-//Events
-_client.AuthSuccess += ClientOnAuthSuccess;
-_client.AuthFailed += ClientOnAuthFailed;
-_client.FileReceiver += ClientOnFileReceiver;
-_client.FolderReceiver += ClientOnFolderReceiver;
-_client.DisconnectedFromServer += Disconnected;
-_client.MessageUpdateFileTransfer += ClientOnMessageUpdateFileTransfer;
-_client.MessageUpdate += ClientOnMessageUpdate;
-_client.ConnectedToServer += ConnectedToServer;
-_client.ClientErrorThrown += ErrorThrown;
-_client.MessageReceived += ServerMessageReceived;
-_client.MessageSubmitted += ClientMessageSubmitted;
-_client.MessageFailed += MessageFailed;
-_client.CustomHeaderReceived += CustomHeader;
-_client.ObjectReceived += ClientOnObjectReceived;
-```
-
-Methods used to send messages to server
-```C#
-//Send to server
-public void SendMessage(string message, bool compress = false, bool encrypt = false, bool close = false);
-public async Task SendMessageAsync(string message, bool compress = false, bool encrypt = false, bool close = false);
-
-public void SendBytes(byte[] data, bool compress = false, bool encrypt = false, bool close = false);
-public async Task SendBytesAsync(byte[] data, bool compress = false, bool encrypt = false, bool close = false);
-
-public void SendMessageContract(IMessageContract contract, bool compress = false, bool encrypt = false,bool close = false);
-public async Task SendMessageContractAsync(IMessageContract contract, bool compress = false, bool encrypt = false, bool close = false);
-
-public void SendCustomHeader(string message, string header, bool compress = false, bool encrypt = false, bool close = false);
-public void SendCustomHeader(byte[] data, byte[] header, bool compress = false, bool encrypt = false, bool close = false);
-public async Task SendCustomHeaderAsync(string message, string header, bool compress = false, bool encrypt = false, bool close = false);
-public async Task SendCustomHeaderAsync(byte[] data, byte[] header, bool compress = false, bool encrypt = false, bool close = false);
-
-public async Task SendFileAsync(string fileLocation, string remoteSaveLocation, bool compress = true, bool encrypt = false, bool close = false);
-public void SendFile(string fileLocation, string remoteSaveLocation, bool compress = true, bool encrypt = false, bool close = false);
-
-public async Task SendFolderAsync(string folderLocation, string remoteSaveLocation,bool encrypt = false, bool close = false);
-public void SendFolder(string folderLocation, string remoteSaveLocation,bool encrypt = false, bool close = false);
-
-public async Task SendObjectAsync(object obj, bool compress = false, bool encrypt = false, bool close = false);
-public void SendObject(object obj, bool compress = false, bool encrypt = false, bool close = false);
-
-```
