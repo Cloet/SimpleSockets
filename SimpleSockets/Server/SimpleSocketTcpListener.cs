@@ -304,7 +304,7 @@ namespace SimpleSockets.Server
 			}
 			catch (Exception ex)
 			{
-				throw new Exception(ex.Message, ex);
+				RaiseErrorThrown(ex);
 			}
 			finally
 			{

@@ -29,9 +29,6 @@ namespace SimpleSockets
 		protected CancellationTokenSource TokenSource { get; set; }
 		protected CancellationToken Token { get; set; }
 
-		//File Buffer
-		protected int FileBuffer { get; set; }
-
 		//Contains messages
 		internal BlockingQueue<MessageWrapper> BlockingMessageQueue = new BlockingQueue<MessageWrapper>();
 
@@ -43,6 +40,8 @@ namespace SimpleSockets
 		//--Private
 		#region Private
 
+		private int _fileBuffer;
+		private int _fileStreamBuffer;
 		private string _tempPath;
 		private IMessageEncryption _messageEncryption;
 		private IFileCompression _fileCompressor;
@@ -85,6 +84,36 @@ namespace SimpleSockets
 		/// Gets if there are still messages pending for transmission.
 		/// </summary>
 		public bool PendingMessages => (BlockingMessageQueue.Count > 0);
+
+		/// <summary>
+		/// When sending a file/folder this value is the size of each package.
+		/// Default value is 65536 Bytes)
+		/// </summary>
+		public int FileBuffer { 
+			get => _fileBuffer; 
+			set {
+				if (value < 1024)
+					throw new ArgumentException("The FileBuffer size cannot be less then 1024 bytes.");
+				if (value >= 85000)
+					Log("A buffer size larger then 85 000 bytes will allocate bytes to Large Object Heap. This will cause higher memory usage.");
+				_fileBuffer = value;
+			} 
+		}
+
+		/// <summary>
+		/// The amount of bytes that are read each time from the file
+		/// Default value is 4kb (4096 Bytes)
+		/// </summary>
+		public int FileStreamBuffer { 
+			get => _fileStreamBuffer;
+			set { 
+				if (value < 1024)
+					throw new ArgumentException("The FileBuffer size cannot be less then 1024 bytes.");
+				if (value >= 85000)
+					Log("A buffer size larger then 85 000 bytes will allocate bytes to Large Object Heap. This will cause higher memory usage.");
+				_fileStreamBuffer = value;
+			} 
+		}
 
 		/// <summary>
 		/// The path where files will be stored for extraction, compression, encryption and decryption.
@@ -401,6 +430,7 @@ namespace SimpleSockets
 			AllowReceivingFiles = false;
 			Debug = true;
 			FileBuffer = 4096;
+			FileStreamBuffer = 4096;
 			MessageContracts = new Dictionary<string, IMessageContract>();
 
 			ObjectSerializer = new JsonSerialization();
@@ -668,7 +698,7 @@ namespace SimpleSockets
 
 				//Vars
 				var file = fileInfo.FullName;
-				var fileStreamBuffer = new byte[4096]; //When this buffer exceeds 85000 bytes -> buffer will be stored in LOH -> bad for memory usage.
+				var fileStreamBuffer = new byte[FileStreamBuffer]; //When this buffer exceeds 85000 bytes -> buffer will be stored in LOH -> bad for memory usage.
 				var buffer = FileBuffer; //10 Mb buffer
 
 				MemoryStream memoryStream = null;
@@ -813,7 +843,7 @@ namespace SimpleSockets
 
 				//Vars
 				var file = fileInfo.FullName;
-				var fileStreamBuffer = new byte[4096]; //When this buffer exceeds 85000 bytes -> buffer will be stored in LOH -> bad for memory usage.
+				var fileStreamBuffer = new byte[FileStreamBuffer]; //When this buffer exceeds 85000 bytes -> buffer will be stored in LOH -> bad for memory usage.
 				var buffer = FileBuffer; //10 Mb buffer
 
 				MemoryStream memoryStream = null;

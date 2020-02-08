@@ -491,9 +491,12 @@ namespace SimpleSockets.Server
 					state.Listener = null;
 				}
 			}
-			catch (SocketException se)
+			catch (ObjectDisposedException) { 
+				// Object has already been disposed, do nothing.
+			}
+			catch (Exception ex)
 			{
-				throw new Exception(se.ToString());
+				RaiseErrorThrown(ex);
 			}
 			finally
 			{

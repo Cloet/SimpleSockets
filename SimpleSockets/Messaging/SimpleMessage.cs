@@ -672,7 +672,7 @@ namespace SimpleSockets.Messaging
 
 		private bool ReadMetaData(int receive) {
 
-			if (receive <= 0) 
+			if (receive < 0)
 				return false;
 
 			byte[] bytes = new byte[receive];
@@ -731,7 +731,7 @@ namespace SimpleSockets.Messaging
 		//Returns true if there is more data to read.
 		private bool ReadData(int receive)
 		{
-			if (receive <= 0)
+			if (receive < 0)
 				return false;
 
 			byte[] bytes = new byte[receive];

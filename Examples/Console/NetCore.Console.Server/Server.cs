@@ -24,8 +24,8 @@ namespace NetCore.Console.Server
 
 		private static void Main(string[] args)
 		{
-			_encrypt = true;
-			_compress = true;
+			_encrypt = false;
+			_compress = false;
 
 			var jsonSer = new JsonSerialization();
 			var xmlSer = new XmlSerialization();
@@ -243,7 +243,7 @@ namespace NetCore.Console.Server
 
 		private static void _listener_ServerLogs(string log)
 		{
-			WriteLine(log);
+			// WriteLine(log);
 		}
 
 		private static void ListenerOnAuthStatus(IClientInfo client, AuthStatus status)
@@ -399,7 +399,10 @@ namespace NetCore.Console.Server
 
 		private static void ClientDisconnected(IClientInfo client, DisconnectReason reason)
 		{
-			WriteLine("Client " + client.Id + " has disconnected from the server.");
+			var id = 0;
+			if (client != null)
+				id = client.Id;
+			WriteLine("Client " + id + " has disconnected from the server.");
 		}
 
 
