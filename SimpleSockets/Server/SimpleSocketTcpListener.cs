@@ -287,6 +287,7 @@ namespace SimpleSockets.Server
 		{
 			var message = (MessageWrapper)result.AsyncState;
 			var state = message.State;
+			var success = true;
 
 			try
 			{
@@ -296,11 +297,10 @@ namespace SimpleSockets.Server
 			}
 			catch (SocketException se)
 			{
-				throw new SocketException(se.ErrorCode);
-			}
-			catch (ObjectDisposedException ode)
-			{
-				throw new ObjectDisposedException(ode.ObjectName, ode.Message);
+				Close(state.Id);
+				success = true;
+				RaiseLog("Client was forcibly closed by the remote host.");
+				RaiseMessageFailed(state, message.Data, se);
 			}
 			catch (Exception ex)
 			{
@@ -308,7 +308,7 @@ namespace SimpleSockets.Server
 			}
 			finally
 			{
-				if (!message.Partial)
+				if (!message.Partial && success)
 					RaiseMessageSubmitted(state, state.Close);
 				message.Dispose();
 			}
