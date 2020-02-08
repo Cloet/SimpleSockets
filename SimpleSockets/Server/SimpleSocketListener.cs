@@ -51,9 +51,7 @@ namespace SimpleSockets.Server
 
 	public delegate void ServerLogsDelegate(string log);
 
-	public delegate void AuthenticationSuccess(IClientInfo client);
-
-	public delegate void AuthenticationFailure(IClientInfo client);
+	public delegate void AuthenticationStatus(IClientInfo client, AuthStatus status);
 
 	#endregion
 
@@ -105,12 +103,7 @@ namespace SimpleSockets.Server
 		/// <summary>
 		/// Only thrown when using ssl
 		/// </summary>
-		public event AuthenticationFailure AuthFailure;
-
-		/// <summary>
-		/// Only thrown when using ssl
-		/// </summary>
-		public event AuthenticationSuccess AuthSuccess;
+		public event AuthenticationStatus SslAuthStatus;
 
 		/// <summary>
 		/// Event that is triggered when the server receives a Message.
@@ -555,12 +548,12 @@ namespace SimpleSockets.Server
 
 		protected void RaiseAuthFailed(IClientInfo client)
 		{
-			AuthFailure?.Invoke(client);
+			SslAuthStatus?.Invoke(client, AuthStatus.Failed);
 		}
 
 		protected void RaiseAuthSuccess(IClientInfo client)
 		{
-			AuthSuccess?.Invoke(client);
+			SslAuthStatus?.Invoke(client, AuthStatus.Success);
 		}
 
 		//Invoke Message Received

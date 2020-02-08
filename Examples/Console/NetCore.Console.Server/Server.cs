@@ -223,8 +223,7 @@ namespace NetCore.Console.Server
 		private static void BindEvents()
 		{
 			//Events
-			_listener.AuthFailure += ListenerOnAuthFailure;
-			_listener.AuthSuccess += ListenerOnAuthSuccess;
+			_listener.SslAuthStatus += ListenerOnAuthStatus;
 			_listener.FileReceiver += ListenerOnFileReceiver;
 			_listener.FolderReceiver += ListenerOnFolderReceiver;
 			_listener.MessageReceived += MessageReceived;
@@ -247,14 +246,12 @@ namespace NetCore.Console.Server
 			WriteLine(log);
 		}
 
-		private static void ListenerOnAuthFailure(IClientInfo client)
+		private static void ListenerOnAuthStatus(IClientInfo client, AuthStatus status)
 		{
-			WriteLine("Server failed to authenticate certificate of client " + client.Id + " " + client.Guid + ".");
-		}
-
-		private static void ListenerOnAuthSuccess(IClientInfo client)
-		{
-			WriteLine("Server authenticate certificate of client " + client.Id + " " + client.Guid + ".");
+			if (status == AuthStatus.Failed)
+				WriteLine("Server failed to authenticate certificate of client " + client.Id + " " + client.Guid + ".");
+			if (status == AuthStatus.Success)
+				WriteLine("Server authenticate certificate of client " + client.Id + " " + client.Guid + ".");
 		}
 
 		//*****Begin Events************///

@@ -43,9 +43,7 @@ namespace SimpleSockets.Client
 
 	public delegate void ClientLogsDelegate(SimpleSocketClient client, string message);
 
-	public delegate void AuthenticationFailed();
-
-	public delegate void AuthenticationSuccess();
+	public delegate void AuthenticationStatus(AuthStatus status);
 
 	#endregion
 
@@ -84,14 +82,9 @@ namespace SimpleSockets.Client
 		#region Events
 
 		/// <summary>
-		/// This event is only thrown when using SSL, and you SslCert is invalid.
+		/// This event is only thrown when using SSL
 		/// </summary>
-		public event AuthenticationFailed AuthFailed;
-
-		/// <summary>
-		/// This event is only thrown when using Ssl, and your SslCert is valid.
-		/// </summary>
-		public event AuthenticationSuccess AuthSuccess;
+		public event AuthenticationStatus SslAuthStatus;
 
 		/// <summary>
 		/// Event that triggers when a client is connected to server
@@ -364,12 +357,12 @@ namespace SimpleSockets.Client
 
 		protected void RaiseAuthFailed()
 		{
-			AuthFailed?.Invoke();
+			SslAuthStatus?.Invoke(AuthStatus.Failed);
 		}
 
 		protected void RaiseAuthSuccess()
 		{
-			AuthSuccess?.Invoke();
+			SslAuthStatus?.Invoke(AuthStatus.Success);
 		}
 
 		//Invoke MessageReceived.

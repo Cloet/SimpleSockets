@@ -198,8 +198,7 @@ namespace NetCore.Console.Client
 		private static void BindEvents()
 		{
 			//_client.ProgressFileReceived += Progress;
-			_client.AuthSuccess += ClientOnAuthSuccess;
-			_client.AuthFailed += ClientOnAuthFailed;
+			_client.SslAuthStatus += ClientOnAuthStatus;
 			_client.FileReceiver += ClientOnFileReceiver;
 			_client.FolderReceiver += ClientOnFolderReceiver;
 			_client.DisconnectedFromServer += Disconnected;
@@ -214,14 +213,12 @@ namespace NetCore.Console.Client
 			_client.ObjectReceived += ClientOnObjectReceived;
 		}
 
-		private static void ClientOnAuthFailed()
+		private static void ClientOnAuthStatus(AuthStatus status)
 		{
-			WriteLine("Failed to authenticate.");
-		}
-
-		private static void ClientOnAuthSuccess()
-		{
-			WriteLine("Authenticated with success.");
+			if (status == AuthStatus.Failed)
+				WriteLine("Failed to authenticate.");
+			if (status == AuthStatus.Success)
+				WriteLine("Authenticated with success.");
 		}
 
 		private static void ClientOnObjectReceived(SimpleSocketClient a, object obj, Type objType)
