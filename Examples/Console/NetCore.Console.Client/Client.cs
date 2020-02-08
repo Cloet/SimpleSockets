@@ -5,7 +5,6 @@ using System.Reflection.Metadata.Ecma335;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
-using BasicLogger.Core.Logging;
 using MessageTesting;
 using Newtonsoft.Json;
 using SimpleSockets;
@@ -23,7 +22,6 @@ namespace NetCore.Console.Client
 		private static bool _compress;
 		private static MessageA _messageAContract;
 		private static ProgressBar progress;
-		private static ILogger extendedLogger = LogManager.GetLogger("Client logger " + Guid.NewGuid().ToString());
 
 		private static void Main(string[] args)
 		{
@@ -369,13 +367,11 @@ namespace NetCore.Console.Client
 
 		private static void Write(string text)
 		{
-			extendedLogger.Debug(text);
 			System.Console.Write(text);
 		}
 
 		private static void WriteLine(string text)
 		{
-			extendedLogger.Debug(text);
 			System.Console.WriteLine(text);
 		}
 
