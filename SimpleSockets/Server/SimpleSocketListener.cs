@@ -798,7 +798,7 @@ namespace SimpleSockets.Server
 			SendToSocket(builder.PayLoad, close, false, id);
 		}
 
-		public async Task SendCustomHeaderAsync(int id, object message, IDictionary<object,object> metadata, bool compress = false, bool encrypt = false, bool close = false)
+		public async Task SendMessageWithMetadataAsync(int id, object message, IDictionary<object,object> metadata, bool compress = false, bool encrypt = false, bool close = false)
 		{
 			if (ObjectSerializer == null)
 				throw new ArgumentNullException(nameof(ObjectSerializer));

@@ -173,7 +173,12 @@ namespace NetCore.Console.Server
 			Write("Enter the message you want to send...  ");
 			var message = System.Console.ReadLine();
 
-			// await _listener.SendCustomHeaderAsync(id, message, header, _compress, _encrypt, false);
+			var dictionary = new Dictionary<object, object>();
+
+			dictionary.Add("Test", "This is a value");
+			dictionary.Add("Test2", "This is a second value");
+
+			await _listener.SendMessageWithMetadataAsync(id, message, dictionary);
 		}
 
 		private static async void SendFile()

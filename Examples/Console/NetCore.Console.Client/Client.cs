@@ -154,7 +154,7 @@ namespace NetCore.Console.Client
 			dictionary.Add("Test", "This is a value");
 			dictionary.Add("Test2", "This is a second value");
 
-			await _client.SendMessageWithMetadataAsync("This is a message", dictionary);
+			await _client.SendMessageWithMetadataAsync(message, dictionary);
 
 			// await _client.SendCustomHeaderAsync(message, header, _compress, _encrypt);
 		}
