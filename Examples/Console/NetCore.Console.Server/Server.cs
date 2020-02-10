@@ -167,9 +167,6 @@ namespace NetCore.Console.Server
 			System.Console.Clear();
 			var id = ShowClients();
 
-			Write("Enter the header you want to use for the transmission...  ");
-			var header = System.Console.ReadLine();
-
 			Write("Enter the message you want to send...  ");
 			var message = System.Console.ReadLine();
 
@@ -362,7 +359,11 @@ namespace NetCore.Console.Server
 
 		private static void CustomHeaderReceived(IClientInfo client, object msg, IDictionary<object, object> metadata, Type objectType)
 		{
-			WriteLine("Test");
+			WriteLine("Message: " + msg.ToString());
+			foreach (KeyValuePair<object, object> entry in metadata) {
+				WriteLine($"Key: {entry.Key} , Value: {entry.Value}");
+			}
+			// WriteLine("Test");
 			// WriteLine("The server received a message from the client with ID " + client.Id + " the header is : " + header + " and the message is : " + msg);
 		}
 

@@ -17,8 +17,8 @@ namespace Test.Sockets.Parallel
 
 		private IList<SimpleSocketClient> _clients = new List<SimpleSocketClient>();
 
-		private int _numClients = 25;
-		private int _numMessages = 1000;
+		private int _numClients = 50;
+		private int _numMessages = 10000;
 
 		[OneTimeSetUp]
 		public void Setup()
@@ -149,7 +149,7 @@ namespace Test.Sockets.Parallel
 
 			foreach (var client in _clients)
 			{
-				new Thread(() => SendMessages(client, true));
+				new Thread(() => SendMessages(client, true)).Start();
 			}
 
 			// If it can't complete in 30 minutes fail

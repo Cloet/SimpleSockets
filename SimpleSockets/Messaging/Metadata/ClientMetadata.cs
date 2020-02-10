@@ -88,6 +88,14 @@ namespace SimpleSockets.Messaging.Metadata
 			_bufferSize = size;
 		}
 
+		/// <summary>
+		/// Gets the current buffer size of the socket.
+		/// </summary>
+		/// <returns></returns>
+		internal static int GetBufferSize() {
+			return _bufferSize;
+		}
+
 		public ManualResetEvent MreRead { get; set; }
 
 		public ManualResetEvent MreReceiving { get; set; }

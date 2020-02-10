@@ -116,6 +116,22 @@ namespace SimpleSockets
 		}
 
 		/// <summary>
+		/// Changes the message buffer of sockets.
+		/// </summary>
+		public int SocketBufferSize {
+			get => ClientMetadata.GetBufferSize();
+			set
+			{
+				if (value < 1024)
+					throw new ArgumentException("The buffer size cannot be less then 1024 bytes.");
+				if (value >= 85000)
+					Log("A buffer size larger then 85 000 bytes will allocate bytes to Large Object Heap. This will cause higher memory usage.");
+
+				ClientMetadata.ChangeBufferSize(value);
+			}
+		}
+
+		/// <summary>
 		/// The path where files will be stored for extraction, compression, encryption and decryption.
 		/// if the value is invalid or none is entered it defaults to %TEMP%
 		/// </summary>
@@ -389,21 +405,6 @@ namespace SimpleSockets
 
 		#endregion
 
-		/// <summary>
-		/// Change the buffer size of the server.
-		/// Warning: setting this value to something larger then 85 000 bytes can cause high memory usage 
-		/// because data will be stored to the Large Object Heap.
-		/// </summary>
-		/// <param name="bufferSize"></param>
-		public void ChangeSocketBufferSize(int bufferSize)
-		{
-			if (bufferSize < 1024)
-				throw new ArgumentException("The buffer size cannot be less then 1024 bytes.");
-			if (bufferSize >= 85000)
-				Log("A buffer size larger then 85 000 bytes will allocate bytes to Large Object Heap. This will cause higher memory usage.");
-
-			ClientMetadata.ChangeBufferSize(bufferSize);
-		}
 
 		#endregion
 
