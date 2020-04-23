@@ -74,11 +74,17 @@ namespace SimpleSockets {
         public string TempPath {
             get => string.IsNullOrEmpty(_tempPath) ? Path.GetTempPath() : _tempPath;
             set {
-                try {
+                var temp = new FileInfo(value);
+                if (temp.Directory != null)
+                {
+                    _tempPath = temp.Directory.FullName + Path.DirectorySeparatorChar;
+                    if (!Directory.Exists(_tempPath))
+                        Directory.CreateDirectory(_tempPath);
 
-                } catch (Exception ex) {
-                    Logger?.Invoke(ex.ToString());
+                    return;
                 }
+
+                throw new ArgumentException("'" + value + "' is an invalid path.");
             }
         }
 
