@@ -1,18 +1,19 @@
-﻿namespace SimpleSockets.Messaging
-{
-	public enum MessageState
-	{
-		Beginning=0,
-		ReceivingData=1,
-		Decompressing=2,
-		Decrypting=3,
-		Completed=4,
-		Compressing=5,
-		Encrypting=6,
-		Transmitting=7,
-		CompressingDone=8,
-		EncryptingDone=9,
-		DecompressingDone=10,
-		DecryptingDone=11
-	}
+namespace SimpleSockets.Messaging {
+
+    public enum MessageState {
+
+        Receiving=0,
+        Decompressing=1,
+        Decrypting = 2,
+        Completed=3,
+        Compressing=4,
+        Encrypting=5,
+        Transmitting=6,
+        CompletedCompression=7,
+        CompletedEncryption=8,
+        CompletedDecompression=9,
+        CompletedDecryption=10
+
+    }
+
 }

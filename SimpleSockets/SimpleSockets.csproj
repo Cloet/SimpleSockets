@@ -1,37 +1,11 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <Description>Stable Release of an Async Client Server implementation supporting Ssl.
-See https://github.com/Cloet/SimpleSockets for more info.</Description>
-    <PackageId>SimpleSockets</PackageId>
-    <Version>1.1.63</Version>
-    <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    <PackageTags>AsyncClientServer Tcp Ssl Socket</PackageTags>
-    <PackageProjectUrl>https://github.com/Cloet/SimpleSockets</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/Cloet/SimpleSockets</RepositoryUrl>
-    <RepositoryType>open source</RepositoryType>
-    <PackageReleaseNotes>Stable release of an async client server implementation supporting ssl.</PackageReleaseNotes>
-    <SignAssembly>false</SignAssembly>
-    <AssemblyVersion>1.1.2.0</AssemblyVersion>
-    <FileVersion>1.1.2.0</FileVersion>
-    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Folder Include="Messaging\Cryptography\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="..\LICENSE">
-      <Pack>True</Pack>
-      <PackagePath></PackagePath>
-    </None>
-  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
   </ItemGroup>
-
 
 </Project>
