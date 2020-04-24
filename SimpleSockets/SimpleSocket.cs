@@ -4,6 +4,7 @@ using System.Threading;
 using SimpleSockets.Helpers;
 using SimpleSockets.Helpers.Compression;
 using SimpleSockets.Helpers.Cryptography;
+using SimpleSockets.Messaging;
 
 namespace SimpleSockets {
 
@@ -27,6 +28,8 @@ namespace SimpleSockets {
 
         protected CancellationToken Token { get; set; }
 
+        internal DataReceiver DataReceiver { get; set; }
+
         /// <summary>
         /// Indicates if a socket is allowed to receive files from another socket.
         /// </summary>
@@ -41,7 +44,7 @@ namespace SimpleSockets {
 
         public CompressionType CompressionMethod { get; set; } = CompressionType.GZip;
 
-        public LogLevel LogLevel {
+        public LogLevel LoggerLevel {
             get => _logLevel;
             set {
                 _logLevel = value;

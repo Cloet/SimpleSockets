@@ -15,9 +15,28 @@ namespace SimpleSockets.Server {
 
         #region Events
         
+        /// <summary>
+        /// Event invoked when a client connects to the server.
+        /// </summary>
         public event EventHandler<ClientConnectedEventArgs> ClientConnected;
 
+        protected virtual void OnClientConnected(ClientConnectedEventArgs eventArgs) => ClientConnected?.Invoke(this, eventArgs);
+
+        /// <summary>
+        /// Event invoked when a client disconnects from the server.
+        /// </summary>
         public event EventHandler<ClientDisConnectedEventArgs> ClientDisConnected;
+
+        protected virtual void OnClientDisconnected(ClientDisConnectedEventArgs eventArgs) => ClientDisConnected?.Invoke(this, eventArgs);
+
+        /// <summary>
+        /// Event invoked when a server starts listening for connections.
+        /// </summary>
+        public event EventHandler ServerStartedListening;
+
+        protected virtual void OnServerStartedListening() => ServerStartedListening?.Invoke(this, null);
+
+
 
         #endregion
 
@@ -31,7 +50,7 @@ namespace SimpleSockets.Server {
                 if (value == null)
                     throw new ArgumentNullException(nameof(value));
 
-                SocketLogger = LogHelper.InitializeLogger(false, SslEncryption , SocketProtocolType.Tcp == this.SocketProtocol, value, this.LogLevel);
+                SocketLogger = LogHelper.InitializeLogger(false, SslEncryption , SocketProtocolType.Tcp == this.SocketProtocol, value, this.LoggerLevel);
                 _logger = value;
             }
         }
@@ -59,8 +78,6 @@ namespace SimpleSockets.Server {
         public abstract void Listen(string ip, int port, int limit = 500);
 
         public void Listen(int port , int limit = 500) => Listen("*", port, limit);
-
-        protected abstract void OnClientConnect(IAsyncResult result);
 
         protected IPAddress ListenerIPFromString(string ip) {
             try {
@@ -104,10 +121,10 @@ namespace SimpleSockets.Server {
                 SocketLogger?.Log("Cannot shutdown client " + id + ", does not exist.", LogLevel.Warning);
 
             try {
-                if (client?.Listener != null) {
-                    client.Listener.Shutdown(SocketShutdown.Both);
-                    client.Listener.Close();
-                    client.Listener = null;
+                if (client?.DataReceiver.Listener != null) {
+                    client.DataReceiver.Listener.Shutdown(SocketShutdown.Both);
+                    client.DataReceiver.Listener.Close();
+                    client.DataReceiver.Listener = null;
                 }
             } catch (ObjectDisposedException de) {
                 SocketLogger?.Log("Cannot shutdown client " + id + ", has already been disposed.",de, LogLevel.Warning);
@@ -116,8 +133,7 @@ namespace SimpleSockets.Server {
             } finally {
                 lock(ConnectedClients) {
                     ConnectedClients.Remove(id);
-                    var cd = new ClientDisConnectedEventArgs(client, reason);
-                    ClientDisConnected?.Invoke(this, cd);
+                    OnClientDisconnected(new ClientDisConnectedEventArgs(client, reason));
                 }
             }
         }

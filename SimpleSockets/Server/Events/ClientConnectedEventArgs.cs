@@ -1,6 +1,8 @@
+using System;
+
 namespace SimpleSockets {
 
-    public class ClientConnectedEventArgs {
+    public class ClientConnectedEventArgs: EventArgs {
 
         internal ClientConnectedEventArgs(IClientInfo clientInfo) {
             ClientInfo = clientInfo;

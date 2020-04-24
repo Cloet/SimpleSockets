@@ -4,6 +4,7 @@ using System.Text;
 using SimpleSockets.Helpers;
 using SimpleSockets.Helpers.Compression;
 using SimpleSockets.Helpers.Cryptography;
+using System.Linq;
 
 namespace SimpleSockets.Messaging {
 
@@ -19,6 +20,8 @@ namespace SimpleSockets.Messaging {
 
         internal byte[] AdditionalInternalInfo { get; set; }
 
+        internal byte[] MessageHeader { get; set; }
+
         internal bool Compress { get; set;}
 
         internal bool Encrypt { get; set; }
@@ -29,7 +32,15 @@ namespace SimpleSockets.Messaging {
 
         internal EncryptionType EncryptMode { get; set; }
 
-        private readonly LogHelper _logger;
+        internal int HeaderLength => _headerLength;
+
+        private LogHelper _logger;
+
+        private int _headerLength = 0;
+
+        internal long OriginalcontentLength { get; set; }
+
+        internal long ContentLength { get; set; }
 
         /// <summary>
         /// 0 - Metadata
@@ -41,57 +52,60 @@ namespace SimpleSockets.Messaging {
         /// <value></value>
         internal BitArray HeaderFields { get; set;}
 
+        internal SimpleMessage(LogHelper logger) {
+            Initialize(logger);
+        }
 
         internal SimpleMessage(MessageType type, LogHelper logger = null) {
+            MessageType = type;
+            Initialize(logger);
+        }
+
+        private void Initialize(LogHelper logger = null) {
             MessageMetadata = new byte[0];
             PreSharedKey = new byte[0];
             Data = new byte[0];
             Encrypt = false;
             Compress = false;
             _logger = logger;
+            ContentLength = 0;
+            OriginalcontentLength = 0;
 
             HeaderFields = new BitArray(8, false);
         }
         
+        #region Build Payload from set data
+
         /// <summary>
         /// Builds the packet header
         /// </summary>
         /// <returns></returns>
         private byte[] BuildMessageHeader(int originalContentLength, int contentLength) {
-            // First 5 Bytes are always
-            // 0     -> HeaderFields  (1 Byte)
-            // 1 - 5 -> Original ContentLength (4 Bytes) (No compression / Encryption)
-            var headerLength = 6;
-            int index = 0;
+            // First Bytes are always
+            // HeaderFields          (1  Byte )
+            // MessageType           (1  Byte )
+            // PreSharedKey          (16 Bytes) (Only when a presharedkey is given)
+            // OriginalContentLength (8  Bytes) 
+            // ContentLength         (8  Bytes) (Only when compressed or encrypted)
             
-            //MessageMetadata ContentLength (4 Bytes)
-            if (HeaderFields[0]) 
-                headerLength += 4;
+            byte[] headerFieldBytes = new byte[1];
 
-            byte[] headerFieldBytes = new byte[headerLength];
-
-            // Write flags
-            HeaderFields.CopyTo(headerFieldBytes, index);
-            index += 1;
+            // Write flags (HEADERFIELDS) 1 Byte
+            HeaderFields.CopyTo(headerFieldBytes, 0);
 
             // Writes messagetype 1 byte (256 possibilities)
-            headerFieldBytes[index] = (byte) MessageType;
+            headerFieldBytes[1] = (byte) MessageType;
 
             // Add Presharedkey [16 Bytes]
-            if (HeaderFields[3]) {
-                PreSharedKey.CopyTo(headerFieldBytes, index);
-                index += 16;
-            }
+            if (HeaderFields[3])
+                headerFieldBytes = MessageHelper.MergeByteArrays(headerFieldBytes, PreSharedKey);
 
-            // Write contentlength
-            BitConverter.GetBytes(originalContentLength).CopyTo(headerFieldBytes, index);
-            index += 4;
+            // Write contentlength (8 Bytes)
+            headerFieldBytes = MessageHelper.MergeByteArrays(headerFieldBytes, BitConverter.GetBytes(originalContentLength));
 
-            // Length of data in encrypted/compressed form.
-            if (HeaderFields[2] || HeaderFields[1]) {
-                BitConverter.GetBytes(contentLength).CopyTo(headerFieldBytes, index);
-                index += 4;
-            }
+            // Length of data in encrypted/compressed form. (8 Bytes)
+            if (HeaderFields[2] || HeaderFields[1])
+                headerFieldBytes = MessageHelper.MergeByteArrays(headerFieldBytes, BitConverter.GetBytes(contentLength));
 
 
             return null;
@@ -120,8 +134,6 @@ namespace SimpleSockets.Messaging {
          
             return Encoding.UTF8.GetBytes(content);
         }
-
-
 
         internal byte[] BuildPayload() {
             
@@ -161,6 +173,46 @@ namespace SimpleSockets.Messaging {
             _logger?.Log("===========================================", LogLevel.Debug);
             return Payload;
         }
+
+        #endregion
+
+        #region Set data from received bytes
+
+        internal void DeconstructHeaderField(byte headerFieldByte) {
+            HeaderFields = new BitArray(headerFieldByte);
+            _headerLength = 10;
+
+            // Extra length if using presharedkey
+            if (HeaderFields[3])
+                _headerLength += 16;
+
+            // Extra length is encrypted / compressed
+            if (HeaderFields[2] || HeaderFields[1])
+                _headerLength += 8;
+        }
+
+        internal void DeconstructHeaders() {
+            var header = MessageHeader;
+
+            // Get the messagetype of the message
+            MessageType = (MessageType)header[0];
+            header = header.Skip(1).Take(header.Length -1).ToArray();
+            
+            // PresharedKey
+            if (HeaderFields[3]) {
+                Array.Copy(header, 0, PreSharedKey, 0, 16);
+                header = header.Skip(PreSharedKey.Length).Take(header.Length - PreSharedKey.Length).ToArray();
+            }
+
+            OriginalcontentLength = BitConverter.ToInt64(header,0);
+
+            if (HeaderFields[2] || HeaderFields[1])
+                ContentLength = BitConverter.ToInt64(header, 8);
+
+            
+        }
+
+        #endregion
 
     }
 

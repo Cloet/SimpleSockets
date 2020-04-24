@@ -16,8 +16,19 @@ namespace SimpleSockets {
 
         internal static FluentMessageBuilder Initialize(MessageType type, LogHelper logger) => new FluentMessageBuilder(type, logger);
 
+        internal static FluentMessageBuilder InitializeReceiver(LogHelper logger, byte headerField, out int headerLength) => new FluentMessageBuilder(logger, headerField, out headerLength);
+
+        internal SimpleMessage TheMessage => _theMessage;
+
         private FluentMessageBuilder(MessageType type, LogHelper logger) {
             _theMessage = new SimpleMessage(type, logger);
+            _logger = logger;
+        }
+
+        private FluentMessageBuilder(LogHelper logger, byte headerField, out int headerLength) {
+            _theMessage = new SimpleMessage(logger);
+            _theMessage.DeconstructHeaderField(headerField);
+            headerLength = _theMessage.HeaderLength;
             _logger = logger;
         }
 
@@ -61,6 +72,26 @@ namespace SimpleSockets {
             return this;
         }
 
+        internal FluentMessageBuilder AppendMessageBytes(byte[] data) {
+            _theMessage.Data = MessageHelper.MergeByteArrays(_theMessage.Data, data);
+            return this;
+        }
+
+        internal FluentMessageBuilder AppendAdditionalInternalInfoBytes(byte[] data) {
+            _theMessage.AdditionalInternalInfo = MessageHelper.MergeByteArrays(_theMessage.AdditionalInternalInfo, data);
+            return this;
+        }
+
+        internal FluentMessageBuilder AppendMetadataBytes(byte[] data) {
+            _theMessage.MessageMetadata = MessageHelper.MergeByteArrays(_theMessage.MessageMetadata, data);
+            return this;
+        }
+
+        internal FluentMessageBuilder AppendHeaderBytes(byte[] data) {
+            _theMessage.MessageHeader = MessageHelper.MergeByteArrays(_theMessage.MessageHeader, data);
+            return this;
+        }
+
         /// <summary>
         /// Builds a message with the set parameters.
         /// </summary>
@@ -74,6 +105,15 @@ namespace SimpleSockets {
                 return null;
             }
         }
+
+        internal void BuildMessageHeader() {
+            _theMessage.DeconstructHeaders();
+        }
+
+        internal SimpleMessage BuildFromReceivedPackets() {
+            return _theMessage;
+        }
+
 
 
 
