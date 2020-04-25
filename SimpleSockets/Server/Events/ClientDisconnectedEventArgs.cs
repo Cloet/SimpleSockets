@@ -1,6 +1,8 @@
+using System;
+
 namespace SimpleSockets {
 
-    public class ClientDisConnectedEventArgs {
+    public class ClientDisConnectedEventArgs: EventArgs {
 
         internal ClientDisConnectedEventArgs(IClientInfo clientInfo, DisconnectReason reason) {
             ClientInfo = clientInfo;

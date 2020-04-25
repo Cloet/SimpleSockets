@@ -14,7 +14,7 @@ namespace SimpleSockets.Client {
                 if (value == null)
                     throw new ArgumentNullException(nameof(value));
 
-                SocketLogger = LogHelper.InitializeLogger(true, SslEncryption , SocketProtocolType.Tcp == this.SocketProtocol, value, this.LogLevel);
+                SocketLogger = LogHelper.InitializeLogger(true, SslEncryption , SocketProtocolType.Tcp == this.SocketProtocol, value, this.LoggerLevel);
                 _logger = value;
             }
         }

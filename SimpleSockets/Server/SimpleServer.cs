@@ -73,6 +73,7 @@ namespace SimpleSockets.Server {
 
         protected SimpleServer() {
             Listening = false;
+            ConnectedClients = new Dictionary<int, IClientMetadata>();
         }
 
         public abstract void Listen(string ip, int port, int limit = 500);
@@ -121,10 +122,10 @@ namespace SimpleSockets.Server {
                 SocketLogger?.Log("Cannot shutdown client " + id + ", does not exist.", LogLevel.Warning);
 
             try {
-                if (client?.DataReceiver.Listener != null) {
-                    client.DataReceiver.Listener.Shutdown(SocketShutdown.Both);
-                    client.DataReceiver.Listener.Close();
-                    client.DataReceiver.Listener = null;
+                if (client?.Listener != null) {
+                    client.Listener.Shutdown(SocketShutdown.Both);
+                    client.Listener.Close();
+                    client.Listener = null;
                 }
             } catch (ObjectDisposedException de) {
                 SocketLogger?.Log("Cannot shutdown client " + id + ", has already been disposed.",de, LogLevel.Warning);

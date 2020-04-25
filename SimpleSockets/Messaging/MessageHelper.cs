@@ -22,9 +22,13 @@ namespace SimpleSockets {
 
 
         internal static byte[] MergeByteArrays(byte[] arr1 , byte[] arr2) {
-            byte[] newArray = new byte[arr1.Length + arr2.Length];
-            arr1.CopyTo(newArray,0);
-            arr2.CopyTo(newArray,arr1.Length);
+
+            if (arr1 == null && arr2 == null)
+                return new byte[0];
+
+            byte[] newArray = new byte[ (arr1 == null ? 0 : arr1.Length) + (arr2 == null ? 0 : arr2.Length)];
+            arr1?.CopyTo(newArray,0);
+            arr2?.CopyTo(newArray, (arr1 == null ? 0 : arr1.Length));
             return newArray;
         }
 

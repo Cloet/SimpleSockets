@@ -1,4 +1,6 @@
+using System.Net.Security;
 using System.Net.Sockets;
+using System.Threading;
 using SimpleSockets.Helpers;
 
 namespace SimpleSockets.Messaging {
@@ -18,28 +20,36 @@ namespace SimpleSockets.Messaging {
 
         public bool ShouldShutDown { get; set; }
 
+        public SslStream SslStream { get; private set; }
+
+        public ManualResetEventSlim ReceivingData { get; set; } = new ManualResetEventSlim(true);
+
+        public ManualResetEventSlim Timeout { get; set; } = new ManualResetEventSlim(true);
+
+        public ManualResetEventSlim WritingData { get; set; } = new ManualResetEventSlim(false);
+
+        public Socket Listener { get; set; }
 
         public DataReceiver DataReceiver { get; private set;}
 
         private LogHelper _logger;
-        private Socket _listener;
 
         public ClientMetadata(Socket listener, int id, LogHelper logger = null) {
             Id = id;
             ShouldShutDown = false;
             _logger = logger;
-            _listener = listener;
-            DataReceiver = new DataReceiver(listener, logger);
+            Listener = listener;
+            DataReceiver = new DataReceiver(logger);
         }
 
-        public void ResetDataReceiver()
+        public void ResetDataReceiver(byte[] extraBytes = null)
         {
-            DataReceiver.Dispose();
-            DataReceiver = new DataReceiver(_listener, _logger);
+            DataReceiver = null;
+            DataReceiver = new DataReceiver(_logger, extraBytes);
         }
 
         public void Dispose() {
-            DataReceiver.Dispose();
+            DataReceiver = null;
         }
     }
 

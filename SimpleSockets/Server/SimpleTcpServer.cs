@@ -11,9 +11,13 @@ namespace SimpleSockets.Server {
 
     public class SimpleTcpServer : SimpleServer
     {
-        public override bool SslEncryption => throw new System.NotImplementedException();
+        public override bool SslEncryption => false;
 
-        public override SocketProtocolType SocketProtocol => throw new System.NotImplementedException();
+        public override SocketProtocolType SocketProtocol => SocketProtocolType.Tcp;
+
+        public SimpleTcpServer(): base() {
+
+        }
 
         public override void Listen(string ip, int port, int limit = 500)
         {
@@ -57,7 +61,7 @@ namespace SimpleSockets.Server {
                 IClientMetadata client;
                 lock (ConnectedClients) {
                     var id = !ConnectedClients.Any() ? 1 : ConnectedClients.Keys.Max() + 1;
-                    client = new ClientMetadata(((Socket)result.AsyncState).EndAccept(result), id);
+                    client = new ClientMetadata(((Socket)result.AsyncState).EndAccept(result), id, SocketLogger);
 
                     var exists = ConnectedClients.FirstOrDefault(x => x.Value == client);
 
@@ -85,11 +89,11 @@ namespace SimpleSockets.Server {
                     if (rec == null)
                         rec = client.DataReceiver;
 
-                    rec.ReceivingData.Wait(Token);
-                    rec.Timeout.Reset();
-                    rec.ReceivingData.Reset();
+                    client.ReceivingData.Wait(Token);
+                    client.Timeout.Reset();
+                    client.ReceivingData.Reset();
 
-                    rec.Listener.BeginReceive(rec.Buffer, 0, rec.BufferSize, SocketFlags.None, ReceiveCallback, client);
+                    client.Listener.BeginReceive(rec.Buffer, 0, rec.BufferSize, SocketFlags.None, ReceiveCallback, client);
                 }
             } catch (Exception ex) {
                 SocketLogger?.Log("Error receiving data from client " + client.Id, ex, LogLevel.Error);
@@ -99,19 +103,21 @@ namespace SimpleSockets.Server {
         internal virtual void ReceiveCallback(IAsyncResult result) {
             var client = (IClientMetadata)result.AsyncState;
             var dReceiver = client.DataReceiver;
-            dReceiver.Timeout.Set();
+            client.Timeout.Set();
             try {
                 if (!IsClientConnected(client.Id))
                     ShutDownClient(client.Id, DisconnectReason.Unknown);
                 else {
-                    var received = dReceiver.Listener.EndReceive(result);
+                    var received = client.Listener.EndReceive(result);
 
                     if (received > 0) {
-                        
+                        var msgFlag = dReceiver.ReceiveData(received);
+
+                        if (msgFlag == MessageState.Completed)
+                            client.ResetDataReceiver(dReceiver.ExtraBytes);
                     }
-                    
                     // Allow server to receive more bytes of a client.
-                    dReceiver.ReceivingData.Set();
+                    client.ReceivingData.Set();
                 }
             } catch (Exception ex) {
                 SocketLogger?.Log("Error receiving a message.", ex, LogLevel.Error);
@@ -120,7 +126,24 @@ namespace SimpleSockets.Server {
 
         protected override void SendToSocket(int clientId, byte[] payload, bool shutdownClient)
         {
-            throw new System.NotImplementedException();
+            IClientMetadata client = null;
+            ConnectedClients?.TryGetValue(1, out client);
+
+            if (client != null) {
+                client.Listener.BeginSend(payload, 0, payload.Length, SocketFlags.None, SendCallback, client);
+            }
+        }
+
+        protected void SendCallback(IAsyncResult result) {
+            var client = (IClientMetadata)result.AsyncState;
+            
+            try {
+                client.Listener.EndSend(result);
+                if (client.ShouldShutDown)
+                    ShutDownClient(client.Id);
+            } catch (Exception ex) {
+                SocketLogger?.Log("An error occured when sending a message to client " + client.Id, ex, LogLevel.Error);
+            }
         }
 
         public override void Dispose()

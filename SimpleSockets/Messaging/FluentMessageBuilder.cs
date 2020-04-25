@@ -72,18 +72,8 @@ namespace SimpleSockets {
             return this;
         }
 
-        internal FluentMessageBuilder AppendMessageBytes(byte[] data) {
-            _theMessage.Data = MessageHelper.MergeByteArrays(_theMessage.Data, data);
-            return this;
-        }
-
-        internal FluentMessageBuilder AppendAdditionalInternalInfoBytes(byte[] data) {
-            _theMessage.AdditionalInternalInfo = MessageHelper.MergeByteArrays(_theMessage.AdditionalInternalInfo, data);
-            return this;
-        }
-
-        internal FluentMessageBuilder AppendMetadataBytes(byte[] data) {
-            _theMessage.MessageMetadata = MessageHelper.MergeByteArrays(_theMessage.MessageMetadata, data);
+        internal FluentMessageBuilder AppendContentBytes(byte[] data) {
+            _theMessage.Content = MessageHelper.MergeByteArrays(_theMessage.Content, data);
             return this;
         }
 
@@ -91,6 +81,8 @@ namespace SimpleSockets {
             _theMessage.MessageHeader = MessageHelper.MergeByteArrays(_theMessage.MessageHeader, data);
             return this;
         }
+
+
 
         /// <summary>
         /// Builds a message with the set parameters.

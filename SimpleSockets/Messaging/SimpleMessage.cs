@@ -22,6 +22,8 @@ namespace SimpleSockets.Messaging {
 
         internal byte[] MessageHeader { get; set; }
 
+        internal byte[] Content { get; set; }
+
         internal bool Compress { get; set;}
 
         internal bool Encrypt { get; set; }
@@ -208,6 +210,8 @@ namespace SimpleSockets.Messaging {
 
             if (HeaderFields[2] || HeaderFields[1])
                 ContentLength = BitConverter.ToInt64(header, 8);
+            else
+                ContentLength = OriginalcontentLength;
 
             
         }
