@@ -2,6 +2,8 @@ using System.Net.Security;
 using System.Net.Sockets;
 using System.Threading;
 using SimpleSockets.Helpers;
+using SimpleSockets.Helpers.Compression;
+using SimpleSockets.Helpers.Cryptography;
 
 namespace SimpleSockets.Messaging {
 
@@ -34,18 +36,24 @@ namespace SimpleSockets.Messaging {
 
         private LogHelper _logger;
 
-        public ClientMetadata(Socket listener, int id, LogHelper logger = null) {
+		private EncryptionType _encryptionMode;
+
+		private CompressionType _compressionMode;
+
+        public ClientMetadata(Socket listener, int id,EncryptionType eMode, CompressionType cType, LogHelper logger = null) {
             Id = id;
             ShouldShutDown = false;
             _logger = logger;
             Listener = listener;
-            DataReceiver = new DataReceiver(logger);
+			_encryptionMode = eMode;
+			_compressionMode = cType;
+            DataReceiver = new DataReceiver(logger, _encryptionMode, _compressionMode);
         }
 
-        public void ResetDataReceiver(byte[] extraBytes = null)
+        public void ResetDataReceiver()
         {
             DataReceiver = null;
-            DataReceiver = new DataReceiver(_logger, extraBytes);
+            DataReceiver = new DataReceiver(_logger, _encryptionMode, _compressionMode);
         }
 
         public void Dispose() {

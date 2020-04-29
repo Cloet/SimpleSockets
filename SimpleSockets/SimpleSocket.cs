@@ -16,12 +16,6 @@ namespace SimpleSockets {
 
         private byte[] _preSharedKey = null;
 
-        private DateTime _startTime;
-
-        private long _receivedBytes = 0;
-
-        private long _sentBytes = 0;
-
         internal LogHelper SocketLogger { get; set; }
 
         protected CancellationTokenSource TokenSource { get; set;}
@@ -62,17 +56,11 @@ namespace SimpleSockets {
             }
         }
 
-        public DateTime StartTime { get => _startTime; }
+        public bool SslEncryption { get; private set; }
 
-        public TimeSpan UpTime { get => DateTime.Now.ToUniversalTime() - StartTime ; }
+        public SocketProtocolType SocketProtocol { get; private set; }
 
-        public long Received { get => _receivedBytes; internal set { _receivedBytes = value; }}
-
-        public long Sent { get => _sentBytes; internal set { _sentBytes = value; }}
-
-        public abstract bool SslEncryption { get; }
-
-        public abstract SocketProtocolType SocketProtocol { get; }
+		public SocketStatistics Statistics { get; private set; }
 
         public string TempPath {
             get => string.IsNullOrEmpty(_tempPath) ? Path.GetTempPath() : _tempPath;
@@ -91,21 +79,11 @@ namespace SimpleSockets {
             }
         }
 
-        public string Statistics { 
-            get {
-                var stats = "=======================================================================" + Environment.NewLine;
-                stats    += "|  Statistics                                                         |" + Environment.NewLine;
-                stats    += "|---------------------------------------------------------------------|" + Environment.NewLine;
-                stats    += "| - Started        : " + StartTime.ToString().PadRight(48) + "|" + Environment.NewLine;
-                stats    += "| - UpTime         : " + UpTime.ToString().PadRight(48) + "|" + Environment.NewLine;
-                stats    += "| - Bytes Received : " + Received.ToString().PadRight(48) + "|" + Environment.NewLine;
-                stats    += "| - Bytes Sent     : " + Sent.ToString().PadRight(48) + "|" + Environment.NewLine;
-                stats    += "| - Protocol       : " + Enum.GetName(typeof(SocketProtocolType), SocketProtocol).ToString().PadRight(48) + "|" + Environment.NewLine;
-                stats    += "| - Ssl            : " + (SslEncryption ? "Yes".PadRight(48) : "No".PadRight(48)) + "|" + Environment.NewLine;
-                stats    += "=======================================================================" + Environment.NewLine;
-                return stats;
-            }
-        }
+		public SimpleSocket(bool useSsl, SocketProtocolType protocolType) {
+			SslEncryption = useSsl;
+			SocketProtocol = protocolType;
+			Statistics = new SocketStatistics(SslEncryption, SocketProtocol);
+		}
         
         /// <summary>
         /// Disposes of the Socket.

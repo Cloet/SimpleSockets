@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using SimpleSockets.Helpers;
@@ -11,11 +12,8 @@ namespace SimpleSockets.Server {
 
     public class SimpleTcpServer : SimpleServer
     {
-        public override bool SslEncryption => false;
 
-        public override SocketProtocolType SocketProtocol => SocketProtocolType.Tcp;
-
-        public SimpleTcpServer(): base() {
+        public SimpleTcpServer(bool useSsl): base(useSsl, SocketProtocolType.Tcp) {
 
         }
 
@@ -61,7 +59,7 @@ namespace SimpleSockets.Server {
                 IClientMetadata client;
                 lock (ConnectedClients) {
                     var id = !ConnectedClients.Any() ? 1 : ConnectedClients.Keys.Max() + 1;
-                    client = new ClientMetadata(((Socket)result.AsyncState).EndAccept(result), id, SocketLogger);
+                    client = new ClientMetadata(((Socket)result.AsyncState).EndAccept(result), id, EncryptionMethod, CompressionMethod, SocketLogger);
 
                     var exists = ConnectedClients.FirstOrDefault(x => x.Value == client);
 
@@ -82,18 +80,14 @@ namespace SimpleSockets.Server {
 
         internal virtual void Receive(IClientMetadata client) {
             try {
-
-                DataReceiver rec = client.DataReceiver;
                 while (!Token.IsCancellationRequested) {
                     
-                    if (rec == null)
-                        rec = client.DataReceiver;
-
                     client.ReceivingData.Wait(Token);
                     client.Timeout.Reset();
                     client.ReceivingData.Reset();
 
-                    client.Listener.BeginReceive(rec.Buffer, 0, rec.BufferSize, SocketFlags.None, ReceiveCallback, client);
+					var rec = client.DataReceiver;
+					client.Listener.BeginReceive(rec.Buffer, 0, rec.BufferSize, SocketFlags.None, ReceiveCallback, client);
                 }
             } catch (Exception ex) {
                 SocketLogger?.Log("Error receiving data from client " + client.Id, ex, LogLevel.Error);
@@ -110,16 +104,31 @@ namespace SimpleSockets.Server {
                 else {
                     var received = client.Listener.EndReceive(result);
 
-                    if (received > 0) {
-                        var msgFlag = dReceiver.ReceiveData(received);
+					// Add byte per byte to datareceiver,
+					// This way we can use a delimiter to check if a message has been received.
+					if (received > 0) {
+						var readBuffer = client.DataReceiver.Buffer.Take(received).ToArray();
+						for (int i = 0; i < readBuffer.Length; i++)
+						{
+							var end = client.DataReceiver.AppendByteToReceived(readBuffer[i]);
+							if (end)
+							{
+								var message = client.DataReceiver.BuildMessageFromPayload(EncryptionPassphrase, PreSharedKey);
+								if (message != null)
+									OnMessageReceivedHandler(client, message);
+								client.ResetDataReceiver();
+							}
+						}
+					}
 
-                        if (msgFlag == MessageState.Completed)
-                            client.ResetDataReceiver(dReceiver.ExtraBytes);
-                    }
-                    // Allow server to receive more bytes of a client.
-                    client.ReceivingData.Set();
+					// Resets buffer of the datareceiver.
+					client.DataReceiver.ClearBuffer();
+					
+					// Allow server to receive more bytes of a client.
+					client.ReceivingData.Set();
                 }
             } catch (Exception ex) {
+				client.ReceivingData.Set();
                 SocketLogger?.Log("Error receiving a message.", ex, LogLevel.Error);
             }
         }

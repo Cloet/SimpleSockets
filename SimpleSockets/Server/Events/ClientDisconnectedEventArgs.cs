@@ -1,10 +1,10 @@
 using System;
 
-namespace SimpleSockets {
+namespace SimpleSockets.Server {
 
-    public class ClientDisConnectedEventArgs: EventArgs {
+    public class ClientDisconnectedEventArgs: EventArgs {
 
-        internal ClientDisConnectedEventArgs(IClientInfo clientInfo, DisconnectReason reason) {
+        internal ClientDisconnectedEventArgs(IClientInfo clientInfo, DisconnectReason reason) {
             ClientInfo = clientInfo;
             ReasonForDisconnect = reason;
         }

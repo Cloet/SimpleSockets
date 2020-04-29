@@ -1,6 +1,6 @@
 using System;
 
-namespace SimpleSockets {
+namespace SimpleSockets.Server {
 
     public class ClientConnectedEventArgs: EventArgs {
 

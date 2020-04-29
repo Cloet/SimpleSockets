@@ -5,7 +5,8 @@ namespace SimpleSockets.Helpers {
         Fatal=0,
         Error=1,
         Warning=3,
-        Debug=4
+        Debug=4,
+		Trace=5
 	}
 
 }

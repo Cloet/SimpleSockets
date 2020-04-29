@@ -22,7 +22,7 @@ namespace SimpleSockets {
 
         Socket Listener { get; set; }
 
-        void ResetDataReceiver(byte[] extraBytes = null);
+        void ResetDataReceiver();
 
     }
 

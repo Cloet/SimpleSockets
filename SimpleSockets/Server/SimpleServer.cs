@@ -4,7 +4,6 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using SimpleSockets.Helpers;
-using SimpleSockets.Helpers.Compression;
 using SimpleSockets.Helpers.Cryptography;
 using SimpleSockets.Messaging;
 
@@ -19,24 +18,25 @@ namespace SimpleSockets.Server {
         /// Event invoked when a client connects to the server.
         /// </summary>
         public event EventHandler<ClientConnectedEventArgs> ClientConnected;
-
         protected virtual void OnClientConnected(ClientConnectedEventArgs eventArgs) => ClientConnected?.Invoke(this, eventArgs);
 
         /// <summary>
         /// Event invoked when a client disconnects from the server.
         /// </summary>
-        public event EventHandler<ClientDisConnectedEventArgs> ClientDisConnected;
-
-        protected virtual void OnClientDisconnected(ClientDisConnectedEventArgs eventArgs) => ClientDisConnected?.Invoke(this, eventArgs);
+        public event EventHandler<ClientDisconnectedEventArgs> ClientDisconnected;
+        protected virtual void OnClientDisconnected(ClientDisconnectedEventArgs eventArgs) => ClientDisconnected?.Invoke(this, eventArgs);
 
         /// <summary>
         /// Event invoked when a server starts listening for connections.
         /// </summary>
         public event EventHandler ServerStartedListening;
-
         protected virtual void OnServerStartedListening() => ServerStartedListening?.Invoke(this, null);
 
-
+		/// <summary>
+		/// Event invoked when the server received a message from a client.
+		/// </summary>
+		public event EventHandler<MessageReceivedEventArgs> MessageReceived;
+		protected virtual void OnMessageReceived(MessageReceivedEventArgs eventArgs) => MessageReceived?.Invoke(this, eventArgs);
 
         #endregion
 
@@ -71,7 +71,7 @@ namespace SimpleSockets.Server {
 
         #endregion
 
-        protected SimpleServer() {
+        protected SimpleServer(bool useSsl, SocketProtocolType protocol): base(useSsl,protocol) {
             Listening = false;
             ConnectedClients = new Dictionary<int, IClientMetadata>();
         }
@@ -134,7 +134,7 @@ namespace SimpleSockets.Server {
             } finally {
                 lock(ConnectedClients) {
                     ConnectedClients.Remove(id);
-                    OnClientDisconnected(new ClientDisConnectedEventArgs(client, reason));
+                    OnClientDisconnected(new ClientDisconnectedEventArgs(client, reason));
                 }
             }
         }
@@ -147,13 +147,25 @@ namespace SimpleSockets.Server {
             return RetrieveClientMetadataById(id);
         }
 
-        #region Sending Data
+		#region Data-Invokers
 
-        protected abstract void SendToSocket(int clientId, byte[] payload, bool shutdownClient);
+		internal virtual void OnMessageReceivedHandler(IClientMetadata client, SimpleMessage message) {
+
+			if (message.MessageType == MessageType.Message) {
+				OnMessageReceived(new MessageReceivedEventArgs(message.BuildDataToString(), client, message.BuildMetadataFromBytes()));
+			}
+
+		}
+
+		#endregion
+
+		#region Sending Data
+
+		protected abstract void SendToSocket(int clientId, byte[] payload, bool shutdownClient);
 
         public bool SendMessage(int clientId, string message, IDictionary<object,object> metadata, bool shutdownClient = false) {
 
-            var payload = FluentMessageBuilder.Initialize(MessageType.Message, SocketLogger)
+            var payload = MessageBuilder.Initialize(MessageType.Message, SocketLogger)
                 .AddCompression(CompressionMethod)
                 .AddEncryption(EncryptionPassphrase,  EncryptionPassphrase != null ? EncryptionMethod : EncryptionType.None)
                 .AddMessageString(message)
@@ -164,6 +176,7 @@ namespace SimpleSockets.Server {
         }
 
         #endregion
+
 
     }
 

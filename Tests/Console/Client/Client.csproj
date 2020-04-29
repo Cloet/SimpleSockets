@@ -2,7 +2,12 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <StartupObject>Client.Program</StartupObject>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\SimpleSockets\SimpleSockets.csproj" />
+  </ItemGroup>
 
 </Project>

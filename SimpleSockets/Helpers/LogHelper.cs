@@ -37,7 +37,7 @@ namespace SimpleSockets.Helpers {
 
         internal void Log(string log, LogLevel level) {
 
-            if (level >= _logLevel) {
+            if (level <= _logLevel) {
                 if (_logger == null)
                     return;
 
@@ -48,7 +48,7 @@ namespace SimpleSockets.Helpers {
         }
 
         internal void Log(string log, Exception exception, LogLevel level) {
-            if (level >= _logLevel) {
+            if (level <= _logLevel) {
                 if (_logger == null)
                     return;
                 var builder = new StringBuilder();

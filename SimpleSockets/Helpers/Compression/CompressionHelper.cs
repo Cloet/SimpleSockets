@@ -12,6 +12,8 @@ namespace SimpleSockets.Helpers.Compression{
                 return Gzip.Compress(bytes);
             if (mode == CompressionType.Deflate)
                 return Deflate.CompressBytes(bytes);
+			if (mode == CompressionType.None)
+				return bytes;
 
             throw new ArgumentException(nameof(mode));
         }
@@ -24,6 +26,8 @@ namespace SimpleSockets.Helpers.Compression{
                 return Gzip.Decompress(bytes);
             if (mode == CompressionType.Deflate)
                 return Deflate.DecompressBytes(bytes);
+			if (mode == CompressionType.None)
+				return bytes;
 
             throw new ArgumentException(nameof(mode));
         }

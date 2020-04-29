@@ -32,7 +32,16 @@ namespace SimpleSockets {
             return newArray;
         }
 
-        internal static byte[] PacketDelimiter => MergeByteArrays(Encoding.UTF8.GetBytes(Environment.NewLine), Encoding.UTF8.GetBytes(Environment.NewLine));
+		private static byte[] _delimiter = null;
+
+        internal static byte[] PacketDelimiter {
+			get {
+				if (_delimiter == null)
+					_delimiter = MergeByteArrays(Encoding.UTF8.GetBytes(Environment.NewLine), Encoding.UTF8.GetBytes(Environment.NewLine));
+
+				return _delimiter;
+			}
+		} 
 
     }
 
