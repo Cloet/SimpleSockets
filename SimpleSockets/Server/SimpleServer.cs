@@ -105,7 +105,7 @@ namespace SimpleSockets.Server {
                 return false;
             }
             catch (Exception ex) {
-                SocketLogger?.Log("Something went wrong trying to check if a client is conntected.", ex, LogLevel.Error);
+                SocketLogger?.Log("Something went wrong trying to check if a client is connected.", ex, LogLevel.Error);
             }
 
             return false;

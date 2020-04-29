@@ -142,7 +142,7 @@ namespace SimpleSockets.Server {
                 if (client.ShouldShutDown)
                     ShutDownClient(client.Id);
             } catch (Exception ex) {
-                SocketLogger?.Log("An error occured when sending a message to client " + client.Id, ex, LogLevel.Error);
+                SocketLogger?.Log("An error occurred when sending a message to client " + client.Id, ex, LogLevel.Error);
             }
         }
 

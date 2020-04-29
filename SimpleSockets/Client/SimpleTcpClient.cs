@@ -1,3 +1,4 @@
+using System.Threading;
 using SimpleSockets.Client;
 
 namespace SimpleSockets {
@@ -10,13 +11,19 @@ namespace SimpleSockets {
 
         private readonly ManualResetEventSlim ReceivingData = new ManualResetEventSlim(true);
 
+        public bool Disposed { get; set; }
+
         public SimpleTcpClient(): base() {
 
         }
 
+        public void Connect(string serverIp, int serverPort, int autoReconnect) {
+            if ()
+        }
+
         public override void Dispose()
         {
-            throw new System.NotImplementedException();
+            ReceivingData.Dispose();
         }
     }
 
