@@ -63,6 +63,7 @@ namespace SimpleSockets {
 				Connected.Set();
 				var metadata = new ClientMetadata(Listener,-1, SocketLogger);
 				Sent.Set();
+				SendAuthenticationMessage();
 				Receive(metadata);
 			}
 			catch (SocketException)

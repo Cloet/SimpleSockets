@@ -49,6 +49,12 @@ namespace SimpleSockets.Server {
 		public event EventHandler<ClientObjectReceivedEventArgs> ObjectReceived;
 		protected virtual void OnClientObjectReceived(ClientObjectReceivedEventArgs eventArgs) => ObjectReceived?.Invoke(this, eventArgs);
 
+		/// <summary>
+		/// Event invoked when the server receives bytes from a client.
+		/// </summary>
+		public event EventHandler<ClientBytesReceivedEventArgs> BytesReceived;
+		protected virtual void OnClientBytesReceived(ClientBytesReceivedEventArgs eventArgs) => BytesReceived?.Invoke(this, eventArgs);
+
         #endregion
 
         #region Variables
@@ -79,12 +85,15 @@ namespace SimpleSockets.Server {
         public string ListenerIp { get; set; }
 
         internal IDictionary<int, IClientMetadata> ConnectedClients { get; set; }
-		
-        #endregion
 
-        protected SimpleServer(bool useSsl, SocketProtocolType protocol): base(useSsl,protocol) {
+		public IDictionary<string, EventHandler<ClientDataReceivedEventArgs>> DynamicCallbacks { get; protected set; }
+
+		#endregion
+
+		protected SimpleServer(bool useSsl, SocketProtocolType protocol): base(useSsl,protocol) {
             Listening = false;
             ConnectedClients = new Dictionary<int, IClientMetadata>();
+			DynamicCallbacks = new Dictionary<string, EventHandler<ClientDataReceivedEventArgs>>();
         }
 
         public abstract void Listen(string ip, int port, int limit = 500);
@@ -169,17 +178,48 @@ namespace SimpleSockets.Server {
 
 		internal virtual void OnMessageReceivedHandler(IClientMetadata client, SimpleMessage message) {
 
+			var extraInfo = message.BuildInternalInfoFromBytes();
+			var eventHandler = message.GetDynamicCallbackServer(extraInfo, DynamicCallbacks);
+
+
 			if (message.MessageType == MessageType.Message) {
-				OnClientMessageReceived(new ClientMessageReceivedEventArgs(message.BuildDataToString(), client, message.BuildMetadataFromBytes()));
+				var ev = new ClientMessageReceivedEventArgs(message.BuildDataToString(), client, message.BuildMetadataFromBytes());
+
+				if (eventHandler != null)
+					eventHandler?.Invoke(this, ev);
+				else
+					OnClientMessageReceived(ev);
 			}
 
 			if (message.MessageType == MessageType.Object) {
-				var obj = message.BuildObjectFromBytes(out var type);
+				var obj = message.BuildObjectFromBytes(extraInfo, out var type);
 
 				if (obj == null || type == null) {
-					OnClientObjectReceived(new ClientObjectReceivedEventArgs(obj, type,client, message.BuildMetadataFromBytes()));
+					var ev = new ClientObjectReceivedEventArgs(obj, type, client, message.BuildMetadataFromBytes());
+					if (eventHandler != null)
+						eventHandler?.Invoke(this, ev);
+					else
+						OnClientObjectReceived(ev);
 				} else
 					SocketLogger?.Log("Error receiving an object.", LogLevel.Error);
+			}
+
+			if (message.MessageType == MessageType.Bytes) {
+				var ev = new ClientBytesReceivedEventArgs(client, message.Data, message.BuildMetadataFromBytes());
+				if (eventHandler != null)
+					eventHandler?.Invoke(this, ev);
+				else
+					OnClientBytesReceived(ev);
+			}
+
+			if (message.MessageType == MessageType.Auth) {
+				var data = Encoding.UTF8.GetString(message.Data);
+				var split = data.Split('|');
+
+				client.ClientName = split[0];
+				client.Guid = split[1];
+				client.UserDomainName = split[2];
+				client.OsVersion = split[3];
 			}
 
 		}
@@ -192,12 +232,19 @@ namespace SimpleSockets.Server {
 
 		protected abstract Task<bool> SendToSocketAsync(int clientId, byte[] payload);
 
-		protected bool SendInternal(int clientid, MessageType msgType, byte[] data, IDictionary<object,object> metadata, IDictionary<object,object> extraInfo, EncryptionType eType, CompressionType cType) {
+		protected bool SendInternal(int clientid, MessageType msgType, byte[] data, IDictionary<object,object> metadata, IDictionary<object,object> extraInfo, string eventKey, EncryptionType eType, CompressionType cType) {
 
 			try
 			{
 				if (EncryptionMethod != EncryptionType.None && (EncryptionPassphrase == null || EncryptionPassphrase.Length == 0))
 					SocketLogger?.Log($"Please set a valid encryptionmethod when trying to encrypt a message.{Environment.NewLine}This message will not be encrypted.", LogLevel.Warning);
+
+				if (eventKey != string.Empty && eventKey != null)
+				{
+					if (extraInfo == null)
+						extraInfo = new Dictionary<object, object>();
+					extraInfo.Add("DynamicCallback", eventKey);
+				}
 
 				var payload = MessageBuilder.Initialize(msgType, SocketLogger)
 					.AddCompression(cType)
@@ -216,11 +263,18 @@ namespace SimpleSockets.Server {
 			}
 		}
 
-		protected async Task<bool> SendInternalAsync(int clientId, MessageType msgType, byte[] data, IDictionary<object, object> metadata, IDictionary<object, object> extraInfo, EncryptionType eType, CompressionType cType) {
+		protected async Task<bool> SendInternalAsync(int clientId, MessageType msgType, byte[] data, IDictionary<object, object> metadata, IDictionary<object, object> extraInfo, string eventKey, EncryptionType eType, CompressionType cType) {
 			try
 			{
 				if (EncryptionMethod != EncryptionType.None && (EncryptionPassphrase == null || EncryptionPassphrase.Length == 0))
 					SocketLogger?.Log($"Please set a valid encryptionmethod when trying to encrypt a message.{Environment.NewLine}This message will not be encrypted.", LogLevel.Warning);
+
+				if (eventKey != string.Empty && eventKey != null)
+				{
+					if (extraInfo == null)
+						extraInfo = new Dictionary<object, object>();
+					extraInfo.Add("DynamicCallback", eventKey);
+				}
 
 				var payload = MessageBuilder.Initialize(msgType, SocketLogger)
 					.AddCompression(cType)
@@ -239,9 +293,17 @@ namespace SimpleSockets.Server {
 
 		#region Message
 
+		public bool SendMessage(int clientId, string message, IDictionary<object, object> metadata, string dynamicEventKey, EncryptionType encryption, CompressionType compression) {
+			return SendInternal(clientId, MessageType.Message, Encoding.UTF8.GetBytes(message), metadata, null, dynamicEventKey, encryption, compression);
+		}
+
+		public bool SendMessage(int clientId, string message, IDictionary<object, object> metadata, string dynamicEventKey) {
+			return SendMessage(clientId, message, metadata, dynamicEventKey, EncryptionMethod, CompressionMethod);
+		}
+
 		public bool SendMessage(int clientId, string message, IDictionary<object, object> metadata, EncryptionType encryption, CompressionType compression)
 		{
-			return SendInternal(clientId, MessageType.Message, Encoding.UTF8.GetBytes(message), metadata, null, encryption, compression);
+			return SendMessage(clientId, message, metadata, string.Empty, encryption, compression);
 		}
 
 		public bool SendMessage(int clientId, string message, IDictionary<object, object> metadata)
@@ -254,9 +316,16 @@ namespace SimpleSockets.Server {
 			return SendMessage(clientId, message, null);
 		}
 
+		public async Task<bool> SendMessageAsync(int clientId, string message, IDictionary<object, object> metadata, string dynamicEventKey, EncryptionType encryption, CompressionType compression) {
+			return await SendInternalAsync(clientId, MessageType.Message, Encoding.UTF8.GetBytes(message), metadata, null, dynamicEventKey, encryption, compression);
+		}
+
+		public async Task<bool> SendMessageAsync(int clientId, string message, IDictionary<object, object> metadata, string dynamicEventKey) {
+			return await SendMessageAsync(clientId, message, metadata, dynamicEventKey, EncryptionMethod, CompressionMethod);
+		}
+
 		public async Task<bool> SendMessageAsync(int clientId, string message, IDictionary<object, object> metadata, EncryptionType encryption, CompressionType compression) {
-			var msg = Encoding.UTF8.GetBytes(message);
-			return await SendInternalAsync(clientId, MessageType.Message, msg, metadata, null, encryption, compression);
+			return await SendMessageAsync(clientId, message, metadata, string.Empty, encryption, compression);
 		}
 
 		public async Task<bool> SendMessageAsync(int clientId, string message, IDictionary<object, object> metadata) {
@@ -271,8 +340,16 @@ namespace SimpleSockets.Server {
 
 		#region Bytes
 
+		public bool SendBytes(int clientId, byte[] data, IDictionary<object, object> metadata, string dynamicEventKey, EncryptionType encryption, CompressionType compression) {
+			return SendInternal(clientId, MessageType.Bytes, data, metadata, null, dynamicEventKey, encryption, compression);
+		}
+
 		public bool SendBytes(int clientId, byte[] data, IDictionary<object, object> metadata, EncryptionType encryption, CompressionType compression) {
-			return SendInternal(clientId, MessageType.Bytes, data, metadata, null, encryption, compression);
+			return SendBytes(clientId, data, metadata, string.Empty, encryption, compression);
+		}
+
+		public bool SendBytes(int clientId, byte[] data, IDictionary<object, object> metadata, string dynamicEventKey) {
+			return SendBytes(clientId, data, metadata, dynamicEventKey, EncryptionMethod, CompressionMethod);
 		}
 
 		public bool SendBytes(int clientId, byte[] data, IDictionary<object, object> metadata) {
@@ -283,8 +360,17 @@ namespace SimpleSockets.Server {
 			return SendBytes(clientId, data);
 		}
 
-		public async Task<bool> SendBytesAsync(int clientId, byte[] data, IDictionary<object, object> metadata, EncryptionType encryption, CompressionType compression) {
-			return await SendInternalAsync(clientId, MessageType.Bytes, data, metadata, null, encryption, compression);
+		public async Task<bool> SendBytesAsync(int clientId, byte[] data, IDictionary<object, object> metadata, string dynamicEventKey, EncryptionType encryption, CompressionType compression) {
+			return await SendInternalAsync(clientId, MessageType.Bytes, data, metadata, null, dynamicEventKey, encryption, compression);
+		}
+
+		public async Task<bool> SendBytesAsync(int clientId, byte[] data, IDictionary<object, object> metadata, EncryptionType encryption, CompressionType compression)
+		{
+			return await SendBytesAsync(clientId, data, metadata, string.Empty, encryption, compression);
+		}
+
+		public async Task<bool> SendBytesAsync(int clientId, byte[] data, IDictionary<object, object> metadata, string dynamicEventKey) {
+			return await SendBytesAsync(clientId, data, metadata, dynamicEventKey, EncryptionMethod, CompressionMethod);
 		}
 
 		public async Task<bool> SendBytesAsync(int clientId, byte[] data, IDictionary<object, object> metadata) {
@@ -299,34 +385,52 @@ namespace SimpleSockets.Server {
 
 		#region Objects
 
-		public bool SendObject(int clientId, object obj, IDictionary<object, object> metadata, EncryptionType encryption, CompressionType compression) {
+		public bool SendObject(int clientId, object obj, IDictionary<object, object> metadata, string dynamicEventKey, EncryptionType encryption, CompressionType compression) {
 			var bytes = SerializationHelper.SerializeObjectToBytes(obj);
 
 			var info = new Dictionary<object, object>();
 			info.Add("Type", obj.GetType());
 
-			return SendInternal(clientId, MessageType.Object, bytes, metadata, info, encryption, compression);
+			return SendInternal(clientId, MessageType.Object, bytes, metadata, info, dynamicEventKey, encryption, compression);
+		}
+
+		public bool SendObject(int clientId, object obj, IDictionary<object, object> metadata, EncryptionType encryption, CompressionType compression) {
+			return SendObject(clientId, obj, metadata, string.Empty, encryption, compression);
 		}
 
 		public bool SendObject(int clientId, object obj, IDictionary<object, object> metadata) {
 			return SendObject(clientId, obj, metadata, EncryptionMethod, CompressionMethod);
 		}
 
+		public bool SendObject(int clientId, object obj, IDictionary<object, object> metadata, string dynamicEventKey) {
+			return SendObject(clientId, obj, metadata, dynamicEventKey, EncryptionMethod, CompressionMethod);
+		}
+
 		public bool SendObject(int clientId, object obj) {
 			return SendObject(clientId, obj, null);
 		}
 
-		public async Task<bool> SendObjectAsync(int clientId, object obj, IDictionary<object, object> metadata, EncryptionType encryption, CompressionType compression) {
+		public async Task<bool> SendObjectAsync(int clientId, object obj, IDictionary<object, object> metadata, string dynamicEventKey, EncryptionType encryption, CompressionType compression)
+		{
 			var bytes = SerializationHelper.SerializeObjectToBytes(obj);
 
 			var info = new Dictionary<object, object>();
 			info.Add("Type", obj.GetType());
 
-			return await SendInternalAsync(clientId, MessageType.Object, bytes, metadata, null, encryption, compression);
+			return await SendInternalAsync(clientId, MessageType.Bytes, bytes, metadata, info, dynamicEventKey, encryption, compression);
+		}
+
+		public async Task<bool> SendObjectAsync(int clientId, object obj, IDictionary<object, object> metadata, EncryptionType encryption, CompressionType compression)
+		{
+			return await SendObjectAsync(clientId, obj, metadata, string.Empty, encryption, compression);
 		}
 
 		public async Task<bool> SendObjectAsync(int clientId, object obj, IDictionary<object, object> metadata) {
 			return await SendObjectAsync(clientId, obj, metadata, EncryptionMethod,CompressionMethod);
+		}
+
+		public async Task<bool> SendObjectAsync(int clientId, object obj, IDictionary<object, object> metadata, string dynamicEventKey) {
+			return await SendObjectAsync(clientId, obj, metadata, dynamicEventKey, EncryptionMethod, CompressionMethod);
 		}
 
 		public async Task<bool> SendObjectAsync(int clientId, object obj) {

@@ -33,9 +33,10 @@ namespace Server
 
 			input = input.Trim().ToLower();
 
-			if (input == "msgmd" || input == "msg")
+			if (input == "msgmd" || input == "msg" || input == "msgdc")
 			{
 				var clientid = GetClient();
+				var eventKey = "";
 
 				if (clientid < 0)
 					return;
@@ -47,10 +48,14 @@ namespace Server
 				if (input == "msgmd")
 					md = Metadata();
 
-				_server.SendMessage(clientid, msg, md);
+				if (input == "msgdc")
+					eventKey = "CustomMessage";
+
+				_server.SendMessage(clientid, msg, md, eventKey);
 			}
-			else if (input == "obj" || input == "objmd") {
+			else if (input == "obj" || input == "objmd" || input == "objdc") {
 				var clientid = GetClient();
+				var eventKey = "";
 
 				if (clientid < 0)
 					return;
@@ -66,7 +71,10 @@ namespace Server
 				if (input == "objmd")
 					md = Metadata();
 
-				_server.SendObject(clientid, new Person(fname, lname), md);
+				if (input == "objdc")
+					eventKey = "PersonObject";
+
+				_server.SendObject(clientid, new Person(fname, lname), md, eventKey);
 
 			}
 			else if (input == "h" || input == "?")
@@ -75,8 +83,10 @@ namespace Server
 				stb.Append("Possible commands:" + Environment.NewLine);
 				stb.Append("\tmsg\t\tSend a message to the server." + Environment.NewLine);
 				stb.Append("\tmsgmd\t\tSend a message with metadata to the server." + Environment.NewLine);
-				stb.Append("\tobj\t\tSends a test object to the server." + Environment.NewLine);
+				stb.Append("\tmsgdc\t\tSend a message with a custom callback to the server." + Environment.NewLine);
+				stb.Append("\tobj\t\tSend a test object to the server." + Environment.NewLine);
 				stb.Append("\tobjmd\t\tSend a test object with metadata to the server." + Environment.NewLine);
+				stb.Append("\tobjdc\t\tSend a test object with a custom callback to the server." + Environment.NewLine);
 				stb.Append("\tclear\t\tClears the terminal." + Environment.NewLine);
 				stb.Append("\trestart\t\tRestarts the server." + Environment.NewLine);
 				stb.Append("\tquit\t\tClose the server and terminal." + Environment.NewLine);

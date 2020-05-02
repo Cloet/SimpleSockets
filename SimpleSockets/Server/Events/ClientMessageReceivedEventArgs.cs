@@ -4,7 +4,7 @@ using System.Text;
 
 namespace SimpleSockets.Server
 {
-	public class ClientMessageReceivedEventArgs
+	public class ClientMessageReceivedEventArgs: ClientDataReceivedEventArgs
 	{
 		internal ClientMessageReceivedEventArgs(string message,IClientInfo clientInfo, IDictionary<object,object> metadata) {
 			Message = message;
@@ -12,10 +12,10 @@ namespace SimpleSockets.Server
 			ClientInfo = clientInfo;
 		}
 
-		public IClientInfo ClientInfo { get; private set; }
-
-		public IDictionary<object, object> Metadata { get; private set; }
-
 		public string Message { get; private set; }
+
+		public override object ReceivedObject => Message;
+
+		public override Type ReceivedObjectType => typeof(string);
 	}
 }

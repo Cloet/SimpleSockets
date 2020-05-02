@@ -1,21 +1,33 @@
 ﻿using Shared;
 using SimpleSockets;
+using SimpleSockets.Client;
 using SimpleSockets.Helpers.Compression;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Client
 {
-    class Program
-    {
-        static void Main(string[] args)
-        {
+	class Program
+	{
+		private static event EventHandler<DataReceivedEventArgs> PersonObjectReceived;
+		private static event EventHandler<DataReceivedEventArgs> CustomMessageReceived;
+
+		static void Main(string[] args)
+		{
 			Console.WriteLine("Hello.");
 			var client = new SimpleTcpClient(false);
 			BindEvents(client);
 			client.CompressionMethod = CompressionType.Deflate;
-			client.ConnectTo("127.0.0.1", 13000,5);
-			
+
+			client.ConnectTo("127.0.0.1", 13000, 5);
+
+			client.SendMessage("This is a test message.");
+
+			PersonObjectReceived += Program_PersonObjectReceived;
+			CustomMessageReceived += Program_CustomMessageReceived;
+			client.DynamicCallbacks.Add("PersonObject", PersonObjectReceived);
+			client.DynamicCallbacks.Add("CustomMessage", CustomMessageReceived);
 
 			while (true) {
 				Console.Write("Enter a message: ");
@@ -23,7 +35,25 @@ namespace Client
 				client.SendMessage(msg);
 			}
 
-        }
+		}
+
+		private static void Program_CustomMessageReceived(object sender, DataReceivedEventArgs e)
+		{
+			Console.WriteLine("Received a custom message:" + e.ReceivedObject);
+		}
+
+		private static void Program_PersonObjectReceived(object sender, DataReceivedEventArgs e)
+		{
+			Console.WriteLine("Person object received from the server");
+			var per = (Person)e.ReceivedObject;
+			Console.WriteLine("Firstname: " + per.FirstName);
+			Console.WriteLine("Lastname : " + per.LastName);
+			WriteMetadata(e.Metadata);
+		}
+
+		private static void Cuscallback(string obj) {
+			Console.WriteLine(obj);
+		}
 
 		private static void BindEvents(SimpleTcpClient client) {
 			client.MessageReceived += Client_MessageReceived;
@@ -35,7 +65,7 @@ namespace Client
 
 		private static void Client_ObjectReceived(object sender, SimpleSockets.Client.ObjectReceivedEventArgs e)
 		{
-			if (e.ObjectType == typeof(Person))
+			if (e.ReceivedObjectType == typeof(Person))
 			{
 				Console.WriteLine("Person object received from the server");
 				var per = (Person)e.ReceivedObject;

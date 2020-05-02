@@ -7,6 +7,8 @@ using SimpleSockets.Helpers.Cryptography;
 using System.Linq;
 using System.Collections.Generic;
 using SimpleSockets.Helpers.Serialization;
+using SimpleSockets.Client;
+using SimpleSockets.Server;
 
 namespace SimpleSockets.Messaging {
 
@@ -441,14 +443,61 @@ namespace SimpleSockets.Messaging {
 			}
 		}
 
-		internal object BuildObjectFromBytes(out Type type) {
+		internal EventHandler<DataReceivedEventArgs> GetDynamicCallbackClient(IDictionary<object, object> info, 
+			IDictionary<string,EventHandler<DataReceivedEventArgs>> events) {
+			try
+			{
+				if (info == null)
+					return null;
+
+				var exists = info.TryGetValue("DynamicCallback", out var output);
+
+				if (!exists)
+					return null;
+
+				var exists2 = events.TryGetValue(output.ToString(), out var eventH);
+
+				if (!exists2)
+					return null;
+
+				return eventH;
+			}
+			catch (Exception ex) {
+				_logger?.Log("Unable to retrieve a dynamic callback.", ex, LogLevel.Warning);
+				return null;
+			}
+		}
+
+		internal EventHandler<ClientDataReceivedEventArgs> GetDynamicCallbackServer(IDictionary<object, object> info, IDictionary<string,EventHandler<ClientDataReceivedEventArgs>> events) {
+			try
+			{
+				if (info == null)
+					return null;
+
+				var exists = info.TryGetValue("DynamicCallback", out var output);
+
+				if (!exists)
+					return null;
+
+				var exists2 = events.TryGetValue(output.ToString(), out var eventH);
+
+				if (!exists2)
+					return null;
+
+				return eventH;
+			}
+			catch (Exception ex) {
+				_logger?.Log("Unable to retrieve a dynamic callback.", ex, LogLevel.Warning);
+				return null;
+			}
+		}
+
+		internal object BuildObjectFromBytes(IDictionary<object,object> info, out Type type) {
 
 			type = null;
 
 			try
 			{
-				var info = BuildInternalInfoFromBytes();
-
 				if (info == null)
 					return null;
 

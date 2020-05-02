@@ -7,8 +7,6 @@ namespace SimpleSockets.Messaging
 		File=2,
 		Folder=3,
 		Object=4,
-		Auth=7,
-		BasicAuth=8,
-        MessageWithCustomCallback=9
+		Auth=7
 	}
 }

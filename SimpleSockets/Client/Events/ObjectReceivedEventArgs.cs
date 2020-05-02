@@ -4,19 +4,20 @@ using System.Text;
 
 namespace SimpleSockets.Client
 {
-	public class ObjectReceivedEventArgs
+	public class ObjectReceivedEventArgs: DataReceivedEventArgs
 	{
 		internal ObjectReceivedEventArgs(object recObj, Type objType, IDictionary<object,object> metadata) {
-			ReceivedObject = recObj;
-			ObjectType = objType;
+			_recObj = recObj;
+			_objType = objType;
 			Metadata = metadata;
 		}
 
-		public object ReceivedObject { get; private set; }
+		private Type _objType;
 
-		public Type ObjectType { get; private set; }
+		private object _recObj;
 
-		public IDictionary<object,object> Metadata { get; private set; }
+		public override object ReceivedObject => _recObj;
 
+		public override Type ReceivedObjectType => _objType;
 	}
 }
