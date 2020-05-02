@@ -12,10 +12,29 @@ namespace SimpleSockets.Messaging {
 
     internal class SimpleMessage {
 
+		/// <summary>
+		/// Indicates what sort of messagetype this message is
+		/// </summary>
         internal MessageType MessageType { get; set; }
 
-        internal byte[] MessageMetadata { get; set;}
+		/// <summary>
+		/// The metadata of the message
+		/// </summary>
+        internal byte[] MessageMetadata {
+			get => _metadata;
+			set {
+				if (value == null || value.Length == 0)
+					HeaderFields[0] = false;
+				else
+					HeaderFields[0] = true;
 
+				_metadata = value;
+			}
+		}
+
+		/// <summary>
+		/// Presharedkey of the message
+		/// </summary>
         internal byte[] PreSharedKey {
 			get => _preSharedKey;
 			set {
@@ -29,6 +48,9 @@ namespace SimpleSockets.Messaging {
 			}
 		}
 
+		/// <summary>
+		/// Extra information of a messages, only used within library.
+		/// </summary>
         internal byte[] AdditionalInternalInfo {
 			get => _internalInfo;
 			set
@@ -42,32 +64,61 @@ namespace SimpleSockets.Messaging {
 			}
 		}
 
+		/// <summary>
+		/// Header bytes of a message
+		/// </summary>
         internal byte[] MessageHeader { get; set; }
 
+		/// <summary>
+		/// The data of a message
+		/// </summary>
 		internal byte[] Data { get; set; }
 
-		//Received content in NetString format.
+		/// <summary>
+		/// When receiving a message all content will be stored here in netstring format
+		/// When all bytes are received this will be deconstructed.
+		/// </summary>
         internal byte[] Content { get; set; }
 
-        internal bool Compress {
+		/// <summary>
+		/// Indicates if the message is encrypted or not.
+		/// </summary>
+		internal bool Compress {
 			get => HeaderFields[2];
 			set => HeaderFields[2] = value;
 		}
 
+		/// <summary>
+		/// Indicates if the message is encrypted or not.
+		/// </summary>
         internal bool Encrypt {
 			get => HeaderFields[1];
 			set => HeaderFields[1] = value;
 		}
 
+		/// <summary>
+		/// The key used for encryption/decryption
+		/// </summary>
         internal byte[] EncryptionKey { get; set; }
 
+		/// <summary>
+		/// If a message is compressed this indicates what compression is used.
+		/// </summary>
         internal CompressionType CompressMode { get; set; }
 
+		/// <summary>
+		/// If a message is encrypted this indicates what encryption is used.
+		/// </summary>
         internal EncryptionType EncryptMode { get; set; }
 
+		/// <summary>
+		/// Length of the header
+		/// </summary>
         internal int HeaderLength { get; private set; }
 
 		private byte[] _internalInfo;
+
+		private byte[] _metadata;
 
 		private byte[] _preSharedKey;
 
@@ -87,6 +138,7 @@ namespace SimpleSockets.Messaging {
         /// <value></value>
         internal BitArray HeaderFields { get; set;}
 
+		//Construct of receiver
         internal SimpleMessage(LogHelper logger) {
 			HeaderFields = new BitArray(8, false);
 			MessageMetadata = new byte[0];
@@ -100,6 +152,7 @@ namespace SimpleSockets.Messaging {
 			OriginalcontentLength = 0;
 		}
 
+		//Constructor of a message
         internal SimpleMessage(MessageType type, LogHelper logger = null): this(logger) {
             MessageType = type;
         }
@@ -114,17 +167,20 @@ namespace SimpleSockets.Messaging {
             // First Bytes are always
             // HeaderFields          (1  Byte )
             // MessageType           (1  Byte )
+			// Compression		     (1  Byte )
             // PreSharedKey          (16 Bytes) (Only when a presharedkey is given)
             // OriginalContentLength (8  Bytes) 
             // ContentLength         (8  Bytes) (Only when compressed or encrypted)
             
-            byte[] headerFieldBytes = new byte[2];
+            byte[] headerFieldBytes = new byte[4];
 
             // Write flags (HEADERFIELDS) 1 Byte
             HeaderFields.CopyTo(headerFieldBytes, 0);
 
             // Writes messagetype 1 byte (256 possibilities)
             headerFieldBytes[1] = (byte) MessageType;
+			headerFieldBytes[2] = (byte) CompressMode;
+			headerFieldBytes[3] = (byte) EncryptMode;
 
             // Add Presharedkey [16 Bytes]
             if (HeaderFields[3])
@@ -153,21 +209,43 @@ namespace SimpleSockets.Messaging {
         private byte[] BuildContent() {
             
             var converted = MessageHelper.ByteArrayToString(Data);
-            var content = $"{converted.Length}:{converted},";
 
-            if (HeaderFields[0]) {
-                converted = MessageHelper.ByteArrayToString(MessageMetadata);
-                content += $"{converted.Length}:{converted},";
-            }
+			var content = string.Empty;
 
-            if (HeaderFields[4]) {
-                converted = MessageHelper.ByteArrayToString(AdditionalInternalInfo);
-                content += $"{converted.Length}:{converted},";
-            }
+			if (converted.Length == 0)
+				content = "0:,";
+			else
+				content = $"{converted.Length}:{converted},";
+
+			if (HeaderFields[0])
+			{
+				converted = MessageHelper.ByteArrayToString(MessageMetadata);
+				if (converted.Length == 0)
+					content += "0:,";
+				else
+					content += $"{converted.Length}:{converted},";
+			}
+			else
+				content += "0:,";
+
+			if (HeaderFields[4])
+			{
+				converted = MessageHelper.ByteArrayToString(AdditionalInternalInfo);
+				if (converted.Length == 0)
+					content += "0:,";
+				else
+					content += $"{converted.Length}:{converted}";
+			}
+			else
+				content += "0:";
          
             return Encoding.UTF8.GetBytes(content);
         }
 
+		/// <summary>
+		/// Builds the payload of a message.
+		/// </summary>
+		/// <returns>Byte[] array</returns>
         internal byte[] BuildPayload() {
             
             _logger?.Log("===========================================", LogLevel.Trace);
@@ -211,11 +289,16 @@ namespace SimpleSockets.Messaging {
 
         #region Set data from received bytes
 
+		/// <summary>
+		/// Takes the first byte of a messages and deconstruct this bye.
+		/// This byte contains various flags.
+		/// </summary>
+		/// <param name="headerFieldByte"></param>
         internal void DeconstructHeaderField(byte headerFieldByte) {
 			byte[] bytes = new byte[1];
 			bytes[0] = headerFieldByte;
 			HeaderFields = new BitArray(bytes);
-            HeaderLength = 9; //Eerste bit wordt niet meegeteld.
+            HeaderLength = 11; //Eerste bit wordt niet meegeteld.
 
             // Extra length if using presharedkey
             if (HeaderFields[3])
@@ -226,12 +309,18 @@ namespace SimpleSockets.Messaging {
                 HeaderLength += 8;
         }
 
+		/// <summary>
+		/// Deconstruct the header fields and set lengths of various message parts.
+		/// </summary>
         internal void DeconstructHeaders() {
             var header = MessageHeader;
 
             // Get the messagetype of the message
-            MessageType = (MessageType)header[0];
-            header = header.Skip(1).Take(header.Length -1).ToArray();
+            MessageType  = (MessageType)	 header[0];
+			CompressMode = (CompressionType) header[1];
+			EncryptMode  = (EncryptionType)  header[2];
+
+            header = header.Skip(3).Take(header.Length -1).ToArray();
             
             // PresharedKey
             if (HeaderFields[3]) {
@@ -246,10 +335,13 @@ namespace SimpleSockets.Messaging {
                 ContentLength = BitConverter.ToInt64(header, 8);
             else
                 ContentLength = OriginalcontentLength;
-
             
         }
 
+		/// <summary>
+		/// Builds a message from the received bytes.
+		/// </summary>
+		/// <param name="preSharedKey"></param>
 		internal void BuildMessageFromContent(byte[] preSharedKey) {
 
 			if (preSharedKey != null && preSharedKey.Length > 0 && HeaderFields[3] == false)
@@ -278,7 +370,7 @@ namespace SimpleSockets.Messaging {
 			var netstring = Encoding.UTF8.GetString(Content);
 			var arr = netstring.Split(',');
 
-			for (int i = 0; i < arr.Length - 1; i++)
+			for (int i = 0; i < arr.Length; i++)
 			{
 				if (i == 0)
 					Data = DataFromOneNetString(arr[i]);
@@ -291,6 +383,14 @@ namespace SimpleSockets.Messaging {
 			}
 		}
 
+		/// <summary>
+		/// Converts one Netstring to byte array.
+		/// Netstring format: 'Length:Content,'
+		/// Example: 5:Hello,
+		/// For these messages the content will be converted from bytes to a hex string.
+		/// </summary>
+		/// <param name="netstring"></param>
+		/// <returns></returns>
 		private byte[] DataFromOneNetString(string netstring) {
 			var netr = netstring.Split(':');
 
@@ -303,10 +403,14 @@ namespace SimpleSockets.Messaging {
 			return MessageHelper.StringToByteArray(netr[1]);
 		}
 
+		/// <summary>
+		/// Build metadata from the stored bytes.
+		/// </summary>
+		/// <returns></returns>
 		internal IDictionary<object, object> BuildMetadataFromBytes() {
 			try
 			{
-				if (MessageMetadata == null)
+				if (MessageMetadata == null || MessageMetadata.Length == 0)
 					return null;
 
 				return SerializationHelper.DeserializeJson<IDictionary<object, object>>(MessageMetadata);
@@ -317,11 +421,15 @@ namespace SimpleSockets.Messaging {
 			}
 		}
 
+		/// <summary>
+		/// Builds the internal info from stored bytes.
+		/// </summary>
+		/// <returns></returns>
 		internal IDictionary<object, object> BuildInternalInfoFromBytes()
 		{
 			try
 			{
-				if (AdditionalInternalInfo == null)
+				if (AdditionalInternalInfo == null || AdditionalInternalInfo.Length == 0)
 					return null;
 
 				return SerializationHelper.DeserializeJson<IDictionary<object, object>>(AdditionalInternalInfo);
@@ -333,6 +441,36 @@ namespace SimpleSockets.Messaging {
 			}
 		}
 
+		internal object BuildObjectFromBytes(out Type type) {
+
+			type = null;
+
+			try
+			{
+				var info = BuildInternalInfoFromBytes();
+
+				if (info == null)
+					return null;
+
+				var exists = info.TryGetValue("Type", out var output);
+
+				if (!exists)
+					return null;
+
+				type = Type.GetType(output.ToString());
+
+				return SerializationHelper.DeserializeBytesToObject(Data, type);
+			}
+			catch (Exception ex) {
+				_logger?.Log("Failed building object from bytes.", ex, LogLevel.Warning);
+				return null;
+			}
+		}
+
+		/// <summary>
+		/// Builds the byte data to a string.
+		/// </summary>
+		/// <returns></returns>
 		internal string BuildDataToString() {
 			try
 			{

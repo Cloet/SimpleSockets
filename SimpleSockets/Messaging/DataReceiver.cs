@@ -22,15 +22,9 @@ namespace SimpleSockets.Messaging {
 
         private LogHelper _logger;
 
-		private EncryptionType _encryptionMode;
-
-		private CompressionType _compresionMode;
-
-        internal DataReceiver(LogHelper logger, EncryptionType eMode, CompressionType cMode) {
+        internal DataReceiver(LogHelper logger) {
             Buffer = new byte[BufferSize];
             _received = new byte[0];
-			_encryptionMode = eMode;
-			_compresionMode = cMode;
             _logger = logger;
         }
 
@@ -63,8 +57,7 @@ namespace SimpleSockets.Messaging {
 			try
 			{
 				return MessageBuilder.InitializeReceiver(_logger, _received[0], out var headerLength)
-					.AddCompression(_compresionMode)
-					.AddEncryption(encryptionPassphrase, _encryptionMode)
+					.AddPassphrase(encryptionPassphrase)
 					.AppendHeaderBytes(_received.Skip(1).Take(headerLength).ToArray())
 					.AppendContentBytes(_received.Skip(1 + headerLength).Take(_received.Length - 1 + headerLength).ToArray())
 					.BuildFromReceivedPackets(presharedKey);

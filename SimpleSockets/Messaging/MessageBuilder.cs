@@ -65,7 +65,12 @@ namespace SimpleSockets {
             return this;
         }
 
-        internal MessageBuilder AddMetadata(IDictionary<object,object> metadata) {
+		internal MessageBuilder AddPassphrase(byte[] encryptionPassphrase) {
+			TheMessage.EncryptionKey = encryptionPassphrase;
+			return this;
+		}
+
+		internal MessageBuilder AddMetadata(IDictionary<object,object> metadata) {
             if (metadata != null)
                 TheMessage.MessageMetadata = SerializationHelper.SerializeObjectToBytes(metadata);
             return this;

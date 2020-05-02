@@ -8,7 +8,7 @@ namespace SimpleSockets.Server {
             ClientInfo = clientInfo;
         }
 
-        public IClientInfo ClientInfo { get; set; }
+        public IClientInfo ClientInfo { get; private set; }
 
     }
 

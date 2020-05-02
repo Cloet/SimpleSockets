@@ -10,8 +10,6 @@ namespace SimpleSockets {
 
         DataReceiver DataReceiver { get; }
 
-        bool ShouldShutDown { get; set; }
-
         SslStream SslStream { get; }
 
         ManualResetEventSlim ReceivingData { get; set; }

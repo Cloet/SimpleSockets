@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -38,6 +39,7 @@ namespace SimpleSockets.Server {
                         Listener = listener;
                         listener.Bind(endpoint);
                         listener.Listen(limit);
+						Listening = true;
 
                         OnServerStartedListening();
                         while(!Token.IsCancellationRequested) {
@@ -59,7 +61,7 @@ namespace SimpleSockets.Server {
                 IClientMetadata client;
                 lock (ConnectedClients) {
                     var id = !ConnectedClients.Any() ? 1 : ConnectedClients.Keys.Max() + 1;
-                    client = new ClientMetadata(((Socket)result.AsyncState).EndAccept(result), id, EncryptionMethod, CompressionMethod, SocketLogger);
+                    client = new ClientMetadata(((Socket)result.AsyncState).EndAccept(result), id, SocketLogger);
 
                     var exists = ConnectedClients.FirstOrDefault(x => x.Value == client);
 
@@ -70,6 +72,7 @@ namespace SimpleSockets.Server {
                     } else 
                         ConnectedClients.Add(id, client);
 
+					client.WritingData.Set();
                     OnClientConnected(new ClientConnectedEventArgs(client));
                 }
                 Receive(client);
@@ -79,18 +82,31 @@ namespace SimpleSockets.Server {
         }
 
         internal virtual void Receive(IClientMetadata client) {
-            try {
-                while (!Token.IsCancellationRequested) {
-                    
-                    client.ReceivingData.Wait(Token);
-                    client.Timeout.Reset();
-                    client.ReceivingData.Reset();
+			try
+			{
+				while (!Token.IsCancellationRequested)
+				{
+
+					client.ReceivingData.Wait(Token);
+					client.Timeout.Reset();
+					client.ReceivingData.Reset();
 
 					var rec = client.DataReceiver;
 					client.Listener.BeginReceive(rec.Buffer, 0, rec.BufferSize, SocketFlags.None, ReceiveCallback, client);
-                }
+				}
+			}
+			catch (SocketException se) {
+				if (se.SocketErrorCode == SocketError.TimedOut)
+				{
+					SocketLogger?.Log("Client" + client.Id + " disconnected from the server.", LogLevel.Debug);
+					OnClientDisconnected(new ClientDisconnectedEventArgs(client, DisconnectReason.Timeout));
+				}
+				else
+					SocketLogger?.Log(se, LogLevel.Error);
+				ShutDownClient(client.Id);
             } catch (Exception ex) {
                 SocketLogger?.Log("Error receiving data from client " + client.Id, ex, LogLevel.Error);
+				ShutDownClient(client.Id);
             }
         }
 
@@ -130,35 +146,107 @@ namespace SimpleSockets.Server {
             } catch (Exception ex) {
 				client.ReceivingData.Set();
                 SocketLogger?.Log("Error receiving a message.", ex, LogLevel.Error);
-            }
+				Receive(client);
+				SocketLogger?.Log("Trying to restart the datareceiver for client " + client.Id, LogLevel.Debug);
+			}
         }
 
-        protected override void SendToSocket(int clientId, byte[] payload, bool shutdownClient)
+        protected override void SendToSocket(int clientId, byte[] payload)
         {
-            IClientMetadata client = null;
-            ConnectedClients?.TryGetValue(1, out client);
+			IClientMetadata client = null;
+			ConnectedClients?.TryGetValue(clientId, out client);
+			try
+			{
 
-            if (client != null) {
-                client.Listener.BeginSend(payload, 0, payload.Length, SocketFlags.None, SendCallback, client);
-            }
+				if (client != null) {
+					client.WritingData.Wait();
+					client.WritingData.Reset();
+					client.Listener.BeginSend(payload, 0, payload.Length, SocketFlags.None, SendCallback, client);
+				}
+
+			}
+			catch (Exception ex) {
+				if (client != null)
+					client.WritingData.Set();
+				SocketLogger?.Log("Error sending a message.", ex, LogLevel.Error);
+			}
         }
+
+		protected override async Task<bool> SendToSocketAsync(int clientId, byte[] payload) {
+
+			IClientMetadata client = null;
+			ConnectedClients?.TryGetValue(clientId, out client);
+			try
+			{
+				if (client != null) {
+
+					client.WritingData.Wait();
+					client.WritingData.Reset();
+
+					var result = client.Listener.BeginSend(payload, 0, payload.Length, SocketFlags.None, _ => { }, client);
+					var count = await Task.Factory.FromAsync(result, (r) => client.Listener.EndSend(r));
+					Statistics?.AddSentBytes(count);
+					client.WritingData.Set();
+
+					return true;
+				}
+
+				return false;
+			}
+			catch (Exception ex) {
+				if (client != null)
+					client.WritingData.Set();
+				SocketLogger?.Log("Error sending a message.", ex, LogLevel.Error);
+				return false;
+			}
+		}
 
         protected void SendCallback(IAsyncResult result) {
             var client = (IClientMetadata)result.AsyncState;
             
             try {
-                client.Listener.EndSend(result);
-                if (client.ShouldShutDown)
-                    ShutDownClient(client.Id);
+                var count = client.Listener.EndSend(result);
+				Statistics?.AddSentBytes(count);
+				client.WritingData.Set();
             } catch (Exception ex) {
+				client.WritingData.Set();
                 SocketLogger?.Log("An error occurred when sending a message to client " + client.Id, ex, LogLevel.Error);
             }
         }
 
         public override void Dispose()
         {
-            throw new System.NotImplementedException();
-        }
+			try
+			{
+				if (!Disposed)
+				{
+					TokenSource.Cancel();
+					TokenSource.Dispose();
+					Listening = false;
+					Listener.Dispose();
+					CanAcceptConnections.Dispose();
+
+					foreach (var id in ConnectedClients.Keys.ToList())
+					{
+						ShutDownClient(id, DisconnectReason.Kicked);
+					}
+
+					ConnectedClients = new Dictionary<int, IClientMetadata>();
+					TokenSource.Dispose();
+					Disposed = true;
+					GC.SuppressFinalize(this);
+				}
+				else
+				{
+					throw new ObjectDisposedException(nameof(SimpleTcpServer), "This object is already disposed.");
+				}
+
+			}
+			catch (Exception ex)
+			{
+				SocketLogger?.Log(ex, LogLevel.Error);
+			}
+		}
 
     }
 

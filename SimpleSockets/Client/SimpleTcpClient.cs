@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -14,18 +15,22 @@ namespace SimpleSockets {
     public class SimpleTcpClient : SimpleClient
     {
 
-        public bool Disposed { get; set; }
-
         public SimpleTcpClient(bool useSsl): base(useSsl, SocketProtocolType.Tcp) {
         }
 
-        public void Connect(string serverIp, int serverPort, int autoReconnect) {
+		/// <summary>
+		/// Tries to connect to a server.
+		/// </summary>
+		/// <param name="serverIp"></param>
+		/// <param name="serverPort"></param>
+		/// <param name="autoReconnect">Set to 0 to disable autoreconnect.</param>
+        public void ConnectTo(string serverIp, int serverPort, int autoReconnect = 5) {
 
 			if (string.IsNullOrEmpty(serverIp))
 				throw new ArgumentNullException(nameof(serverIp));
 			if (serverPort < 1 || serverPort > 65535)
 				throw new ArgumentOutOfRangeException(nameof(serverPort));
-			if (autoReconnect < 3)
+			if (autoReconnect > 0 && autoReconnect < 4)
 				throw new ArgumentOutOfRangeException(nameof(autoReconnect));
 
 			ServerIp = serverIp;
@@ -56,24 +61,34 @@ namespace SimpleSockets {
 			{
 				socket.EndConnect(result);
 				Connected.Set();
-				var metadata = new ClientMetadata(Listener,-1, EncryptionMethod, CompressionMethod, SocketLogger);
+				var metadata = new ClientMetadata(Listener,-1, SocketLogger);
 				Sent.Set();
 				Receive(metadata);
 			}
 			catch (SocketException)
 			{
+				if (Disposed)
+					return;
+
+				Connected.Reset();
+
+				if (AutoReconnect.Seconds == 0)
+					return;
+
+				Thread.Sleep(AutoReconnect.Seconds);
+				if (Listener != null & !Disposed)
+					Listener.BeginConnect(EndPoint, OnConnected, Listener);
+				else if (Listener == null && !Disposed)
+					ConnectTo(ServerIp, ServerPort, AutoReconnect.Seconds);
 			}
 			catch (Exception ex) {
-
+				SocketLogger?.Log("Error finalizing connection.", ex, LogLevel.Fatal);
 			}
-
 		}
 
 		internal virtual void Receive(IClientMetadata metadata) {
 			try
 			{
-
-				DataReceiver rec = metadata.DataReceiver;
 				while (!Token.IsCancellationRequested)
 				{
 
@@ -81,6 +96,7 @@ namespace SimpleSockets {
 					metadata.Timeout.Reset();
 					metadata.ReceivingData.Reset();
 
+					var rec = metadata.DataReceiver;
 					metadata.Listener.BeginReceive(rec.Buffer, 0, rec.BufferSize, SocketFlags.None, ReceiveCallback, metadata);
 				}
 			}
@@ -104,7 +120,16 @@ namespace SimpleSockets {
 					var received = client.Listener.EndReceive(result);
 
 					if (received > 0) {
-
+						var readBuffer = client.DataReceiver.Buffer.Take(received).ToArray();
+						for (int i = 0; i < readBuffer.Length; i++) {
+							var end = client.DataReceiver.AppendByteToReceived(readBuffer[i]);
+							if (end) {
+								var message = client.DataReceiver.BuildMessageFromPayload(EncryptionPassphrase, PreSharedKey);
+								if (message != null)
+									OnMessageReceivedHandler(message);
+								client.ResetDataReceiver();
+							}
+						}
 					}
 					// Allow server to receive more bytes of a client.
 					client.ReceivingData.Set();
@@ -125,10 +150,34 @@ namespace SimpleSockets {
 					Listener.Shutdown(SocketShutdown.Both);
 					Listener.Close();
 					Listener = null;
-					
+					OnDisconnectedFromServer();
 				}
 			}
 			catch (Exception ex) {
+				SocketLogger?.Log("Error closing the client", ex, LogLevel.Error);
+			}
+		}
+
+		protected override async Task<bool> SendToServerAsync(byte[] payload)
+		{
+			try
+			{
+				Sent.Wait();
+				Sent.Reset();
+
+				if (Listener == null)
+					return false;
+
+				var result = Listener.BeginSend(payload, 0, payload.Length, SocketFlags.None, _ => { }, Listener);
+				var count = await Task.Factory.FromAsync(result, (r) => Listener.EndSend(r));
+				Statistics?.AddSentBytes(count);
+				Sent.Set();
+				return true;
+			}
+			catch (Exception ex) {
+				Sent.Set();
+				SocketLogger?.Log("Error sending a message.", ex, LogLevel.Error);
+				return false;
 			}
 		}
 
@@ -137,11 +186,10 @@ namespace SimpleSockets {
 			{
 				Sent.Wait();
 				Sent.Reset();
-				SocketLogger?.Log("Sending message.", LogLevel.Debug);
 				Listener.BeginSend(payload, 0, payload.Length, SocketFlags.None, SendCallback, Listener);
 			}
 			catch (Exception ex) {
-				throw new Exception(ex.ToString());
+				SocketLogger?.Log("Error sending a message.", ex, LogLevel.Error);
 			}
 		}
 
@@ -149,13 +197,13 @@ namespace SimpleSockets {
 			try
 			{
 				var socket = (Socket)result.AsyncState;
-				socket.EndSend(result);
-				SocketLogger?.Log("Message has been sent.", LogLevel.Debug);
+				var count = socket.EndSend(result);
+				Statistics?.AddSentBytes(count);
 				Sent.Set();
 			}
 			catch (Exception ex) {
 				Sent.Set();
-				throw new Exception(ex.ToString());
+				SocketLogger?.Log(ex, LogLevel.Error);
 			}
 		}
 
@@ -163,6 +211,7 @@ namespace SimpleSockets {
         {
 
         }
-    }
+
+	}
 
 }

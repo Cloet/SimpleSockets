@@ -3,22 +3,54 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using SimpleSockets.Helpers;
 using SimpleSockets.Helpers.Compression;
 using SimpleSockets.Helpers.Cryptography;
+using SimpleSockets.Helpers.Serialization;
 using SimpleSockets.Messaging;
 
 namespace SimpleSockets.Client {
 
     public abstract class SimpleClient : SimpleSocket
     {
-        private Action<string> _logger;
+
+		#region Events
+
+		/// <summary>
+		/// Event fired when a client is connected to a server.
+		/// </summary>
+		public event EventHandler ConnectedToServer;
+		protected virtual void OnConnectedToServer() => ConnectedToServer?.Invoke(this, null);
+
+		/// <summary>
+		/// Event fired when a client is disconnected from the server
+		/// </summary>
+		public event EventHandler DisconnectedFromServer;
+		protected virtual void OnDisconnectedFromServer() => DisconnectedFromServer?.Invoke(this, null);
+
+		/// <summary>
+		/// Event fired when the client received a message.
+		/// </summary>
+		public event EventHandler<MessageReceivedEventArgs> MessageReceived;
+		protected virtual void OnMessageReceived(MessageReceivedEventArgs eventArgs) => MessageReceived?.Invoke(this, eventArgs);
+
+		/// <summary>
+		/// Event fired when the client received a message.
+		/// </summary>
+		public event EventHandler<ObjectReceivedEventArgs> ObjectReceived;
+		protected virtual void OnObjectReceived(ObjectReceivedEventArgs eventArgs) => ObjectReceived?.Invoke(this, eventArgs);
+
+		#endregion
+
+
+		private Action<string> _logger;
 
 		protected readonly ManualResetEventSlim Connected = new ManualResetEventSlim(false);
 
 		protected readonly ManualResetEventSlim Sent = new ManualResetEventSlim(false);
-
 
 		public override Action<string> Logger { 
             get => _logger;
@@ -76,51 +108,171 @@ namespace SimpleSockets.Client {
 			}
 		}
 
-		protected abstract void SendToServer(byte[] payload);
+		internal virtual void OnMessageReceivedHandler(SimpleMessage message) {
+			if (message.MessageType == MessageType.Message)
+				OnMessageReceived(new MessageReceivedEventArgs(message.BuildDataToString(), message.BuildMetadataFromBytes()));
+
+			if (message.MessageType == MessageType.Object)
+			{
+				var obj = message.BuildObjectFromBytes(out var type);
+
+				if (!(obj == null || type == null))
+					OnObjectReceived(new ObjectReceivedEventArgs(obj, type, message.BuildMetadataFromBytes()));
+				else
+					SocketLogger?.Log("Error receiving an object.", LogLevel.Error);
+			}
+
+		}
 
 		#region Sending Data
 
+		protected abstract void SendToServer(byte[] payload);
+
+		protected abstract Task<bool> SendToServerAsync(byte[] payload);
+
+		protected bool SendInternal(MessageType msgType, byte[] data, IDictionary<object, object> metadata, IDictionary<object, object> extraInfo, EncryptionType encryption, CompressionType compression)
+		{
+
+			try
+			{
+				if (EncryptionMethod != EncryptionType.None && (EncryptionPassphrase == null || EncryptionPassphrase.Length == 0))
+					SocketLogger?.Log($"Please set a valid encryptionmethod when trying to encrypt a message.{Environment.NewLine}This message will not be encrypted.", LogLevel.Warning);
+
+				var payload = MessageBuilder.Initialize(msgType, SocketLogger)
+					.AddCompression(compression)
+					.AddEncryption(EncryptionPassphrase,encryption)
+					.AddMessageBytes(data)
+					.AddMetadata(metadata)
+					.AddAdditionalInternalInfo(extraInfo)
+					.BuildMessage();
+
+				SendToServer(payload);
+
+				return true;
+			}
+			catch (Exception)
+			{
+				return false;
+			}
+		}
+
+		protected async Task<bool> SendInternalAsync(MessageType msgType, byte[] data, IDictionary<object, object> metadata, IDictionary<object, object> extraInfo, EncryptionType encryption, CompressionType compression)
+		{
+			try
+			{
+				if (EncryptionMethod != EncryptionType.None && (EncryptionPassphrase == null || EncryptionPassphrase.Length > 0))
+					SocketLogger?.Log($"Please set a valid encryptionmethod when trying to encrypt a message.{Environment.NewLine}This message will not be encrypted.", LogLevel.Warning);
+
+				var payload = MessageBuilder.Initialize(msgType, SocketLogger)
+					.AddCompression(CompressionMethod)
+					.AddEncryption(EncryptionPassphrase, EncryptionMethod)
+					.AddMessageBytes(data)
+					.AddMetadata(metadata)
+					.AddAdditionalInternalInfo(extraInfo)
+					.BuildMessage();
+
+				return await SendToServerAsync(payload);
+			}
+			catch (Exception)
+			{
+				return false;
+			}
+		}
+
 		#region Messages
-		public void SendMessage(string msg, IDictionary<object,object> metadata, bool encrypt, bool compress)
+		public bool SendMessage(string message, IDictionary<object,object> metadata, EncryptionType encryption, CompressionType compression)
 		{
-			if (encrypt == true && (EncryptionMethod == EncryptionType.None || EncryptionPassphrase == null))
-				SocketLogger?.Log($"Please set a valid encryptionmethod when trying to encrypt a message.{Environment.NewLine}This message will not be encrypted.", LogLevel.Warning);
-			if (compress == true && CompressionMethod == CompressionType.None)
-				SocketLogger?.Log($"Please choose a valid compressionmethod when trying to compress a message.{Environment.NewLine}This message will nog be compressed.", LogLevel.Warning);
-
-			var payload = MessageBuilder.Initialize(MessageType.Message, SocketLogger)
-				.AddCompression(compress == false ? CompressionType.None : CompressionMethod)
-				.AddEncryption(EncryptionPassphrase, encrypt == false ? EncryptionType.None : EncryptionMethod)
-				.AddMessageString(msg)
-				.AddPreSharedKey(PreSharedKey)
-				.AddMetadata(metadata)
-				.BuildMessage();
-
-			SendToServer(payload);
+			var bytes = Encoding.UTF8.GetBytes(message);
+			return SendInternal(MessageType.Message, bytes, metadata,null, encryption, compression);
 		}
 
-		public void SendMessage(string msg, IDictionary<object,object> metadata)
+		public bool SendMessage(string message, IDictionary<object,object> metadata)
 		{
-			SendMessage(msg,metadata, (CompressionType.None == CompressionMethod), (EncryptionMethod == EncryptionType.None));
+			return SendMessage(message,metadata, EncryptionMethod, CompressionMethod);
 		}
 
-		public void SendMessage(string msg) {
-			SendMessage(msg, null);
+		public bool SendMessage(string msg) {
+			return SendMessage(msg, null);
 		}
+
+		public async Task<bool> SendMessageAsync(string message, IDictionary<object, object> metadata, EncryptionType encryption, CompressionType compression) {
+			var bytes = Encoding.UTF8.GetBytes(message);
+			return await SendInternalAsync(MessageType.Message,bytes, metadata, null, encryption, compression);
+		}
+
+		public async Task<bool> SendMessageAsync(string message, IDictionary<object, object> metadata) {
+			return await SendMessageAsync(message, metadata, EncryptionMethod, CompressionMethod);
+		}
+
+		public async Task<bool> SendMessageAsync(string message) {
+			return await SendMessageAsync(message, null);
+		}
+
 		#endregion
 
 		#region Bytes
-		public void SendBytes(byte[] bytes, IDictionary<object, object> metadata, bool encrypt, bool compress) {
-			var payload = MessageBuilder.Initialize(MessageType.Bytes, SocketLogger)
-				.AddCompression(compress == false ? CompressionType.None : CompressionMethod)
-				.AddEncryption(EncryptionPassphrase, encrypt == false ? EncryptionType.None : EncryptionMethod)
-				.AddMessageBytes(bytes)
-				.AddPreSharedKey(PreSharedKey)
-				.AddMetadata(metadata)
-				.BuildMessage();
-
-			SendToServer(payload);
+		public bool SendBytes(byte[] bytes, IDictionary<object, object> metadata, EncryptionType encryption, CompressionType compression) {
+			return SendInternal(MessageType.Bytes, bytes, metadata, null, encryption, compression);
 		}
+
+		public bool SendBytes(byte[] bytes, IDictionary<object, object> metadata) {
+			return SendBytes(bytes, metadata, EncryptionMethod, CompressionMethod);
+		}
+
+		public bool SendBytes(byte[] bytes) {
+			return SendBytes(bytes, null);
+		}
+
+		public async Task<bool> SendBytesAsync(byte[] bytes, IDictionary<object, object> metadata, EncryptionType encryption, CompressionType compression) {
+			return await SendInternalAsync(MessageType.Bytes, bytes, metadata, null, encryption, compression);
+		}
+
+		public async Task<bool> SendBytesAsync(byte[] bytes, IDictionary<object, object> metadata) {
+			return await SendBytesAsync(bytes, metadata, EncryptionMethod, CompressionMethod);
+		}
+
+		public async Task<bool> SendBytesAsync(byte[] bytes) {
+			return await SendBytesAsync(bytes, null);
+		}
+
+		#endregion
+
+		#region Object
+
+		public bool SendObject(object obj, IDictionary<object, object> metadata, EncryptionType encryption, CompressionType compression) {
+			var bytes = SerializationHelper.SerializeObjectToBytes(obj);
+
+			var info = new Dictionary<object, object>();
+			info.Add("Type", obj.GetType());
+
+			return SendInternal(MessageType.Object, bytes, metadata, info, encryption, compression);
+		}
+
+		public bool SendObject(object obj, IDictionary<object, object> metadata) {
+			return SendObject(obj, metadata, EncryptionMethod, CompressionMethod);
+		}
+
+		public bool SendObject(object obj) {
+			return SendObject(obj, null);
+		}
+
+		public async Task<bool> SendObjectAsync(object obj, IDictionary<object, object> metadata, EncryptionType encryption, CompressionType compression) {
+			var bytes = SerializationHelper.SerializeObjectToBytes(obj);
+
+			var info = new Dictionary<object, object>();
+			info.Add("Type", obj.GetType());
+
+			return await SendInternalAsync(MessageType.Object, bytes, metadata, info, encryption, compression);
+		}
+
+		public async Task<bool> SendObjectAsync(object obj, IDictionary<object, object> metadata) {
+			return await SendObjectAsync(obj, metadata, EncryptionMethod, CompressionMethod);
+		}
+
+		public async Task<bool> SendObjectAsync(object obj) {
+			return await SendObjectAsync(obj, null);
+		}
+
 		#endregion
 
 		#endregion

@@ -20,8 +20,6 @@ namespace SimpleSockets.Messaging {
 
         public string UserDomainName { get; set; }
 
-        public bool ShouldShutDown { get; set; }
-
         public SslStream SslStream { get; private set; }
 
         public ManualResetEventSlim ReceivingData { get; set; } = new ManualResetEventSlim(true);
@@ -32,28 +30,24 @@ namespace SimpleSockets.Messaging {
 
         public Socket Listener { get; set; }
 
-        public DataReceiver DataReceiver { get; private set;}
+        public DataReceiver DataReceiver { get; private set; }
 
-        private LogHelper _logger;
+		public string IPv4 { get ; set; }
+		public string IPv6 { get ; set; }
 
-		private EncryptionType _encryptionMode;
+		private LogHelper _logger;
 
-		private CompressionType _compressionMode;
-
-        public ClientMetadata(Socket listener, int id,EncryptionType eMode, CompressionType cType, LogHelper logger = null) {
+        public ClientMetadata(Socket listener, int id,LogHelper logger = null) {
             Id = id;
-            ShouldShutDown = false;
             _logger = logger;
             Listener = listener;
-			_encryptionMode = eMode;
-			_compressionMode = cType;
-            DataReceiver = new DataReceiver(logger, _encryptionMode, _compressionMode);
+            DataReceiver = new DataReceiver(logger);
         }
 
         public void ResetDataReceiver()
         {
             DataReceiver = null;
-            DataReceiver = new DataReceiver(_logger, _encryptionMode, _compressionMode);
+            DataReceiver = new DataReceiver(_logger);
         }
 
         public void Dispose() {

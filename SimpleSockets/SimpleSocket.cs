@@ -22,13 +22,13 @@ namespace SimpleSockets {
 
         protected CancellationToken Token { get; set; }
 
-        internal DataReceiver DataReceiver { get; set; }
+		protected bool Disposed { get; set; }
 
-        /// <summary>
-        /// Indicates if a socket is allowed to receive files from another socket.
-        /// </summary>
-        /// <value></value>
-        public bool FileTransferEnabled { get; set; }
+		/// <summary>
+		/// Indicates if a socket is allowed to receive files from another socket.
+		/// </summary>
+		/// <value></value>
+		public bool FileTransferEnabled { get; set; }
 
         public abstract Action<string> Logger { get; set; }
 
