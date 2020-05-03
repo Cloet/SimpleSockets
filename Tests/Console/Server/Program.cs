@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using Shared;
 using SimpleSockets;
@@ -16,7 +18,10 @@ namespace Server
         static void Main(string[] args)
         {
             Console.WriteLine("Starting TCP Server.");
-            _server = new SimpleTcpServer(false);
+			var cert = new X509Certificate2(new SocketHelper().GetCertFileContents(), "Password");
+
+			// _server = new SimpleTcpServer();
+			_server = new SimpleTcpServer(cert);
 
             _server.LoggerLevel = LogLevel.Debug;
 			BindEvents(_server);
@@ -53,7 +58,11 @@ namespace Server
 
 				_server.SendMessage(clientid, msg, md, eventKey);
 			}
-			else if (input == "obj" || input == "objmd" || input == "objdc") {
+			else if (input == "stats") {
+				Console.WriteLine(_server.Statistics.ToString());
+			}
+			else if (input == "obj" || input == "objmd" || input == "objdc")
+			{
 				var clientid = GetClient();
 				var eventKey = "";
 
@@ -89,6 +98,7 @@ namespace Server
 				stb.Append("\tobjdc\t\tSend a test object with a custom callback to the server." + Environment.NewLine);
 				stb.Append("\tclear\t\tClears the terminal." + Environment.NewLine);
 				stb.Append("\trestart\t\tRestarts the server." + Environment.NewLine);
+				stb.Append("\tstats\t\tStatistics of the server." + Environment.NewLine);
 				stb.Append("\tquit\t\tClose the server and terminal." + Environment.NewLine);
 				Console.WriteLine(stb.ToString());
 			}
@@ -149,8 +159,14 @@ namespace Server
 		private static void BindEvents(SimpleTcpServer server) {
 			server.MessageReceived += Server_MessageReceived;
 			server.ClientConnected += ClientConnected;
+			server.ClientDisconnected += Server_ClientDisconnected;
 			server.ObjectReceived += Server_ObjectReceived;
 			server.Logger += Logger;
+		}
+
+		private static void Server_ClientDisconnected(object sender, ClientDisconnectedEventArgs e)
+		{
+			Console.WriteLine("Client " + e.ClientInfo.Id + " has disconnected from the server.");
 		}
 
 		private static void Server_ObjectReceived(object sender, ClientObjectReceivedEventArgs e)
@@ -209,7 +225,7 @@ namespace Server
             Console.WriteLine(obj);
         }
 
-        private static void ClientConnected(object sender, ClientConnectedEventArgs e)
+        private static void ClientConnected(object sender, ClientInfoEventArgs e)
         {
 			Console.WriteLine();
             Console.WriteLine("Client has connected:" + e.ClientInfo.Id);

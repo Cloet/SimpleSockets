@@ -14,7 +14,7 @@ namespace SimpleSockets.Messaging {
 
 		internal byte[] Buffer { get; private set; }
 
-		internal int BufferSize => 4096;
+		internal int BufferSize { get; private set; }
 
 		private byte[] _received;
 
@@ -22,7 +22,8 @@ namespace SimpleSockets.Messaging {
 
         private LogHelper _logger;
 
-        internal DataReceiver(LogHelper logger) {
+        internal DataReceiver(LogHelper logger, int bufferSize) {
+			BufferSize = bufferSize;
             Buffer = new byte[BufferSize];
             _received = new byte[0];
             _logger = logger;

@@ -39,6 +39,8 @@ namespace SimpleSockets {
 
         public CompressionType CompressionMethod { get; set; } = CompressionType.GZip;
 
+		public int BufferSize { get => ClientMetadata.BufferSize; }
+
         public LogLevel LoggerLevel {
             get => _logLevel;
             set {
@@ -86,6 +88,7 @@ namespace SimpleSockets {
 			Statistics = new SocketStatistics(SslEncryption, SocketProtocol);
 		}
         
+
         /// <summary>
         /// Disposes of the Socket.
         /// </summary>

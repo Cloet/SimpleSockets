@@ -10,7 +10,7 @@ namespace SimpleSockets {
 
         DataReceiver DataReceiver { get; }
 
-        SslStream SslStream { get; }
+        SslStream SslStream { get; set;  }
 
         ManualResetEventSlim ReceivingData { get; set; }
 
@@ -20,7 +20,9 @@ namespace SimpleSockets {
 
         Socket Listener { get; set; }
 
-        void ResetDataReceiver();
+		void ChangeBufferSize(int size);
+
+		void ResetDataReceiver();
 
     }
 

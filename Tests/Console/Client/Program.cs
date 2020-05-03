@@ -4,6 +4,8 @@ using SimpleSockets.Client;
 using SimpleSockets.Helpers.Compression;
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 
 namespace Client
@@ -16,23 +18,38 @@ namespace Client
 		static void Main(string[] args)
 		{
 			Console.WriteLine("Hello.");
-			var client = new SimpleTcpClient(false);
-			BindEvents(client);
-			client.CompressionMethod = CompressionType.Deflate;
 
-			client.ConnectTo("127.0.0.1", 13000, 5);
+			var cert = new X509Certificate2(new SocketHelper().GetCertFileContents(), "Password");
 
-			client.SendMessage("This is a test message.");
+			// var client = new SimpleTcpClient();
+			var clients = new List<SimpleTcpClient>();
+			//var client = new SimpleTcpClient(cert);
+			// BindEvents(client);
+			// client.CompressionMethod = CompressionType.Deflate;
+
+			for (int i = 0; i < 1; i++)
+			{
+				var client = new SimpleTcpClient(cert);
+				BindEvents(client);
+				client.ConnectTo("127.0.0.1", 13000, 5);
+				clients.Add(client);
+			}
+
+
 
 			PersonObjectReceived += Program_PersonObjectReceived;
 			CustomMessageReceived += Program_CustomMessageReceived;
-			client.DynamicCallbacks.Add("PersonObject", PersonObjectReceived);
-			client.DynamicCallbacks.Add("CustomMessage", CustomMessageReceived);
+			// client.DynamicCallbacks.Add("PersonObject", PersonObjectReceived);
+			// client.DynamicCallbacks.Add("CustomMessage", CustomMessageReceived);
 
 			while (true) {
 				Console.Write("Enter a message: ");
 				var msg = Console.ReadLine();
-				client.SendMessage(msg);
+				foreach (var c in clients)
+				{
+					c.SendMessage(msg);
+				}
+				// client.SendMessage(msg);
 			}
 
 		}
