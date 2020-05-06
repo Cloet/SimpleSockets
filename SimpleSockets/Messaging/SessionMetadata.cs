@@ -8,14 +8,14 @@ using SimpleSockets.Helpers.Cryptography;
 
 namespace SimpleSockets.Messaging {
 
-    internal class ClientMetadata : IClientMetadata
+    internal class SessionMetadata : ISessionMetadata
     {
 
         public int Id { get; private set; }
 
         public string ClientName { get; set; }
 
-        public string Guid { get; set; }
+        public Guid Guid { get; set; }
 
         public string OsVersion { get; set; }
 
@@ -31,26 +31,26 @@ namespace SimpleSockets.Messaging {
 
         public Socket Listener { get; set; }
 
-        public DataReceiver DataReceiver { get; private set; }
+        public PacketReceiver DataReceiver { get; private set; }
 
 		public string IPv4 { get ; set; }
 		public string IPv6 { get ; set; }
 
-		public static int BufferSize { get; private set; } = 4096;
+		public static int BufferSize { get; private set; } = 8192;
 
 		private LogHelper _logger;
 
-        public ClientMetadata(Socket listener, int id,LogHelper logger = null) {
+        public SessionMetadata(Socket listener, int id,LogHelper logger = null) {
             Id = id;
             _logger = logger;
             Listener = listener;
-            DataReceiver = new DataReceiver(logger, BufferSize);
+            DataReceiver = new PacketReceiver(logger, BufferSize);
         }
 
         public void ResetDataReceiver()
         {
             DataReceiver = null;
-            DataReceiver = new DataReceiver(_logger, BufferSize);
+            DataReceiver = new PacketReceiver(_logger, BufferSize);
         }
 
 		public void ChangeBufferSize(int size) {

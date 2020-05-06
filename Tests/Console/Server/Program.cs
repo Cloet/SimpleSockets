@@ -13,7 +13,7 @@ namespace Server
 {
     class Program
     {
-		private static SimpleTcpServer _server;
+		private static SimpleUdpServer _server;
 
         static void Main(string[] args)
         {
@@ -21,7 +21,8 @@ namespace Server
 			var cert = new X509Certificate2(new SocketHelper().GetCertFileContents(), "Password");
 
 			// _server = new SimpleTcpServer();
-			_server = new SimpleTcpServer(cert);
+			//_server = new SimpleTcpServer(cert);
+			_server = new SimpleUdpServer();
 
             _server.LoggerLevel = LogLevel.Debug;
 			BindEvents(_server);
@@ -156,7 +157,7 @@ namespace Server
 			return Console.ReadLine();
 		}
 
-		private static void BindEvents(SimpleTcpServer server) {
+		private static void BindEvents(SimpleServer server) {
 			server.MessageReceived += Server_MessageReceived;
 			server.ClientConnected += ClientConnected;
 			server.ClientDisconnected += Server_ClientDisconnected;

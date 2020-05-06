@@ -3,9 +3,15 @@ using System.Text;
 
 namespace SimpleSockets {
 
-    internal static class MessageHelper {
+    internal static class PacketHelper {
 
-        internal static string ByteArrayToString(byte[] array) {
+		internal static string CALLBACK => "DynamicCallback";
+
+		internal static string OBJECTTYPE => "Type";
+
+		internal static string GUID => "Guid";
+
+		internal static string ByteArrayToString(byte[] array) {
             var hex = new StringBuilder(array.Length * 2);
             foreach(var b in array)
                 hex.AppendFormat("{0:x2}", b);

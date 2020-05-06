@@ -6,7 +6,7 @@ namespace SimpleSockets.Helpers {
 
     internal class LogHelper {
 
-        internal static LogHelper InitializeLogger(bool client, bool ssl, bool tcp, Action<string> logAction, LogLevel level) => new LogHelper(client, ssl, tcp, logAction, level);
+        internal static LogHelper InitializeLogger(bool client, bool tcp, Action<string> logAction, LogLevel level) => new LogHelper(client, tcp, logAction, level);
 
         private string _prefix;
 
@@ -18,7 +18,7 @@ namespace SimpleSockets.Helpers {
             _logLevel = level;
         }
 
-        private LogHelper (bool client, bool ssl, bool tcp, Action<string> logAction, LogLevel level) {
+        private LogHelper (bool client, bool tcp, Action<string> logAction, LogLevel level) {
 
             _logger = logAction;
             _logLevel = level;
@@ -27,9 +27,6 @@ namespace SimpleSockets.Helpers {
                 _prefix = "[SimpleClient]";
             else
                 _prefix = "[SimpleServer]";
-
-            if (ssl)
-                _prefix += "[Ssl]";
 
             if (tcp)
                 _prefix += "[TCP]";

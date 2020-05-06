@@ -39,18 +39,6 @@ namespace SimpleSockets.Server {
         protected virtual void OnServerStartedListening() => ServerStartedListening?.Invoke(this, null);
 
 		/// <summary>
-		/// Event fired when the server successfully validates the ssl certificate.
-		/// </summary>
-		public event EventHandler<ClientInfoEventArgs> SslAuthSuccess;
-		protected virtual void OnSslAuthSuccess(ClientInfoEventArgs eventArgs) => SslAuthSuccess?.Invoke(this, eventArgs);
-
-		/// <summary>
-		/// Event fired when server is unable to validate the ssl certificate
-		/// </summary>
-		public event EventHandler<ClientInfoEventArgs> SslAuthFailed;
-		protected virtual void OnSslAutFailed(ClientInfoEventArgs eventArgs) => SslAuthFailed?.Invoke(this, eventArgs);
-
-		/// <summary>
 		/// Event invoked when the server received a message from a client.
 		/// </summary>
 		public event EventHandler<ClientMessageReceivedEventArgs> MessageReceived;
@@ -70,40 +58,46 @@ namespace SimpleSockets.Server {
 
 		#endregion
 
+		/// <summary>
+		/// Handles all logs made by the socket.
+		/// </summary>
+		public override Action<string> Logger
+		{
+			get => _logger;
+			set
+			{
+				if (value == null)
+					throw new ArgumentNullException(nameof(value));
+
+				SocketLogger = LogHelper.InitializeLogger(false, SocketProtocolType.Tcp == this.SocketProtocol, value, this.LoggerLevel);
+				_logger = value;
+			}
+		}
+
 		#region Variables
-
-		protected X509Certificate2 _serverCertificate = null;
-		protected TlsProtocol _tlsProtocol;
-
-		public bool AcceptInvalidCertificates { get; set; }
-		public bool MutualAuthentication { get; set; }
 
 		private Action<string> _logger;
 
-        public override Action<string> Logger { 
-            get => _logger;
-            set {
-                if (value == null)
-                    throw new ArgumentNullException(nameof(value));
-
-                SocketLogger = LogHelper.InitializeLogger(false, SslEncryption , SocketProtocolType.Tcp == this.SocketProtocol, value, this.LoggerLevel);
-                _logger = value;
-            }
-        }
-
-        public int MaximumConnections { get; private set; } = 500;
+		private TimeSpan _timeout = new TimeSpan(0, 0, 0);
 
         protected readonly ManualResetEventSlim CanAcceptConnections = new ManualResetEventSlim(false);
 
         protected Socket Listener { get; set; }
 
-        public bool Listening { get; set; }
+		/// <summary>
+		/// Indicates if the server is listening and accepting potential clients.
+		/// </summary>
+		public bool Listening { get; set; }
 
+		/// <summary>
+		/// Port the server listens to.
+		/// </summary>
         public int ListenerPort { get; set; }
 
+		/// <summary>
+		/// Ip the server listens to.
+		/// </summary>
         public string ListenerIp { get; set; }
-
-		private TimeSpan _timeout = new TimeSpan(0, 0, 0);
 
 		/// <summary>
 		/// Time until a client will timeout.
@@ -134,45 +128,18 @@ namespace SimpleSockets.Server {
 		/// </summary>
 		public IList<IPAddress> BlackList { get; set; }
 
-		internal IDictionary<int, IClientMetadata> ConnectedClients { get; set; }
+		internal IDictionary<int, ISessionMetadata> ConnectedClients { get; set; }
 
+		/// <summary>
+		/// Potential eventhandlers for received messages.
+		/// </summary>
 		public IDictionary<string, EventHandler<ClientDataReceivedEventArgs>> DynamicCallbacks { get; protected set; }
 
 		#endregion
 
-		//Check if the server should allow the client that is attempting to connect.
-		internal bool IsConnectionAllowed(IClientMetadata state)
-		{
-			if (WhiteList.Count > 0)
-			{
-				return CheckWhitelist(state.IPv4) || CheckWhitelist(state.IPv6);
-			}
-
-			if (BlackList.Count > 0)
-			{
-				return !CheckBlacklist(state.IPv4) && !CheckBlacklist(state.IPv6);
-			}
-
-			return true;
-		}
-
-		//Checks if an ip is in the whitelist
-		protected bool CheckWhitelist(string ip)
-		{
-			var address = IPAddress.Parse(ip);
-			return WhiteList.Any(x => Equals(x, address));
-		}
-
-		//Checks if an ip is in the blacklist
-		protected bool CheckBlacklist(string ip)
-		{
-			var address = IPAddress.Parse(ip);
-			return BlackList.Any(x => Equals(x, address));
-		}
-
-		protected SimpleServer(bool useSsl, SocketProtocolType protocol): base(useSsl,protocol) {
+		protected SimpleServer(SocketProtocolType protocol): base(protocol) {
             Listening = false;
-            ConnectedClients = new Dictionary<int, IClientMetadata>();
+            ConnectedClients = new Dictionary<int, ISessionMetadata>();
 			DynamicCallbacks = new Dictionary<string, EventHandler<ClientDataReceivedEventArgs>>();
 			BlackList = new List<IPAddress>();
 			WhiteList = new List<IPAddress>();
@@ -184,39 +151,23 @@ namespace SimpleSockets.Server {
 		/// <param name="ip"></param>
 		/// <param name="port"></param>
 		/// <param name="limit"></param>
-        public abstract void Listen(string ip, int port, int limit = 500);
+		public abstract void Listen(string ip, int port);
 
 		/// <summary>
 		/// Listen for clients on all local ports for a given port.
 		/// </summary>
 		/// <param name="port"></param>
 		/// <param name="limit"></param>
-        public void Listen(int port , int limit = 500) => Listen("*", port, limit);
-
-        protected IPAddress ListenerIPFromString(string ip) {
-            try {
-
-                if (string.IsNullOrEmpty(ip) || ip.Trim() == "*"){
-                    var ipAdr = IPAddress.Any;
-                    ListenerIp = ipAdr.ToString();
-                    return ipAdr;
-                }
-
-                return IPAddress.Parse(ip);
-            } catch (Exception ex ){
-                SocketLogger?.Log("Invalid Server IP",ex,LogLevel.Fatal);
-                return null;
-            }
-        }
+        public void Listen(int port) => Listen("*", port);
 
 		/// <summary>
 		/// Returns true if a client is connected.
 		/// </summary>
 		/// <param name="id"></param>
 		/// <returns></returns>
-        public bool IsClientConnected(int id) {
+		public bool IsClientConnected(int id) {
             try {
-                if (GetClientMetadataById(id) is IClientMetadata state && state.Listener is Socket socket) {
+                if (GetClientMetadataById(id) is ISessionMetadata state && state.Listener is Socket socket) {
                     return !((socket.Poll(1000, SelectMode.SelectRead) && (socket.Available == 0)) || !socket.Connected);
                 }
             } catch (ObjectDisposedException) {
@@ -230,6 +181,31 @@ namespace SimpleSockets.Server {
         }
 
 		/// <summary>
+		/// Returns true if a client is conntected.
+		/// </summary>
+		/// <param name="guid"></param>
+		/// <returns></returns>
+		public bool IsClientConnected(Guid guid) {
+			try
+			{
+				if (GetClientInfoByGuid(guid) is ISessionMetadata state && state.Listener is Socket socket)
+				{
+					return !((socket.Poll(1000, SelectMode.SelectRead) && (socket.Available == 0)) || !socket.Connected);
+				}
+			}
+			catch (ObjectDisposedException)
+			{
+				return false;
+			}
+			catch (Exception ex)
+			{
+				SocketLogger?.Log("Something went wrong trying to check if a client is connected.", ex, LogLevel.Error);
+			}
+
+			return false;
+		}
+
+		/// <summary>
 		/// Shutdown a client.
 		/// </summary>
 		/// <param name="id"></param>
@@ -237,40 +213,12 @@ namespace SimpleSockets.Server {
             ShutDownClient(id, DisconnectReason.Normal);
         }
 
-        internal void ShutDownClient(int id, DisconnectReason reason) {
-            var client = GetClientMetadataById(id);
-
-            if (client == null)
-                SocketLogger?.Log("Cannot shutdown client " + id + ", does not exist.", LogLevel.Warning);
-
-            try {
-                if (client?.Listener != null) {
-                    client.Listener.Shutdown(SocketShutdown.Both);
-                    client.Listener.Close();
-                    client.Listener = null;
-                }
-            } catch (ObjectDisposedException de) {
-                SocketLogger?.Log("Cannot shutdown client " + id + ", has already been disposed.",de, LogLevel.Warning);
-            } catch (Exception ex) {
-                SocketLogger?.Log("An error occurred when shutting down client " + id, ex, LogLevel.Warning);
-            } finally {
-                lock(ConnectedClients) {
-                    ConnectedClients.Remove(id);
-                    OnClientDisconnected(new ClientDisconnectedEventArgs(client, reason));
-                }
-            }
-        }
-
-        internal IClientMetadata GetClientMetadataById(int id) {
-            return ConnectedClients.TryGetValue(id, out var state) ? state : null;
-        }
-
 		/// <summary>
 		/// Get ClientInfo by id.
 		/// </summary>
 		/// <param name="id"></param>
 		/// <returns></returns>
-        public IClientInfo GetClientInfoById(int id) {
+		public IClientInfo GetClientInfoById(int id) {
             return GetClientMetadataById(id);
         }
 
@@ -279,7 +227,7 @@ namespace SimpleSockets.Server {
 		/// </summary>
 		/// <param name="guid"></param>
 		/// <returns></returns>
-		public IClientInfo GetClientInfoByGuid(string guid) {
+		public IClientInfo GetClientInfoByGuid(Guid guid) {
 			return ConnectedClients?.Values.Single(x => x.Guid == guid);
 		}
 
@@ -296,15 +244,22 @@ namespace SimpleSockets.Server {
 
 		#region Data-Invokers
 
-		internal virtual void OnMessageReceivedHandler(IClientMetadata client, SimpleMessage message) {
+		internal virtual void OnMessageReceivedHandler(ISessionMetadata client, Packet message) {
 
 			Statistics?.AddReceivedMessages(1);
 
-			var extraInfo = message.BuildInternalInfoFromBytes();
+			var extraInfo = message.AdditionalInternalInfo;
 			var eventHandler = message.GetDynamicCallbackServer(extraInfo, DynamicCallbacks);
 
-			if (message.MessageType == MessageType.Message) {
-				var ev = new ClientMessageReceivedEventArgs(message.BuildDataToString(), client, message.BuildMetadataFromBytes());
+			Guid clientGuid;
+
+			if (SocketProtocol == SocketProtocolType.Udp) {
+				clientGuid = message.GetGuidFromMessage(extraInfo);
+			}
+
+
+			if (message.MessageType == PacketType.Message) {
+				var ev = new ClientMessageReceivedEventArgs(message.BuildDataToString(), client, message.MessageMetadata);
 
 				if (eventHandler != null)
 					eventHandler?.Invoke(this, ev);
@@ -312,11 +267,11 @@ namespace SimpleSockets.Server {
 					OnClientMessageReceived(ev);
 			}
 
-			if (message.MessageType == MessageType.Object) {
+			if (message.MessageType == PacketType.Object) {
 				var obj = message.BuildObjectFromBytes(extraInfo, out var type);
 
 				if (obj == null || type == null) {
-					var ev = new ClientObjectReceivedEventArgs(obj, type, client, message.BuildMetadataFromBytes());
+					var ev = new ClientObjectReceivedEventArgs(obj, type, client, message.MessageMetadata);
 					if (eventHandler != null)
 						eventHandler?.Invoke(this, ev);
 					else
@@ -325,20 +280,20 @@ namespace SimpleSockets.Server {
 					SocketLogger?.Log("Error receiving an object.", LogLevel.Error);
 			}
 
-			if (message.MessageType == MessageType.Bytes) {
-				var ev = new ClientBytesReceivedEventArgs(client, message.Data, message.BuildMetadataFromBytes());
+			if (message.MessageType == PacketType.Bytes) {
+				var ev = new ClientBytesReceivedEventArgs(client, message.Data, message.MessageMetadata);
 				if (eventHandler != null)
 					eventHandler?.Invoke(this, ev);
 				else
 					OnClientBytesReceived(ev);
 			}
 
-			if (message.MessageType == MessageType.Auth) {
+			if (message.MessageType == PacketType.Auth) {
 				var data = Encoding.UTF8.GetString(message.Data);
 				var split = data.Split('|');
 
 				client.ClientName = split[0];
-				client.Guid = split[1];
+				client.Guid = Guid.Parse(split[1]);
 				client.UserDomainName = split[2];
 				client.OsVersion = split[3];
 			}
@@ -353,7 +308,7 @@ namespace SimpleSockets.Server {
 
 		protected abstract Task<bool> SendToSocketAsync(int clientId, byte[] payload);
 
-		protected bool SendInternal(int clientid, MessageType msgType, byte[] data, IDictionary<object,object> metadata, IDictionary<object,object> extraInfo, string eventKey, EncryptionType eType, CompressionType cType) {
+		protected bool SendInternal(int clientid, PacketType msgType, byte[] data, IDictionary<object,object> metadata, IDictionary<object,object> extraInfo, string eventKey, EncryptionType eType, CompressionType cType) {
 
 			try
 			{
@@ -367,13 +322,15 @@ namespace SimpleSockets.Server {
 					extraInfo.Add("DynamicCallback", eventKey);
 				}
 
-				var payload = MessageBuilder.Initialize(msgType, SocketLogger)
-					.AddCompression(cType)
-					.AddEncryption(EncryptionPassphrase, eType)
-					.AddMessageBytes(data)
-					.AddMetadata(metadata)
-					.AddAdditionalInternalInfo(extraInfo)
-					.BuildMessage();
+				//var payload = InternalPacketBuilder.Initialize(msgType, SocketLogger)
+				//	.AddCompression(cType)
+				//	.AddEncryption(EncryptionPassphrase, eType)
+				//	.AddMessageBytes(data)
+				//	.AddMetadata(metadata)
+				//	.AddAdditionalInternalInfo(extraInfo)
+				//	.BuildMessage();
+				var payload = new byte[0];
+
 
 				SendToSocket(clientid, payload);
 
@@ -384,7 +341,7 @@ namespace SimpleSockets.Server {
 			}
 		}
 
-		protected async Task<bool> SendInternalAsync(int clientId, MessageType msgType, byte[] data, IDictionary<object, object> metadata, IDictionary<object, object> extraInfo, string eventKey, EncryptionType eType, CompressionType cType) {
+		protected async Task<bool> SendInternalAsync(int clientId, PacketType msgType, byte[] data, IDictionary<object, object> metadata, IDictionary<object, object> extraInfo, string eventKey, EncryptionType eType, CompressionType cType) {
 			try
 			{
 				if (EncryptionMethod != EncryptionType.None && (EncryptionPassphrase == null || EncryptionPassphrase.Length == 0))
@@ -397,13 +354,14 @@ namespace SimpleSockets.Server {
 					extraInfo.Add("DynamicCallback", eventKey);
 				}
 
-				var payload = MessageBuilder.Initialize(msgType, SocketLogger)
-					.AddCompression(cType)
-					.AddEncryption(EncryptionPassphrase, eType)
-					.AddMessageBytes(data)
-					.AddMetadata(metadata)
-					.AddAdditionalInternalInfo(extraInfo)
-					.BuildMessage();
+				//var payload = InternalPacketBuilder.Initialize(msgType, SocketLogger)
+				//	.AddCompression(cType)
+				//	.AddEncryption(EncryptionPassphrase, eType)
+				//	.AddMessageBytes(data)
+				//	.AddMetadata(metadata)
+				//	.AddAdditionalInternalInfo(extraInfo)
+				//	.BuildMessage();
+				var payload = new byte[0];
 
 				return await SendToSocketAsync(clientId, payload);
 			}
@@ -425,7 +383,7 @@ namespace SimpleSockets.Server {
 		/// <param name="compression"></param>
 		/// <returns></returns>
 		public bool SendMessage(int clientId, string message, IDictionary<object, object> metadata, string dynamicEventKey, EncryptionType encryption, CompressionType compression) {
-			return SendInternal(clientId, MessageType.Message, Encoding.UTF8.GetBytes(message), metadata, null, dynamicEventKey, encryption, compression);
+			return SendInternal(clientId, PacketType.Message, Encoding.UTF8.GetBytes(message), metadata, null, dynamicEventKey, encryption, compression);
 		}
 
 		/// <summary>
@@ -488,7 +446,7 @@ namespace SimpleSockets.Server {
 		/// <param name="compression"></param>
 		/// <returns></returns>
 		public async Task<bool> SendMessageAsync(int clientId, string message, IDictionary<object, object> metadata, string dynamicEventKey, EncryptionType encryption, CompressionType compression) {
-			return await SendInternalAsync(clientId, MessageType.Message, Encoding.UTF8.GetBytes(message), metadata, null, dynamicEventKey, encryption, compression);
+			return await SendInternalAsync(clientId, PacketType.Message, Encoding.UTF8.GetBytes(message), metadata, null, dynamicEventKey, encryption, compression);
 		}
 
 		/// <summary>
@@ -552,7 +510,7 @@ namespace SimpleSockets.Server {
 		/// <param name="compression"></param>
 		/// <returns></returns>
 		public bool SendBytes(int clientId, byte[] data, IDictionary<object, object> metadata, string dynamicEventKey, EncryptionType encryption, CompressionType compression) {
-			return SendInternal(clientId, MessageType.Bytes, data, metadata, null, dynamicEventKey, encryption, compression);
+			return SendInternal(clientId, PacketType.Bytes, data, metadata, null, dynamicEventKey, encryption, compression);
 		}
 
 		/// <summary>
@@ -612,7 +570,7 @@ namespace SimpleSockets.Server {
 		/// <param name="compression"></param>
 		/// <returns></returns>
 		public async Task<bool> SendBytesAsync(int clientId, byte[] data, IDictionary<object, object> metadata, string dynamicEventKey, EncryptionType encryption, CompressionType compression) {
-			return await SendInternalAsync(clientId, MessageType.Bytes, data, metadata, null, dynamicEventKey, encryption, compression);
+			return await SendInternalAsync(clientId, PacketType.Bytes, data, metadata, null, dynamicEventKey, encryption, compression);
 		}
 
 		/// <summary>
@@ -682,7 +640,7 @@ namespace SimpleSockets.Server {
 			var info = new Dictionary<object, object>();
 			info.Add("Type", obj.GetType());
 
-			return SendInternal(clientId, MessageType.Object, bytes, metadata, info, dynamicEventKey, encryption, compression);
+			return SendInternal(clientId, PacketType.Object, bytes, metadata, info, dynamicEventKey, encryption, compression);
 		}
 
 		/// <summary>
@@ -748,7 +706,7 @@ namespace SimpleSockets.Server {
 			var info = new Dictionary<object, object>();
 			info.Add("Type", obj.GetType());
 
-			return await SendInternalAsync(clientId, MessageType.Bytes, bytes, metadata, info, dynamicEventKey, encryption, compression);
+			return await SendInternalAsync(clientId, PacketType.Bytes, bytes, metadata, info, dynamicEventKey, encryption, compression);
 		}
 
 		/// <summary>
@@ -802,6 +760,141 @@ namespace SimpleSockets.Server {
 
 		#endregion
 
+		/// <summary>
+		/// Disposes of the server.
+		/// </summary>
+		public override void Dispose() {
+			try
+			{
+				if (!Disposed)
+				{
+					TokenSource.Cancel();
+					TokenSource.Dispose();
+					Listening = false;
+					Listener.Dispose();
+					CanAcceptConnections.Dispose();
+
+					foreach (var id in ConnectedClients.Keys.ToList())
+					{
+						ShutDownClient(id, DisconnectReason.Kicked);
+					}
+
+					ConnectedClients = new Dictionary<int, ISessionMetadata>();
+					TokenSource.Dispose();
+					Disposed = true;
+					GC.SuppressFinalize(this);
+				}
+				else
+				{
+					throw new ObjectDisposedException(nameof(SimpleTcpServer), "This object is already disposed.");
+				}
+
+			}
+			catch (Exception ex)
+			{
+				SocketLogger?.Log(ex, LogLevel.Error);
+			}
+		}
+		
+
+		#region Helper Methods
+
+		internal void ShutDownClient(int id, DisconnectReason reason)
+		{
+			var client = GetClientMetadataById(id);
+
+			if (client == null)
+				SocketLogger?.Log("Cannot shutdown client " + id + ", does not exist.", LogLevel.Warning);
+
+			try
+			{
+				if (client?.Listener != null)
+				{
+					client.Listener.Shutdown(SocketShutdown.Both);
+					client.Listener.Close();
+					client.Listener = null;
+				}
+			}
+			catch (ObjectDisposedException de)
+			{
+				SocketLogger?.Log("Cannot shutdown client " + id + ", has already been disposed.", de, LogLevel.Warning);
+			}
+			catch (Exception ex)
+			{
+				SocketLogger?.Log("An error occurred when shutting down client " + id, ex, LogLevel.Warning);
+			}
+			finally
+			{
+				lock (ConnectedClients)
+				{
+					ConnectedClients.Remove(id);
+					OnClientDisconnected(new ClientDisconnectedEventArgs(client, reason));
+				}
+			}
+		}
+
+		internal ISessionMetadata GetClientMetadataById(int id)
+		{
+			return ConnectedClients.TryGetValue(id, out var state) ? state : null;
+		}
+
+		internal ISessionMetadata GetClientMetadataByGuid(Guid guid)
+		{
+			return ConnectedClients?.Values.Single(x => x.Guid == guid);
+		}
+
+		protected IPAddress ListenerIPFromString(string ip)
+		{
+			try
+			{
+
+				if (string.IsNullOrEmpty(ip) || ip.Trim() == "*")
+				{
+					var ipAdr = IPAddress.Any;
+					ListenerIp = ipAdr.ToString();
+					return ipAdr;
+				}
+
+				return IPAddress.Parse(ip);
+			}
+			catch (Exception ex)
+			{
+				SocketLogger?.Log("Invalid Server IP", ex, LogLevel.Fatal);
+				return null;
+			}
+		}
+
+		//Check if the server should allow the client that is attempting to connect.
+		internal bool IsConnectionAllowed(ISessionMetadata state)
+		{
+			if (WhiteList.Count > 0)
+			{
+				return CheckWhitelist(state.IPv4) || CheckWhitelist(state.IPv6);
+			}
+
+			if (BlackList.Count > 0)
+			{
+				return !CheckBlacklist(state.IPv4) && !CheckBlacklist(state.IPv6);
+			}
+
+			return true;
+		}
+
+		//Checks if an ip is in the whitelist
+		protected bool CheckWhitelist(string ip)
+		{
+			var address = IPAddress.Parse(ip);
+			return WhiteList.Any(x => Equals(x, address));
+		}
+
+		//Checks if an ip is in the blacklist
+		protected bool CheckBlacklist(string ip)
+		{
+			var address = IPAddress.Parse(ip);
+			return BlackList.Any(x => Equals(x, address));
+		}
+
+		#endregion
 
 	}
 

@@ -2,6 +2,7 @@
 using SimpleSockets;
 using SimpleSockets.Client;
 using SimpleSockets.Helpers.Compression;
+using SimpleSockets.Messaging;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -21,21 +22,9 @@ namespace Client
 
 			var cert = new X509Certificate2(new SocketHelper().GetCertFileContents(), "Password");
 
-			// var client = new SimpleTcpClient();
-			var clients = new List<SimpleTcpClient>();
-			//var client = new SimpleTcpClient(cert);
-			// BindEvents(client);
-			// client.CompressionMethod = CompressionType.Deflate;
+			var client = new SimpleUdpClient();
 
-			for (int i = 0; i < 1; i++)
-			{
-				var client = new SimpleTcpClient(cert);
-				BindEvents(client);
-				client.ConnectTo("127.0.0.1", 13000, 5);
-				clients.Add(client);
-			}
-
-
+			client.ConnectTo("127.0.0.1", 13000, 5);
 
 			PersonObjectReceived += Program_PersonObjectReceived;
 			CustomMessageReceived += Program_CustomMessageReceived;
@@ -45,11 +34,7 @@ namespace Client
 			while (true) {
 				Console.Write("Enter a message: ");
 				var msg = Console.ReadLine();
-				foreach (var c in clients)
-				{
-					c.SendMessage(msg);
-				}
-				// client.SendMessage(msg);
+				client.SendMessage(msg);
 			}
 
 		}

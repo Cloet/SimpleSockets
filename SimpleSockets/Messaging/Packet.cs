@@ -12,34 +12,21 @@ using SimpleSockets.Server;
 
 namespace SimpleSockets.Messaging {
 
-    internal class SimpleMessage {
+    public class Packet {
 
 		/// <summary>
 		/// Indicates what sort of messagetype this message is
 		/// </summary>
-        internal MessageType MessageType { get; set; }
-
-		/// <summary>
-		/// The metadata of the message
-		/// </summary>
-        internal byte[] MessageMetadata {
-			get => _metadata;
-			set {
-				if (value == null || value.Length == 0)
-					HeaderFields[0] = false;
-				else
-					HeaderFields[0] = true;
-
-				_metadata = value;
-			}
-		}
+        public PacketType MessageType { get; internal set; }
 
 		/// <summary>
 		/// Presharedkey of the message
 		/// </summary>
-        internal byte[] PreSharedKey {
+		public byte[] PreSharedKey
+		{
 			get => _preSharedKey;
-			set {
+			internal set
+			{
 
 				if (value == null || value.Length == 0)
 					HeaderFields[3] = false;
@@ -51,13 +38,28 @@ namespace SimpleSockets.Messaging {
 		}
 
 		/// <summary>
+		/// The metadata of the message
+		/// </summary>
+		public IDictionary<object,object> MessageMetadata {
+			get => _metadata;
+			internal set {
+				if (value == null || value.Values.Count == 0)
+					HeaderFields[0] = false;
+				else
+					HeaderFields[0] = true;
+
+				_metadata = value;
+			}
+		}
+
+		/// <summary>
 		/// Extra information of a messages, only used within library.
 		/// </summary>
-        internal byte[] AdditionalInternalInfo {
+        internal IDictionary<object,object> AdditionalInternalInfo {
 			get => _internalInfo;
 			set
 			{
-				if (value == null || value.Length == 0)
+				if (value == null || value.Values.Count == 0)
 					HeaderFields[4] = false;
 				else
 					HeaderFields[4] = true;
@@ -74,7 +76,7 @@ namespace SimpleSockets.Messaging {
 		/// <summary>
 		/// The data of a message
 		/// </summary>
-		internal byte[] Data { get; set; }
+		public byte[] Data { get; internal set; }
 
 		/// <summary>
 		/// When receiving a message all content will be stored here in netstring format
@@ -101,34 +103,42 @@ namespace SimpleSockets.Messaging {
 		/// <summary>
 		/// The key used for encryption/decryption
 		/// </summary>
-        internal byte[] EncryptionKey { get; set; }
+        public byte[] EncryptionKey { get; internal set; }
 
 		/// <summary>
 		/// If a message is compressed this indicates what compression is used.
 		/// </summary>
-        internal CompressionType CompressMode { get; set; }
+        public CompressionType CompressMode { get; set; }
 
 		/// <summary>
 		/// If a message is encrypted this indicates what encryption is used.
 		/// </summary>
-        internal EncryptionType EncryptMode { get; set; }
+        public EncryptionType EncryptMode { get; set; }
 
 		/// <summary>
 		/// Length of the header
 		/// </summary>
         internal int HeaderLength { get; private set; }
 
-		private byte[] _internalInfo;
+		private IDictionary<object,object> _internalInfo;
 
-		private byte[] _metadata;
+		private IDictionary<object,object> _metadata;
+
+		private byte[] _internalInfoBytes;
+
+		private byte[] _metadataBytes;
 
 		private byte[] _preSharedKey;
 
-        private LogHelper _logger;
+        internal LogHelper Logger;
 
         internal long OriginalcontentLength { get; set; }
 
         internal long ContentLength { get; set; }
+
+		internal bool addDefaultEncryption;
+
+		internal bool addDefaultCompression;
 
         /// <summary>
         /// 0 - Metadata
@@ -141,21 +151,22 @@ namespace SimpleSockets.Messaging {
         internal BitArray HeaderFields { get; set;}
 
 		//Construct of receiver
-        internal SimpleMessage(LogHelper logger) {
+        internal Packet(LogHelper logger) {
 			HeaderFields = new BitArray(8, false);
-			MessageMetadata = new byte[0];
+			_metadataBytes = new byte[0];
+			_internalInfoBytes = new byte[0];
 			PreSharedKey = new byte[0];
 			Content = new byte[0];
 			Data = new byte[0];
 			Encrypt = false;
 			Compress = false;
-			_logger = logger;
+			Logger = logger;
 			ContentLength = 0;
 			OriginalcontentLength = 0;
 		}
 
 		//Constructor of a message
-        internal SimpleMessage(MessageType type, LogHelper logger = null): this(logger) {
+        internal Packet(PacketType type, LogHelper logger = null): this(logger) {
             MessageType = type;
         }
         
@@ -186,18 +197,18 @@ namespace SimpleSockets.Messaging {
 
             // Add Presharedkey [16 Bytes]
             if (HeaderFields[3])
-                headerFieldBytes = MessageHelper.MergeByteArrays(headerFieldBytes, PreSharedKey);
+                headerFieldBytes = PacketHelper.MergeByteArrays(headerFieldBytes, PreSharedKey);
 
 			// Write contentlength (8 Bytes)
 			byte[] bytes = new byte[8];
 			BitConverter.GetBytes(originalContentLength).CopyTo(bytes, 0);
-            headerFieldBytes = MessageHelper.MergeByteArrays(headerFieldBytes, bytes);
+            headerFieldBytes = PacketHelper.MergeByteArrays(headerFieldBytes, bytes);
 
 			// Length of data in encrypted/compressed form. (8 Bytes)
 			if (HeaderFields[2] || HeaderFields[1]) {
 				bytes = new byte[8];
 				BitConverter.GetBytes(contentLength).CopyTo(bytes, 0);
-				headerFieldBytes = MessageHelper.MergeByteArrays(headerFieldBytes, bytes);
+				headerFieldBytes = PacketHelper.MergeByteArrays(headerFieldBytes, bytes);
 			}
 
             return headerFieldBytes;
@@ -210,7 +221,7 @@ namespace SimpleSockets.Messaging {
         /// <returns>Content Byte array</returns>
         private byte[] BuildContent() {
             
-            var converted = MessageHelper.ByteArrayToString(Data);
+            var converted = PacketHelper.ByteArrayToString(Data);
 
 			var content = string.Empty;
 
@@ -221,7 +232,7 @@ namespace SimpleSockets.Messaging {
 
 			if (HeaderFields[0])
 			{
-				converted = MessageHelper.ByteArrayToString(MessageMetadata);
+				converted = PacketHelper.ByteArrayToString(_metadataBytes);
 				if (converted.Length == 0)
 					content += "0:,";
 				else
@@ -232,7 +243,7 @@ namespace SimpleSockets.Messaging {
 
 			if (HeaderFields[4])
 			{
-				converted = MessageHelper.ByteArrayToString(AdditionalInternalInfo);
+				converted = PacketHelper.ByteArrayToString(_internalInfoBytes);
 				if (converted.Length == 0)
 					content += "0:,";
 				else
@@ -250,8 +261,12 @@ namespace SimpleSockets.Messaging {
 		/// <returns>Byte[] array</returns>
         internal byte[] BuildPayload() {
             
-            _logger?.Log("===========================================", LogLevel.Trace);
-            _logger?.Log("Building Message.",LogLevel.Trace);
+            Logger?.Log("===========================================", LogLevel.Trace);
+            Logger?.Log("Building Message.",LogLevel.Trace);
+
+			_internalInfoBytes = SerializationHelper.SerializeObjectToBytes(AdditionalInternalInfo);
+			_metadataBytes = SerializationHelper.SerializeObjectToBytes(MessageMetadata);
+
             // Content contains
             // 1 - Data
             // 2 - MessageMetadata
@@ -261,30 +276,30 @@ namespace SimpleSockets.Messaging {
             
             // Compress the content if so desired.
             if (Compress && CompressMode != CompressionType.None) {
-                _logger?.Log("Compressing content...", LogLevel.Trace);
+                Logger?.Log("Compressing content...", LogLevel.Trace);
                 content = CompressionHelper.Compress(content, CompressMode);
             }
 
             // Encrypt the content after potential compression if so desired.
             if (Encrypt && EncryptMode != EncryptionType.None) {
-                _logger?.Log("Encrypting content...", LogLevel.Debug);
+                Logger?.Log("Encrypting content...", LogLevel.Debug);
                 content = CryptographyHelper.Encrypt(Content, EncryptionKey, EncryptMode);
             }
 
             byte[] head = BuildMessageHeader(originalContentLength, content.Length);
-            byte[] tail = MessageHelper.PacketDelimiter;
-            byte[] Payload = new byte[head.Length + content.Length + tail.Length];
+            byte[] tail = PacketHelper.PacketDelimiter;
+            byte[] payload = new byte[head.Length + content.Length + tail.Length];
 
-            _logger?.Log("Messageheader is " + head.Length + " bytes long.", LogLevel.Trace);
-            _logger?.Log("Message content is " + content.Length + " bytes long.", LogLevel.Trace);
+            Logger?.Log("Messageheader is " + head.Length + " bytes long.", LogLevel.Trace);
+            Logger?.Log("Message content is " + content.Length + " bytes long.", LogLevel.Trace);
 
-            head.CopyTo(Payload,0);
-            content.CopyTo(Payload,head.Length);
-            tail.CopyTo(Payload,head.Length + content.Length);
+            head.CopyTo(payload,0);
+            content.CopyTo(payload,head.Length);
+            tail.CopyTo(payload,head.Length + content.Length);
 
-            _logger?.Log("The message has been built.", LogLevel.Trace);
-            _logger?.Log("===========================================", LogLevel.Trace);
-            return Payload;
+            Logger?.Log("The message has been built.", LogLevel.Trace);
+            Logger?.Log("===========================================", LogLevel.Trace);
+            return payload;
         }
 
         #endregion
@@ -318,7 +333,7 @@ namespace SimpleSockets.Messaging {
             var header = MessageHeader;
 
             // Get the messagetype of the message
-            MessageType  = (MessageType)	 header[0];
+            MessageType  = (PacketType)	 header[0];
 			CompressMode = (CompressionType) header[1];
 			EncryptMode  = (EncryptionType)  header[2];
 
@@ -377,12 +392,15 @@ namespace SimpleSockets.Messaging {
 				if (i == 0)
 					Data = DataFromOneNetString(arr[i]);
 				if (i == 1)
-					MessageMetadata = DataFromOneNetString(arr[i]);
+					_metadataBytes = DataFromOneNetString(arr[i]);
 				if (i == 2)
-					AdditionalInternalInfo = DataFromOneNetString(arr[2]);
+					_internalInfoBytes = DataFromOneNetString(arr[2]);
 				if (i > 2)
-					_logger?.Log("Found more netstrings then possible.", LogLevel.Error);
+					Logger?.Log("Found more netstrings then possible.", LogLevel.Error);
 			}
+
+			BuildMetadataFromBytes();
+			BuildInternalInfoFromBytes();
 		}
 
 		/// <summary>
@@ -402,24 +420,26 @@ namespace SimpleSockets.Messaging {
 			if (int.Parse(netr[0]) != netr[1].Length)
 				throw new Exception("Netstring predifined length is different then actual length.");
 
-			return MessageHelper.StringToByteArray(netr[1]);
+			return PacketHelper.StringToByteArray(netr[1]);
 		}
 
 		/// <summary>
 		/// Build metadata from the stored bytes.
 		/// </summary>
 		/// <returns></returns>
-		internal IDictionary<object, object> BuildMetadataFromBytes() {
+		private void BuildMetadataFromBytes() {
 			try
 			{
-				if (MessageMetadata == null || MessageMetadata.Length == 0)
-					return null;
+				if (_metadataBytes == null || _metadataBytes.Length == 0) {
+					MessageMetadata = null;
+					return;
+				}
 
-				return SerializationHelper.DeserializeJson<IDictionary<object, object>>(MessageMetadata);
+				MessageMetadata = SerializationHelper.DeserializeJson<IDictionary<object, object>>(_metadataBytes);
 			}
 			catch (Exception ex) {
-				_logger?.Log("Failed to retrieve metadata from bytes.", ex, LogLevel.Warning);
-				return null;
+				Logger?.Log("Failed to retrieve metadata from bytes.", ex, LogLevel.Warning);
+				MessageMetadata = null;
 			}
 		}
 
@@ -427,22 +447,30 @@ namespace SimpleSockets.Messaging {
 		/// Builds the internal info from stored bytes.
 		/// </summary>
 		/// <returns></returns>
-		internal IDictionary<object, object> BuildInternalInfoFromBytes()
+		private void BuildInternalInfoFromBytes()
 		{
 			try
 			{
-				if (AdditionalInternalInfo == null || AdditionalInternalInfo.Length == 0)
-					return null;
+				if (_internalInfoBytes == null || _internalInfoBytes.Length == 0) {
+					AdditionalInternalInfo = null;
+					return;
+				}
 
-				return SerializationHelper.DeserializeJson<IDictionary<object, object>>(AdditionalInternalInfo);
+				AdditionalInternalInfo = SerializationHelper.DeserializeJson<IDictionary<object, object>>(_internalInfoBytes);
 			}
 			catch (Exception ex)
 			{
-				_logger?.Log("Failed to retrieve internal info from bytes.", ex, LogLevel.Warning);
-				return null;
+				AdditionalInternalInfo = null;
+				return;
 			}
 		}
 
+		/// <summary>
+		/// Get dynamic eventargs
+		/// </summary>
+		/// <param name="info"></param>
+		/// <param name="events"></param>
+		/// <returns></returns>
 		internal EventHandler<DataReceivedEventArgs> GetDynamicCallbackClient(IDictionary<object, object> info, 
 			IDictionary<string,EventHandler<DataReceivedEventArgs>> events) {
 			try
@@ -463,18 +491,47 @@ namespace SimpleSockets.Messaging {
 				return eventH;
 			}
 			catch (Exception ex) {
-				_logger?.Log("Unable to retrieve a dynamic callback.", ex, LogLevel.Warning);
 				return null;
 			}
 		}
 
+		/// <summary>
+		/// Get guid from a packet
+		/// </summary>
+		/// <param name="info"></param>
+		/// <returns></returns>
+		internal Guid GetGuidFromMessage(IDictionary<object, object> info) {
+			try
+			{
+				if (info == null)
+					return Guid.Empty;
+
+				var exists = info.TryGetValue(PacketHelper.GUID, out var guid);
+
+				if (!exists)
+					return Guid.Empty;
+
+				return (Guid)guid;
+			}
+			catch (Exception ex) {
+				Logger?.Log("Unable to retrieve the guid.", ex, LogLevel.Warning);
+				return Guid.Empty;
+			}
+		}
+
+		/// <summary>
+		/// Custom eventargs for server
+		/// </summary>
+		/// <param name="info"></param>
+		/// <param name="events"></param>
+		/// <returns></returns>
 		internal EventHandler<ClientDataReceivedEventArgs> GetDynamicCallbackServer(IDictionary<object, object> info, IDictionary<string,EventHandler<ClientDataReceivedEventArgs>> events) {
 			try
 			{
 				if (info == null)
 					return null;
 
-				var exists = info.TryGetValue("DynamicCallback", out var output);
+				var exists = info.TryGetValue(PacketHelper.CALLBACK, out var output);
 
 				if (!exists)
 					return null;
@@ -487,11 +544,17 @@ namespace SimpleSockets.Messaging {
 				return eventH;
 			}
 			catch (Exception ex) {
-				_logger?.Log("Unable to retrieve a dynamic callback.", ex, LogLevel.Warning);
+				Logger?.Log("Unable to retrieve a dynamic callback.", ex, LogLevel.Warning);
 				return null;
 			}
 		}
 
+		/// <summary>
+		/// Build from received bytes
+		/// </summary>
+		/// <param name="info"></param>
+		/// <param name="type"></param>
+		/// <returns></returns>
 		internal object BuildObjectFromBytes(IDictionary<object,object> info, out Type type) {
 
 			type = null;
@@ -501,7 +564,7 @@ namespace SimpleSockets.Messaging {
 				if (info == null)
 					return null;
 
-				var exists = info.TryGetValue("Type", out var output);
+				var exists = info.TryGetValue(PacketHelper.OBJECTTYPE, out var output);
 
 				if (!exists)
 					return null;
@@ -511,7 +574,7 @@ namespace SimpleSockets.Messaging {
 				return SerializationHelper.DeserializeBytesToObject(Data, type);
 			}
 			catch (Exception ex) {
-				_logger?.Log("Failed building object from bytes.", ex, LogLevel.Warning);
+				Logger?.Log("Failed building object from bytes.", ex, LogLevel.Warning);
 				return null;
 			}
 		}
@@ -529,7 +592,7 @@ namespace SimpleSockets.Messaging {
 				return Encoding.UTF8.GetString(Data);
 			}
 			catch (Exception ex) {
-				_logger?.Log("Failed converting byte[] array to string.", ex, LogLevel.Warning);
+				Logger?.Log("Failed converting byte[] array to string.", ex, LogLevel.Warning);
 				return null;
 			}
 		}

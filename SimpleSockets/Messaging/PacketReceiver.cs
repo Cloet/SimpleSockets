@@ -10,7 +10,7 @@ using SimpleSockets.Helpers.Cryptography;
 
 namespace SimpleSockets.Messaging {
 
-    internal class DataReceiver {
+    public class PacketReceiver {
 
 		internal byte[] Buffer { get; private set; }
 
@@ -22,7 +22,7 @@ namespace SimpleSockets.Messaging {
 
         private LogHelper _logger;
 
-        internal DataReceiver(LogHelper logger, int bufferSize) {
+        internal PacketReceiver(LogHelper logger, int bufferSize) {
 			BufferSize = bufferSize;
             Buffer = new byte[BufferSize];
             _received = new byte[0];
@@ -40,28 +40,28 @@ namespace SimpleSockets.Messaging {
 		/// <param name="bytes"></param>
 		/// <returns></returns>
 		internal bool AppendByteToReceived(byte readByte) {
-			_received = MessageHelper.MergeByteArrays(_received, new byte[1] { readByte });
+			_received = PacketHelper.MergeByteArrays(_received, new byte[1] { readByte });
 
-			if (_received.Length >= MessageHelper.PacketDelimiter.Length) {
-				var end = _received.Skip(_received.Length - MessageHelper.PacketDelimiter.Length).Take(MessageHelper.PacketDelimiter.Length).ToArray();
-				if (end.SequenceEqual(MessageHelper.PacketDelimiter))
+			if (_received.Length >= PacketHelper.PacketDelimiter.Length) {
+				var end = _received.Skip(_received.Length - PacketHelper.PacketDelimiter.Length).Take(PacketHelper.PacketDelimiter.Length).ToArray();
+				if (end.SequenceEqual(PacketHelper.PacketDelimiter))
 				{
 					_logger?.Log("Packet delimiter found.", LogLevel.Trace);
-					_received = _received.Take(_received.Length - MessageHelper.PacketDelimiter.Length).ToArray();
+					_received = _received.Take(_received.Length - PacketHelper.PacketDelimiter.Length).ToArray();
 					return true;
 				}
 			}
 			return false;
 		}
 
-		internal SimpleMessage BuildMessageFromPayload(byte[] encryptionPassphrase, byte[] presharedKey) {
+		internal Packet BuildMessageFromPayload(byte[] encryptionPassphrase, byte[] presharedKey) {
 			try
 			{
-				return MessageBuilder.InitializeReceiver(_logger, _received[0], out var headerLength)
+				return PacketReceiverBuilder.InitializeReceiver(_logger, _received[0], out var headerLength)
 					.AddPassphrase(encryptionPassphrase)
 					.AppendHeaderBytes(_received.Skip(1).Take(headerLength).ToArray())
 					.AppendContentBytes(_received.Skip(1 + headerLength).Take(_received.Length - 1 + headerLength).ToArray())
-					.BuildFromReceivedPackets(presharedKey);
+					.Build(presharedKey);
 			}
 			catch (Exception ex) {
 				_logger?.Log("An error occurred receiving a message from a connected socket.", ex, LogLevel.Error);

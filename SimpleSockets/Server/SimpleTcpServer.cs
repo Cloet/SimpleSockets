@@ -18,8 +18,46 @@ namespace SimpleSockets.Server {
     public class SimpleTcpServer : SimpleServer
     {
 
-        public SimpleTcpServer(): base(false, SocketProtocolType.Tcp) {
+		/// <summary>
+		/// Event fired when the server successfully validates the ssl certificate.
+		/// </summary>
+		public event EventHandler<ClientInfoEventArgs> SslAuthSuccess;
+		protected virtual void OnSslAuthSuccess(ClientInfoEventArgs eventArgs) => SslAuthSuccess?.Invoke(this, eventArgs);
 
+		/// <summary>
+		/// Event fired when server is unable to validate the ssl certificate
+		/// </summary>
+		public event EventHandler<ClientInfoEventArgs> SslAuthFailed;
+		protected virtual void OnSslAutFailed(ClientInfoEventArgs eventArgs) => SslAuthFailed?.Invoke(this, eventArgs);
+
+		/// <summary>
+		/// Indicates if Ssl Encryption is used.
+		/// </summary>
+		public bool SslEncryption { get; private set; }
+
+		protected X509Certificate2 _serverCertificate = null;
+		protected TlsProtocol _tlsProtocol;
+
+		/// <summary>
+		/// Maximum connected concurrent clients.
+		/// Defaults to 500.
+		/// </summary>
+		public int MaximumConnections { get; private set; } = 500;
+
+		/// <summary>
+		/// Only used when using Ssl.
+		/// </summary>
+		public bool AcceptInvalidCertificates { get; set; }
+
+		/// <summary>
+		/// Only used when using Ssl.
+		/// </summary>
+		public bool MutualAuthentication { get; set; }
+
+		#region Constructors
+
+		public SimpleTcpServer(): base(SocketProtocolType.Tcp) {
+			SslEncryption = false;
         }
 
 		/// <summary>
@@ -29,9 +67,10 @@ namespace SimpleSockets.Server {
 		/// <param name="tls"></param>
 		/// <param name="acceptInvalidCertificates"></param>
 		/// <param name="mutualAuth"></param>
-		public SimpleTcpServer(X509Certificate2 certificate, TlsProtocol tls = TlsProtocol.Tls12, bool acceptInvalidCertificates = true, bool mutualAuth = false) : base(true, SocketProtocolType.Tcp)
+		public SimpleTcpServer(X509Certificate2 certificate, TlsProtocol tls = TlsProtocol.Tls12, bool acceptInvalidCertificates = true, bool mutualAuth = false) : base(SocketProtocolType.Tcp)
 		{
 			_serverCertificate = certificate ?? throw new ArgumentNullException(nameof(certificate));
+			SslEncryption = true;
 
 			_tlsProtocol = tls;
 			AcceptInvalidCertificates = acceptInvalidCertificates;
@@ -46,7 +85,7 @@ namespace SimpleSockets.Server {
 		/// <param name="tls"></param>
 		/// <param name="acceptInvalidCertificates"></param>
 		/// <param name="mutualAuth"></param>
-		public SimpleTcpServer(byte[] certData, string certPass, TlsProtocol tls = TlsProtocol.Tls12, bool acceptInvalidCertificates = true, bool mutualAuth = false) : base(true, SocketProtocolType.Tcp)
+		public SimpleTcpServer(byte[] certData, string certPass, TlsProtocol tls = TlsProtocol.Tls12, bool acceptInvalidCertificates = true, bool mutualAuth = false) : base(SocketProtocolType.Tcp)
 		{
 			if (certData == null || certData.Length == 0)
 				throw new ArgumentNullException(nameof(certData));
@@ -56,6 +95,7 @@ namespace SimpleSockets.Server {
 			else
 				_serverCertificate = new X509Certificate2(certData, certPass);
 
+			SslEncryption = true;
 			_tlsProtocol = tls;
 			AcceptInvalidCertificates = acceptInvalidCertificates;
 			MutualAuthentication = mutualAuth;
@@ -73,6 +113,8 @@ namespace SimpleSockets.Server {
 		{
 		}
 
+		#endregion
+
 		#region Ssl Authentication
 
 		private bool AcceptCertificate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicy)
@@ -80,7 +122,7 @@ namespace SimpleSockets.Server {
 			return !AcceptInvalidCertificates ? _serverCertificate.Verify() : AcceptInvalidCertificates;
 		}
 
-		private async Task<bool> Authenticate(IClientMetadata state)
+		private async Task<bool> Authenticate(ISessionMetadata state)
 		{
 			try
 			{
@@ -131,7 +173,7 @@ namespace SimpleSockets.Server {
 		/// <param name="ip"></param>
 		/// <param name="port"></param>
 		/// <param name="limit"></param>
-		public override void Listen(string ip, int port, int limit = 500)
+		public void Listen(string ip, int port, int limit)
         {
             if (limit <= 1)
                 throw new ArgumentOutOfRangeException(nameof(limit),limit, "Limit must be greater then or equal to 1.");
@@ -168,13 +210,24 @@ namespace SimpleSockets.Server {
 
         }
 
-        protected virtual async void OnClientConnects(IAsyncResult result) {
+		/// <summary>
+		/// Listen to the given port for connections.
+		/// </summary>
+		/// <param name="port"></param>
+		/// <param name="limit"></param>
+		public void Listen(int port, int limit) => Listen("*", port, MaximumConnections);
+
+		/// <inheritdoc />
+		public override void Listen(string ip, int port) => Listen(ip, port, MaximumConnections);
+
+		// Called when a client connects. Starts a receiving thread for the client.
+		protected virtual async void OnClientConnects(IAsyncResult result) {
 
             try {
-                IClientMetadata client;
+                ISessionMetadata client;
                 lock (ConnectedClients) {
                     var id = !ConnectedClients.Any() ? 1 : ConnectedClients.Keys.Max() + 1;
-                    client = new ClientMetadata(((Socket)result.AsyncState).EndAccept(result), id, SocketLogger);
+                    client = new SessionMetadata(((Socket)result.AsyncState).EndAccept(result), id, SocketLogger);
 
                     var exists = ConnectedClients.FirstOrDefault(x => x.Value == client);
 
@@ -228,7 +281,8 @@ namespace SimpleSockets.Server {
             }
         }
 
-        internal virtual void Receive(IClientMetadata client) {
+		// Starts receving data. Calls ReceiveCallback when data is received.
+        protected virtual void Receive(ISessionMetadata client) {
 			try
 			{
 				while (!Token.IsCancellationRequested)
@@ -268,8 +322,9 @@ namespace SimpleSockets.Server {
             }
         }
 
-        internal virtual void ReceiveCallback(IAsyncResult result) {
-            var client = (IClientMetadata)result.AsyncState;
+		// Handles the received data from Receive
+        protected virtual void ReceiveCallback(IAsyncResult result) {
+            var client = (ISessionMetadata)result.AsyncState;
             var dReceiver = client.DataReceiver;
             client.Timeout.Set();
             try {
@@ -316,9 +371,10 @@ namespace SimpleSockets.Server {
 			}
         }
 
+		// Sends data to a client. When data is send SendCallback is called
         protected override void SendToSocket(int clientId, byte[] payload)
         {
-			IClientMetadata client = null;
+			ISessionMetadata client = null;
 			ConnectedClients?.TryGetValue(clientId, out client);
 			try
 			{
@@ -345,9 +401,37 @@ namespace SimpleSockets.Server {
 			}
         }
 
+		// Called when SendToSocket completes.
+		protected void SendCallback(IAsyncResult result)
+		{
+			var client = (ISessionMetadata)result.AsyncState;
+
+			try
+			{
+
+				Statistics?.AddSentMessages(1);
+
+				if (SslEncryption)
+					client.SslStream.EndWrite(result);
+				else
+				{
+					var count = client.Listener.EndSend(result);
+					Statistics?.AddSentBytes(count);
+				}
+
+				client.WritingData.Set();
+			}
+			catch (Exception ex)
+			{
+				client.WritingData.Set();
+				SocketLogger?.Log("An error occurred when sending a message to client " + client.Id, ex, LogLevel.Error);
+			}
+		}
+
+		// Similar to SendToSocket but is done async.
 		protected override async Task<bool> SendToSocketAsync(int clientId, byte[] payload) {
 
-			IClientMetadata client = null;
+			ISessionMetadata client = null;
 			ConnectedClients?.TryGetValue(clientId, out client);
 			try
 			{
@@ -384,62 +468,12 @@ namespace SimpleSockets.Server {
 			}
 		}
 
-        protected void SendCallback(IAsyncResult result) {
-            var client = (IClientMetadata)result.AsyncState;
-            
-            try {
-
-				Statistics?.AddSentMessages(1);
-
-				if (SslEncryption)
-					client.SslStream.EndWrite(result);
-				else {
-					var count = client.Listener.EndSend(result);
-					Statistics?.AddSentBytes(count);
-				}
-
-				client.WritingData.Set();
-            } catch (Exception ex) {
-				client.WritingData.Set();
-                SocketLogger?.Log("An error occurred when sending a message to client " + client.Id, ex, LogLevel.Error);
-            }
-        }
-
 		/// <summary>
 		/// Disposes of the server.
 		/// </summary>
         public override void Dispose()
         {
-			try
-			{
-				if (!Disposed)
-				{
-					TokenSource.Cancel();
-					TokenSource.Dispose();
-					Listening = false;
-					Listener.Dispose();
-					CanAcceptConnections.Dispose();
-
-					foreach (var id in ConnectedClients.Keys.ToList())
-					{
-						ShutDownClient(id, DisconnectReason.Kicked);
-					}
-
-					ConnectedClients = new Dictionary<int, IClientMetadata>();
-					TokenSource.Dispose();
-					Disposed = true;
-					GC.SuppressFinalize(this);
-				}
-				else
-				{
-					throw new ObjectDisposedException(nameof(SimpleTcpServer), "This object is already disposed.");
-				}
-
-			}
-			catch (Exception ex)
-			{
-				SocketLogger?.Log(ex, LogLevel.Error);
-			}
+			base.Dispose();
 		}
 
     }

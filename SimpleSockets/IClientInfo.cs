@@ -1,19 +1,22 @@
+using System;
+
 namespace SimpleSockets {
 
     public interface IClientInfo {
+
         int Id { get; }
 
-        string ClientName { get; set; }
+        string ClientName { get; }
 
-        string Guid { get; set; }
+        Guid Guid { get; }
 
-        string OsVersion { get; set; }
+        string OsVersion { get; }
 
-        string UserDomainName { get; set; }
+        string UserDomainName { get; }
 
-		string IPv4 { get; set; }
+		string IPv4 { get; }
 
-		string IPv6 { get; set; }
+		string IPv6 { get; }
     }
 
 }

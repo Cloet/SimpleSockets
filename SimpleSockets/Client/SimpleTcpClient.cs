@@ -19,11 +19,49 @@ namespace SimpleSockets {
     public class SimpleTcpClient : SimpleClient
     {
 
+		#region Events
+		/// <summary>
+		/// Event fired when the client successfully validates the ssl certificate.
+		/// </summary>
+		public event EventHandler SslAuthSuccess;
+		protected virtual void OnSslAuthSuccess() => SslAuthSuccess?.Invoke(this, null);
+
+		/// <summary>
+		/// Event fired when client is unable to validate the ssl certificate
+		/// </summary>
+		public event EventHandler SslAuthFailed;
+		protected virtual void OnSslAutFailed() => SslAuthFailed?.Invoke(this, null);
+		#endregion
+
+		protected SslStream _sslStream;
+
+		protected X509Certificate2 _sslCertificate;
+
+		protected X509Certificate2Collection _sslCertificateCollection;
+
+		protected TlsProtocol _tlsProtocol;
+
+		/// <summary>
+		/// Indicates if an ssl certificate should be mutually authenticated.
+		/// </summary>
+		public bool MutualAuthentication { get; set; }
+
+		/// <summary>
+		/// Indicates if invalid ssl certificates should be accepted.
+		/// </summary>
+		public bool AcceptInvalidCertificates { get; set; }
+
+		/// <summary>
+		/// Indicates if the client uses ssl.
+		/// </summary>
+		public bool SslEncryption { get; private set; }
+
+		#region Constructors
+
 		/// <summary>
 		/// Constructor
 		/// </summary>
-		/// <param name="useSsl"></param>
-        public SimpleTcpClient(): base(false, SocketProtocolType.Tcp) {
+		public SimpleTcpClient(): base( SocketProtocolType.Tcp) {
         }
 
 		/// <summary>
@@ -33,7 +71,7 @@ namespace SimpleSockets {
 		/// <param name="tls"></param>
 		/// <param name="acceptInvalidCertificates"></param>
 		/// <param name="mutualAuth"></param>
-		public SimpleTcpClient(X509Certificate2 certificate, TlsProtocol tls = TlsProtocol.Tls12, bool acceptInvalidCertificates = true, bool mutualAuth = false): base(true, SocketProtocolType.Tcp) {
+		public SimpleTcpClient(X509Certificate2 certificate, TlsProtocol tls = TlsProtocol.Tls12, bool acceptInvalidCertificates = true, bool mutualAuth = false): base(SocketProtocolType.Tcp) {
 			_sslCertificate = certificate ?? throw new ArgumentNullException(nameof(certificate));
 
 			_tlsProtocol = tls;
@@ -49,7 +87,7 @@ namespace SimpleSockets {
 		/// <param name="tls"></param>
 		/// <param name="acceptInvalidCertificates"></param>
 		/// <param name="mutualAuth"></param>
-		public SimpleTcpClient(byte[] certData, string certPass, TlsProtocol tls = TlsProtocol.Tls12, bool acceptInvalidCertificates = true, bool mutualAuth = false) : base(true,SocketProtocolType.Tcp) {
+		public SimpleTcpClient(byte[] certData, string certPass, TlsProtocol tls = TlsProtocol.Tls12, bool acceptInvalidCertificates = true, bool mutualAuth = false) : base(SocketProtocolType.Tcp) {
 			if (certData == null || certData.Length == 0)
 				throw new ArgumentNullException(nameof(certData));
 
@@ -74,50 +112,18 @@ namespace SimpleSockets {
 		public SimpleTcpClient(string cert, string certPass, TlsProtocol tls = TlsProtocol.Tls12, bool acceptInvalidCertificates = true, bool mutualAuth = false) : this(File.ReadAllBytes(Path.GetFullPath(cert)), certPass, tls, acceptInvalidCertificates, mutualAuth) {
 		}
 
-		/// <summary>
-		/// Tries to connect to a server.
-		/// </summary>
-		/// <param name="serverIp"></param>
-		/// <param name="serverPort"></param>
-		/// <param name="autoReconnect">Set to 0 to disable autoreconnect.</param>
-        public void ConnectTo(string serverIp, int serverPort, int autoReconnect = 5) {
+		#endregion
 
-			if (string.IsNullOrEmpty(serverIp))
-				throw new ArgumentNullException(nameof(serverIp));
-			if (serverPort < 1 || serverPort > 65535)
-				throw new ArgumentOutOfRangeException(nameof(serverPort));
-			if (autoReconnect > 0 && autoReconnect < 4)
-				throw new ArgumentOutOfRangeException(nameof(autoReconnect));
-
-			if (SslEncryption) 
-				_sslCertificateCollection = new X509Certificate2Collection { _sslCertificate };
-
-			ServerIp = serverIp;
-			ServerPort = serverPort;
-			AutoReconnect = new TimeSpan(0, 0, 0, autoReconnect);
-
-			EndPoint = new IPEndPoint(GetIp(ServerIp), ServerPort);
-
-			TokenSource = new CancellationTokenSource();
-			Token = TokenSource.Token;
-
-			Task.Run(() =>
-			{
-				if (Token.IsCancellationRequested)
-					return;
-
-				Listener = new Socket(EndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-				Listener.BeginConnect(EndPoint, OnConnected, Listener);
-				Connected.Wait(Token);		
-
-			});
-        }
-
-		private bool ValidateCertificate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicy) {
+		#region Ssl-Helpers
+		// Validates a certificate
+		protected bool ValidateCertificate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicy)
+		{
 			return !AcceptInvalidCertificates ? _sslCertificate.Verify() : AcceptInvalidCertificates;
 		}
 
-		private async Task<bool> Authenticate(SslStream sslStream) {
+		// Tries to authenticate an ssl stream.
+		protected async Task<bool> Authenticate(SslStream sslStream)
+		{
 			try
 			{
 				SslProtocols protocol;
@@ -151,19 +157,63 @@ namespace SimpleSockets {
 				OnSslAuthSuccess();
 				return true;
 			}
-			catch (AuthenticationException ex) {
+			catch (AuthenticationException ex)
+			{
 				OnSslAutFailed();
 				SocketLogger?.Log(ex, LogLevel.Fatal);
 				return false;
 			}
 		}
 
-		private void DisposeSslStream() {
+		// Disposes of the sslstream.
+		protected void DisposeSslStream()
+		{
 			if (_sslStream == null) return;
 			_sslStream.Dispose();
 			_sslStream = null;
 		}
+		#endregion
 
+		/// <summary>
+		/// Tries to connect to a server.
+		/// </summary>
+		/// <param name="serverIp"></param>
+		/// <param name="serverPort"></param>
+		/// <param name="autoReconnect">Set to 0 to disable autoreconnect.</param>
+		public override void ConnectTo(string serverIp, int serverPort, int autoReconnect) {
+
+			if (string.IsNullOrEmpty(serverIp))
+				throw new ArgumentNullException(nameof(serverIp));
+			if (serverPort < 1 || serverPort > 65535)
+				throw new ArgumentOutOfRangeException(nameof(serverPort));
+			if (autoReconnect > 0 && autoReconnect < 4)
+				throw new ArgumentOutOfRangeException(nameof(autoReconnect));
+
+			if (SslEncryption) 
+				_sslCertificateCollection = new X509Certificate2Collection { _sslCertificate };
+
+			ServerIp = serverIp;
+			ServerPort = serverPort;
+			AutoReconnect = new TimeSpan(0, 0, 0, autoReconnect);
+
+			EndPoint = new IPEndPoint(GetIp(ServerIp), ServerPort);
+
+			TokenSource = new CancellationTokenSource();
+			Token = TokenSource.Token;
+
+			Task.Run(() =>
+			{
+				if (Token.IsCancellationRequested)
+					return;
+
+				Listener = new Socket(EndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+				Listener.BeginConnect(EndPoint, OnConnected, Listener);
+				Connected.Wait(Token);		
+
+			});
+        }
+
+		// Called when the client clients.
 		private async void OnConnected(IAsyncResult result) {
 			var socket = (Socket)result.AsyncState;
 
@@ -183,7 +233,7 @@ namespace SimpleSockets {
 
 				if (success) {
 					Connected.Set();
-					var metadata = new ClientMetadata(Listener, -1, SocketLogger);
+					var metadata = new SessionMetadata(Listener, -1, SocketLogger);
 					Sent.Set();
 					OnConnectedToServer();
 					SendAuthenticationMessage();
@@ -220,7 +270,8 @@ namespace SimpleSockets {
 			}
 		}
 
-		internal virtual void Receive(IClientMetadata metadata) {
+		// Called after a client connects and receives bytes from a server.
+		protected virtual void Receive(ISessionMetadata metadata) {
 			while (!Token.IsCancellationRequested)
 			{
 
@@ -253,9 +304,10 @@ namespace SimpleSockets {
 			}
 		}
 
-		internal virtual void ReceiveCallback(IAsyncResult result)
+		// Called everytime a client receives bytes from the server
+		protected virtual void ReceiveCallback(IAsyncResult result)
 		{
-			var client = (IClientMetadata)result.AsyncState;
+			var client = (ISessionMetadata)result.AsyncState;
 			var dReceiver = client.DataReceiver;
 			client.Timeout.Set();
 			try
@@ -308,28 +360,7 @@ namespace SimpleSockets {
 			}
 		}
 
-		/// <summary>
-		/// Shutdowns the client
-		/// </summary>
-		public void ShutDown() {
-			try
-			{
-				if (SslEncryption)
-					DisposeSslStream();
-
-				Connected.Reset();
-				if (Listener != null) {
-					Listener.Shutdown(SocketShutdown.Both);
-					Listener.Close();
-					Listener = null;
-					OnDisconnectedFromServer();
-				}
-			}
-			catch (Exception ex) {
-				SocketLogger?.Log("Error closing the client", ex, LogLevel.Error);
-			}
-		}
-
+		// Send bytes to a connected client.
 		protected override async Task<bool> SendToServerAsync(byte[] payload)
 		{
 			try
@@ -368,6 +399,7 @@ namespace SimpleSockets {
 			}
 		}
 
+		// Send bytes to a connected client.
 		protected override void SendToServer(byte[] payload) {
 			try
 			{
@@ -375,7 +407,7 @@ namespace SimpleSockets {
 					throw new InvalidOperationException("Client is not connected.");
 				}
 
-				if (_sslStream == null || Listener == null)
+				if ((_sslStream == null && SslEncryption) || Listener == null)
 					throw new InvalidOperationException(SslEncryption ? "Sslstream is null." : "Listener is null.");
 
 				Sent.Wait();
@@ -394,6 +426,7 @@ namespace SimpleSockets {
 			}
 		}
 
+		// Called by SendToServer.
 		protected void SendCallback(IAsyncResult result) {
 			try
 			{
@@ -418,24 +451,28 @@ namespace SimpleSockets {
 		}
 
 		/// <summary>
+		/// Shutdowns the client
+		/// </summary>
+		public override void ShutDown()
+		{
+			try
+			{
+				base.ShutDown();
+				if (SslEncryption)
+					DisposeSslStream();
+			}
+			catch (Exception ex)
+			{
+				SocketLogger?.Log(ex, LogLevel.Error);
+			}
+		}
+
+		/// <summary>
 		/// Disposes of the client
 		/// </summary>
 		public override void Dispose()
         {
-			try
-			{
-				if (!Disposed)
-				{
-					ShutDown();
-					TokenSource.Cancel();
-					Sent.Dispose();
-					Connected.Dispose();
-					Disposed = true;
-				}
-			}
-			catch (Exception ex) {
-				SocketLogger?.Log(ex, LogLevel.Error);
-			}
+			base.Dispose();
         }
 
 	}

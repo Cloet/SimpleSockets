@@ -1,6 +1,6 @@
 namespace SimpleSockets.Messaging
 {
-	public enum MessageType
+	public enum PacketType
 	{
 		Message=0,
 		Bytes = 1,
