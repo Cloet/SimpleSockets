@@ -308,455 +308,99 @@ namespace SimpleSockets.Server {
 
 		protected abstract Task<bool> SendToSocketAsync(int clientId, byte[] payload);
 
-		protected bool SendInternal(int clientid, PacketType msgType, byte[] data, IDictionary<object,object> metadata, IDictionary<object,object> extraInfo, string eventKey, EncryptionType eType, CompressionType cType) {
+		protected bool SendInternal(int clientid, PacketType msgType, byte[] data, IDictionary<object,object> metadata, string eventKey, EncryptionType eType, CompressionType cType) {
+
+			var packet = PacketBuilder.NewPacket
+				.SetBytes(data)
+				.SetPacketType(msgType)
+				.SetMetadata(metadata)
+				.SetCompression(cType)
+				.SetEncryption(eType)
+				.SetDynamicCallback(eventKey)
+				.Build();
+
+			return SendPacket(clientid, packet);
+		}
+
+		protected async Task<bool> SendInternalAsync(int clientId, PacketType msgType, byte[] data, IDictionary<object, object> metadata, string eventKey, EncryptionType eType, CompressionType cType) {
+
+			var packet = PacketBuilder.NewPacket
+				.SetBytes(data)
+				.SetPacketType(msgType)
+				.SetMetadata(metadata)
+				.SetCompression(cType)
+				.SetEncryption(eType)
+				.SetDynamicCallback(eventKey)
+				.Build();
+
+			return await SendPacketAsync(clientId, packet);
+		}
+
+		// Add some extra data to a packet that will be sent.
+		private Packet AddDataOntoPacket(Packet packet)
+		{
+			packet.PreSharedKey = PreSharedKey;
+			packet.Logger = SocketLogger;
+			packet.EncryptionKey = EncryptionPassphrase;
+
+			if (packet.addDefaultEncryption)
+			{
+				packet.Encrypt = (EncryptionMethod != EncryptionType.None);
+				packet.EncryptMode = EncryptionMethod;
+			}
+
+			if (packet.addDefaultCompression)
+			{
+				packet.Compress = (CompressionMethod != CompressionType.None);
+				packet.CompressMode = CompressionMethod;
+			}
+
+			return packet;
+		}
+
+		/// <summary>
+		/// Send a packet build with <seealso cref="PacketBuilder"/>.
+		/// </summary>
+		/// <param name="packet"></param>
+		/// <returns></returns>
+		public bool SendPacket(int clientId, Packet packet)
+		{
 
 			try
 			{
-				if (EncryptionMethod != EncryptionType.None && (EncryptionPassphrase == null || EncryptionPassphrase.Length == 0))
-					SocketLogger?.Log($"Please set a valid encryptionmethod when trying to encrypt a message.{Environment.NewLine}This message will not be encrypted.", LogLevel.Warning);
-
-				if (eventKey != string.Empty && eventKey != null)
-				{
-					if (extraInfo == null)
-						extraInfo = new Dictionary<object, object>();
-					extraInfo.Add("DynamicCallback", eventKey);
-				}
-
-				//var payload = InternalPacketBuilder.Initialize(msgType, SocketLogger)
-				//	.AddCompression(cType)
-				//	.AddEncryption(EncryptionPassphrase, eType)
-				//	.AddMessageBytes(data)
-				//	.AddMetadata(metadata)
-				//	.AddAdditionalInternalInfo(extraInfo)
-				//	.BuildMessage();
-				var payload = new byte[0];
-
-
-				SendToSocket(clientid, payload);
-
+				var p = AddDataOntoPacket(packet);
+				SendToSocket(clientId, p.BuildPayload());
 				return true;
 			}
-			catch (Exception) {
+			catch (Exception ex)
+			{
+				SocketLogger?.Log("Error sending a packet.", ex, LogLevel.Error);
 				return false;
 			}
 		}
 
-		protected async Task<bool> SendInternalAsync(int clientId, PacketType msgType, byte[] data, IDictionary<object, object> metadata, IDictionary<object, object> extraInfo, string eventKey, EncryptionType eType, CompressionType cType) {
+		/// <summary>
+		/// Sends a packet build with <seealso cref="PacketBuilder"/>
+		/// </summary>
+		/// <param name="packet"></param>
+		/// <returns></returns>
+		public async Task<bool> SendPacketAsync(int clientId, Packet packet)
+		{
 			try
 			{
-				if (EncryptionMethod != EncryptionType.None && (EncryptionPassphrase == null || EncryptionPassphrase.Length == 0))
-					SocketLogger?.Log($"Please set a valid encryptionmethod when trying to encrypt a message.{Environment.NewLine}This message will not be encrypted.", LogLevel.Warning);
-
-				if (eventKey != string.Empty && eventKey != null)
-				{
-					if (extraInfo == null)
-						extraInfo = new Dictionary<object, object>();
-					extraInfo.Add("DynamicCallback", eventKey);
-				}
-
-				//var payload = InternalPacketBuilder.Initialize(msgType, SocketLogger)
-				//	.AddCompression(cType)
-				//	.AddEncryption(EncryptionPassphrase, eType)
-				//	.AddMessageBytes(data)
-				//	.AddMetadata(metadata)
-				//	.AddAdditionalInternalInfo(extraInfo)
-				//	.BuildMessage();
-				var payload = new byte[0];
-
-				return await SendToSocketAsync(clientId, payload);
+				var p = AddDataOntoPacket(packet);
+				return await SendToSocketAsync(clientId, p.BuildPayload());
 			}
-			catch (Exception) {
+			catch (Exception ex)
+			{
+				SocketLogger?.Log("Error sending a packet.", ex, LogLevel.Error);
 				return false;
 			}
 		}
 
-		#region Message
-
-		/// <summary>
-		/// Send a message to a client.
-		/// </summary>
-		/// <param name="clientId"></param>
-		/// <param name="message"></param>
-		/// <param name="metadata"></param>
-		/// <param name="dynamicEventKey"></param>
-		/// <param name="encryption"></param>
-		/// <param name="compression"></param>
-		/// <returns></returns>
-		public bool SendMessage(int clientId, string message, IDictionary<object, object> metadata, string dynamicEventKey, EncryptionType encryption, CompressionType compression) {
-			return SendInternal(clientId, PacketType.Message, Encoding.UTF8.GetBytes(message), metadata, null, dynamicEventKey, encryption, compression);
+		public bool SendMessage(int clientId, string message) {
+			return SendInternal(clientId, PacketType.Message, Encoding.UTF8.GetBytes(message), null, string.Empty, EncryptionMethod, CompressionMethod);
 		}
-
-		/// <summary>
-		/// Send a message to a client.
-		/// </summary>
-		/// <param name="clientId"></param>
-		/// <param name="message"></param>
-		/// <param name="metadata"></param>
-		/// <param name="dynamicEventKey"></param>
-		/// <returns></returns>
-		public bool SendMessage(int clientId, string message, IDictionary<object, object> metadata, string dynamicEventKey) {
-			return SendMessage(clientId, message, metadata, dynamicEventKey, EncryptionMethod, CompressionMethod);
-		}
-
-		/// <summary>
-		/// Send a message to a client.
-		/// </summary>
-		/// <param name="clientId"></param>
-		/// <param name="message"></param>
-		/// <param name="metadata"></param>
-		/// <param name="encryption"></param>
-		/// <param name="compression"></param>
-		/// <returns></returns>
-		public bool SendMessage(int clientId, string message, IDictionary<object, object> metadata, EncryptionType encryption, CompressionType compression)
-		{
-			return SendMessage(clientId, message, metadata, string.Empty, encryption, compression);
-		}
-
-		/// <summary>
-		/// Send a message to a client.
-		/// </summary>
-		/// <param name="clientId"></param>
-		/// <param name="message"></param>
-		/// <param name="metadata"></param>
-		/// <returns></returns>
-		public bool SendMessage(int clientId, string message, IDictionary<object, object> metadata)
-		{
-			return SendMessage(clientId, message, metadata, EncryptionMethod, CompressionMethod);
-		}
-
-		/// <summary>
-		/// Send a message to a client.
-		/// </summary>
-		/// <param name="clientId"></param>
-		/// <param name="message"></param>
-		/// <returns></returns>
-		public bool SendMessage(int clientId, string message)
-		{
-			return SendMessage(clientId, message, null);
-		}
-
-		/// <summary>
-		/// Send an async message to a client.
-		/// </summary>
-		/// <param name="clientId"></param>
-		/// <param name="message"></param>
-		/// <param name="metadata"></param>
-		/// <param name="dynamicEventKey"></param>
-		/// <param name="encryption"></param>
-		/// <param name="compression"></param>
-		/// <returns></returns>
-		public async Task<bool> SendMessageAsync(int clientId, string message, IDictionary<object, object> metadata, string dynamicEventKey, EncryptionType encryption, CompressionType compression) {
-			return await SendInternalAsync(clientId, PacketType.Message, Encoding.UTF8.GetBytes(message), metadata, null, dynamicEventKey, encryption, compression);
-		}
-
-		/// <summary>
-		/// Send an async message to a client.
-		/// </summary>
-		/// <param name="clientId"></param>
-		/// <param name="message"></param>
-		/// <param name="metadata"></param>
-		/// <param name="dynamicEventKey"></param>
-		/// <returns></returns>
-		public async Task<bool> SendMessageAsync(int clientId, string message, IDictionary<object, object> metadata, string dynamicEventKey) {
-			return await SendMessageAsync(clientId, message, metadata, dynamicEventKey, EncryptionMethod, CompressionMethod);
-		}
-
-		/// <summary>
-		/// Send an async message to a client.
-		/// </summary>
-		/// <param name="clientId"></param>
-		/// <param name="message"></param>
-		/// <param name="metadata"></param>
-		/// <param name="encryption"></param>
-		/// <param name="compression"></param>
-		/// <returns></returns>
-		public async Task<bool> SendMessageAsync(int clientId, string message, IDictionary<object, object> metadata, EncryptionType encryption, CompressionType compression) {
-			return await SendMessageAsync(clientId, message, metadata, string.Empty, encryption, compression);
-		}
-
-		/// <summary>
-		/// Send an async message to a client.
-		/// </summary>
-		/// <param name="clientId"></param>
-		/// <param name="message"></param>
-		/// <param name="metadata"></param>
-		/// <returns></returns>
-		public async Task<bool> SendMessageAsync(int clientId, string message, IDictionary<object, object> metadata) {
-			return await SendMessageAsync(clientId, message, metadata, EncryptionMethod, CompressionMethod);
-		}
-
-		/// <summary>
-		/// Send an async message to a client.
-		/// </summary>
-		/// <param name="clientId"></param>
-		/// <param name="message"></param>
-		/// <returns></returns>
-		public async Task<bool> SendMessageAsync(int clientId, string message) {
-			return await SendMessageAsync(clientId, message);
-		}
-
-		#endregion
-
-		#region Bytes
-
-		/// <summary>
-		/// Send bytes to a client.
-		/// </summary>
-		/// <param name="clientId"></param>
-		/// <param name="data"></param>
-		/// <param name="metadata"></param>
-		/// <param name="dynamicEventKey"></param>
-		/// <param name="encryption"></param>
-		/// <param name="compression"></param>
-		/// <returns></returns>
-		public bool SendBytes(int clientId, byte[] data, IDictionary<object, object> metadata, string dynamicEventKey, EncryptionType encryption, CompressionType compression) {
-			return SendInternal(clientId, PacketType.Bytes, data, metadata, null, dynamicEventKey, encryption, compression);
-		}
-
-		/// <summary>
-		/// Send bytes to a client.
-		/// </summary>
-		/// <param name="clientId"></param>
-		/// <param name="data"></param>
-		/// <param name="metadata"></param>
-		/// <param name="encryption"></param>
-		/// <param name="compression"></param>
-		/// <returns></returns>
-		public bool SendBytes(int clientId, byte[] data, IDictionary<object, object> metadata, EncryptionType encryption, CompressionType compression) {
-			return SendBytes(clientId, data, metadata, string.Empty, encryption, compression);
-		}
-
-		/// <summary>
-		/// Send bytes to a client.
-		/// </summary>
-		/// <param name="clientId"></param>
-		/// <param name="data"></param>
-		/// <param name="metadata"></param>
-		/// <param name="dynamicEventKey"></param>
-		/// <returns></returns>
-		public bool SendBytes(int clientId, byte[] data, IDictionary<object, object> metadata, string dynamicEventKey) {
-			return SendBytes(clientId, data, metadata, dynamicEventKey, EncryptionMethod, CompressionMethod);
-		}
-
-		/// <summary>
-		/// Send bytes to a client.
-		/// </summary>
-		/// <param name="clientId"></param>
-		/// <param name="data"></param>
-		/// <param name="metadata"></param>
-		/// <returns></returns>
-		public bool SendBytes(int clientId, byte[] data, IDictionary<object, object> metadata) {
-			return SendBytes(clientId, data, metadata, EncryptionMethod, CompressionMethod);
-		}
-
-		/// <summary>
-		/// Send bytes to a client.
-		/// </summary>
-		/// <param name="clientId"></param>
-		/// <param name="data"></param>
-		/// <returns></returns>
-		public bool SendBytes(int clientId, byte[] data) {
-			return SendBytes(clientId, data);
-		}
-
-		/// <summary>
-		/// Send bytes async to a client.
-		/// </summary>
-		/// <param name="clientId"></param>
-		/// <param name="data"></param>
-		/// <param name="metadata"></param>
-		/// <param name="dynamicEventKey"></param>
-		/// <param name="encryption"></param>
-		/// <param name="compression"></param>
-		/// <returns></returns>
-		public async Task<bool> SendBytesAsync(int clientId, byte[] data, IDictionary<object, object> metadata, string dynamicEventKey, EncryptionType encryption, CompressionType compression) {
-			return await SendInternalAsync(clientId, PacketType.Bytes, data, metadata, null, dynamicEventKey, encryption, compression);
-		}
-
-		/// <summary>
-		/// Send bytes async to a client.
-		/// </summary>
-		/// <param name="clientId"></param>
-		/// <param name="data"></param>
-		/// <param name="metadata"></param>
-		/// <param name="encryption"></param>
-		/// <param name="compression"></param>
-		/// <returns></returns>
-		public async Task<bool> SendBytesAsync(int clientId, byte[] data, IDictionary<object, object> metadata, EncryptionType encryption, CompressionType compression)
-		{
-			return await SendBytesAsync(clientId, data, metadata, string.Empty, encryption, compression);
-		}
-
-		/// <summary>
-		/// Send bytes async to a client.
-		/// </summary>
-		/// <param name="clientId"></param>
-		/// <param name="data"></param>
-		/// <param name="metadata"></param>
-		/// <param name="dynamicEventKey"></param>
-		/// <returns></returns>
-		public async Task<bool> SendBytesAsync(int clientId, byte[] data, IDictionary<object, object> metadata, string dynamicEventKey) {
-			return await SendBytesAsync(clientId, data, metadata, dynamicEventKey, EncryptionMethod, CompressionMethod);
-		}
-
-		/// <summary>
-		/// Send bytes async to a client.
-		/// </summary>
-		/// <param name="clientId"></param>
-		/// <param name="data"></param>
-		/// <param name="metadata"></param>
-		/// <returns></returns>
-		public async Task<bool> SendBytesAsync(int clientId, byte[] data, IDictionary<object, object> metadata) {
-			return await SendBytesAsync(clientId, data, metadata, EncryptionMethod, CompressionMethod);
-		}
-
-		/// <summary>
-		/// Send bytes async to a client.
-		/// </summary>
-		/// <param name="clientId"></param>
-		/// <param name="data"></param>
-		/// <returns></returns>
-		public async Task<bool> SendBytesAsync(int clientId, byte[] data) {
-			return await SendBytesAsync(clientId, data, null);
-		}
-
-		#endregion
-
-		#region Objects
-
-		/// <summary>
-		/// Send object to a client.
-		/// </summary>
-		/// <param name="clientId"></param>
-		/// <param name="obj"></param>
-		/// <param name="metadata"></param>
-		/// <param name="dynamicEventKey"></param>
-		/// <param name="encryption"></param>
-		/// <param name="compression"></param>
-		/// <returns></returns>
-		public bool SendObject(int clientId, object obj, IDictionary<object, object> metadata, string dynamicEventKey, EncryptionType encryption, CompressionType compression) {
-			var bytes = SerializationHelper.SerializeObjectToBytes(obj);
-
-			var info = new Dictionary<object, object>();
-			info.Add("Type", obj.GetType());
-
-			return SendInternal(clientId, PacketType.Object, bytes, metadata, info, dynamicEventKey, encryption, compression);
-		}
-
-		/// <summary>
-		/// Send object to a client.
-		/// </summary>
-		/// <param name="clientId"></param>
-		/// <param name="obj"></param>
-		/// <param name="metadata"></param>
-		/// <param name="encryption"></param>
-		/// <param name="compression"></param>
-		/// <returns></returns>
-		public bool SendObject(int clientId, object obj, IDictionary<object, object> metadata, EncryptionType encryption, CompressionType compression) {
-			return SendObject(clientId, obj, metadata, string.Empty, encryption, compression);
-		}
-
-		/// <summary>
-		/// Send object to a client.
-		/// </summary>
-		/// <param name="clientId"></param>
-		/// <param name="obj"></param>
-		/// <param name="metadata"></param>
-		/// <returns></returns>
-		public bool SendObject(int clientId, object obj, IDictionary<object, object> metadata) {
-			return SendObject(clientId, obj, metadata, EncryptionMethod, CompressionMethod);
-		}
-
-		/// <summary>
-		/// Send object to a client.
-		/// </summary>
-		/// <param name="clientId"></param>
-		/// <param name="obj"></param>
-		/// <param name="metadata"></param>
-		/// <param name="dynamicEventKey"></param>
-		/// <returns></returns>
-		public bool SendObject(int clientId, object obj, IDictionary<object, object> metadata, string dynamicEventKey) {
-			return SendObject(clientId, obj, metadata, dynamicEventKey, EncryptionMethod, CompressionMethod);
-		}
-
-		/// <summary>
-		/// Send object to a client.
-		/// </summary>
-		/// <param name="clientId"></param>
-		/// <param name="obj"></param>
-		/// <returns></returns>
-		public bool SendObject(int clientId, object obj) {
-			return SendObject(clientId, obj, null);
-		}
-
-		/// <summary>
-		/// Send object async to a client.
-		/// </summary>
-		/// <param name="clientId"></param>
-		/// <param name="obj"></param>
-		/// <param name="metadata"></param>
-		/// <param name="dynamicEventKey"></param>
-		/// <param name="encryption"></param>
-		/// <param name="compression"></param>
-		/// <returns></returns>
-		public async Task<bool> SendObjectAsync(int clientId, object obj, IDictionary<object, object> metadata, string dynamicEventKey, EncryptionType encryption, CompressionType compression)
-		{
-			var bytes = SerializationHelper.SerializeObjectToBytes(obj);
-
-			var info = new Dictionary<object, object>();
-			info.Add("Type", obj.GetType());
-
-			return await SendInternalAsync(clientId, PacketType.Bytes, bytes, metadata, info, dynamicEventKey, encryption, compression);
-		}
-
-		/// <summary>
-		/// Send object async to a client.
-		/// </summary>
-		/// <param name="clientId"></param>
-		/// <param name="obj"></param>
-		/// <param name="metadata"></param>
-		/// <param name="encryption"></param>
-		/// <param name="compression"></param>
-		/// <returns></returns>
-		public async Task<bool> SendObjectAsync(int clientId, object obj, IDictionary<object, object> metadata, EncryptionType encryption, CompressionType compression)
-		{
-			return await SendObjectAsync(clientId, obj, metadata, string.Empty, encryption, compression);
-		}
-
-		/// <summary>
-		/// Send object async to a client.
-		/// </summary>
-		/// <param name="clientId"></param>
-		/// <param name="obj"></param>
-		/// <param name="metadata"></param>
-		/// <returns></returns>
-		public async Task<bool> SendObjectAsync(int clientId, object obj, IDictionary<object, object> metadata) {
-			return await SendObjectAsync(clientId, obj, metadata, EncryptionMethod,CompressionMethod);
-		}
-
-		/// <summary>
-		/// Send object async to a client.
-		/// </summary>
-		/// <param name="clientId"></param>
-		/// <param name="obj"></param>
-		/// <param name="metadata"></param>
-		/// <param name="dynamicEventKey"></param>
-		/// <returns></returns>
-		public async Task<bool> SendObjectAsync(int clientId, object obj, IDictionary<object, object> metadata, string dynamicEventKey) {
-			return await SendObjectAsync(clientId, obj, metadata, dynamicEventKey, EncryptionMethod, CompressionMethod);
-		}
-
-		/// <summary>
-		/// Send object async to a client.
-		/// </summary>
-		/// <param name="clientId"></param>
-		/// <param name="obj"></param>
-		/// <returns></returns>
-		public async Task<bool> SendObjectAsync(int clientId, object obj) {
-			return await SendObjectAsync(clientId, obj, null);
-		}
-
-		#endregion
 
 		#endregion
 

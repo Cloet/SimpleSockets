@@ -458,7 +458,7 @@ namespace SimpleSockets.Messaging {
 
 				AdditionalInternalInfo = SerializationHelper.DeserializeJson<IDictionary<object, object>>(_internalInfoBytes);
 			}
-			catch (Exception ex)
+			catch (Exception)
 			{
 				AdditionalInternalInfo = null;
 				return;
@@ -490,7 +490,7 @@ namespace SimpleSockets.Messaging {
 
 				return eventH;
 			}
-			catch (Exception ex) {
+			catch (Exception) {
 				return null;
 			}
 		}

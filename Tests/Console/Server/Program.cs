@@ -57,7 +57,7 @@ namespace Server
 				if (input == "msgdc")
 					eventKey = "CustomMessage";
 
-				_server.SendMessage(clientid, msg, md, eventKey);
+				// _server.SendMessage(clientid, msg, md, eventKey);
 			}
 			else if (input == "stats") {
 				Console.WriteLine(_server.Statistics.ToString());
@@ -84,7 +84,7 @@ namespace Server
 				if (input == "objdc")
 					eventKey = "PersonObject";
 
-				_server.SendObject(clientid, new Person(fname, lname), md, eventKey);
+				// _server.SendObject(clientid, new Person(fname, lname), md, eventKey);
 
 			}
 			else if (input == "h" || input == "?")
