@@ -15,16 +15,16 @@ namespace SimpleSockets.Helpers.Compression
 		/// <param name="bytes"></param>
 		/// <param name="mode"></param>
 		/// <returns></returns>
-		internal static byte[] Compress(byte[] bytes, CompressionType mode)
+		internal static byte[] Compress(byte[] bytes, CompressionMethod mode)
 		{
 			if (bytes == null || bytes.Length <= 0)
 				return null;
 
-			if (mode == CompressionType.GZip)
+			if (mode == CompressionMethod.GZip)
 				return Gzip.Compress(bytes);
-			if (mode == CompressionType.Deflate)
+			if (mode == CompressionMethod.Deflate)
 				return Deflate.CompressBytes(bytes);
-			if (mode == CompressionType.None)
+			if (mode == CompressionMethod.None)
 				return bytes;
 
 			throw new ArgumentException(nameof(mode));
@@ -36,16 +36,16 @@ namespace SimpleSockets.Helpers.Compression
 		/// <param name="bytes"></param>
 		/// <param name="mode"></param>
 		/// <returns></returns>
-		internal static byte[] Decompress(byte[] bytes, CompressionType mode)
+		internal static byte[] Decompress(byte[] bytes, CompressionMethod mode)
 		{
 			if (bytes == null || bytes.Length <= 0)
 				return null;
 
-			if (mode == CompressionType.GZip)
+			if (mode == CompressionMethod.GZip)
 				return Gzip.Decompress(bytes);
-			if (mode == CompressionType.Deflate)
+			if (mode == CompressionMethod.Deflate)
 				return Deflate.DecompressBytes(bytes);
-			if (mode == CompressionType.None)
+			if (mode == CompressionMethod.None)
 				return bytes;
 
 			throw new ArgumentException(nameof(mode));

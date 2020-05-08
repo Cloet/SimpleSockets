@@ -24,10 +24,11 @@ namespace Server
 			//_server = new SimpleTcpServer();
 			//_server = new SimpleTcpServer(cert);
 			_server = new SimpleTcpServer();
+			_server.FileTransferEnabled = true;
 
-            _server.LoggerLevel = LogLevel.Trace;
+            _server.LoggerLevel = LogLevel.Debug;
 			BindEvents(_server);
-			_server.CompressionMethod = CompressionType.Deflate;
+			_server.CompressionMethod = CompressionMethod.Deflate;
 
 			_server.Listen(13000);
 

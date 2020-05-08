@@ -20,6 +20,8 @@ namespace SimpleSockets.Messaging {
 
 		internal byte[] Received => _received;
 
+		internal bool LastByteEscape { get; set; }
+
         private LogHelper _logger;
 
         internal PacketReceiver(LogHelper logger, int bufferSize) {
@@ -27,7 +29,8 @@ namespace SimpleSockets.Messaging {
             Buffer = new byte[BufferSize];
             _received = new byte[0];
             _logger = logger;
-        }
+			LastByteEscape = false;
+		}
 
 		internal void ClearBuffer() {
 			Buffer = null;
@@ -41,26 +44,13 @@ namespace SimpleSockets.Messaging {
 		/// <returns></returns>
 		internal bool AppendByteToReceived(byte readByte) {
 			_received = PacketHelper.MergeByteArrays(_received, new byte[1] { readByte });
-
-			if (_received.Length >= PacketHelper.PacketDelimiter.Length) {
-				var end = new byte[PacketHelper.PacketDelimiter.Length];
-				Array.Copy(_received, _received.Length - PacketHelper.PacketDelimiter.Length, end, 0, end.Length);
-				if (end.SequenceEqual(PacketHelper.PacketDelimiter))
-				{
-					_logger?.Log("Packet delimiter found, building message from received bytes.", LogLevel.Trace);
-					var temp = new byte[_received.Length - PacketHelper.PacketDelimiter.Length];
-					Array.Copy(_received, 0, temp,0, temp.Length);
-					_received = temp;
-					return true;
-				}
-			}
 			return false;
 		}
+
 
 		internal Packet BuildMessageFromPayload(byte[] encryptionPassphrase, byte[] presharedKey) {
 			try
 			{
-
 				var pb = PacketReceiverBuilder.InitializeReceiver(_logger, _received[0], out var headerLength);
 
 				var header = new byte[headerLength];

@@ -1,6 +1,6 @@
 namespace SimpleSockets.Helpers.Compression
 {
-	public enum CompressionType
+	public enum CompressionMethod
 	{
 		None=0,
 		Deflate=1,

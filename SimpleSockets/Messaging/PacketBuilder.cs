@@ -201,8 +201,8 @@ namespace SimpleSockets.Messaging
 		/// </summary>
 		/// <param name="compression"></param>
 		/// <returns></returns>
-		public PacketBuilder SetCompression(CompressionType compression) {
-			_packet.Compress = (compression != CompressionType.None);
+		public PacketBuilder SetCompression(CompressionMethod compression) {
+			_packet.Compress = (compression != CompressionMethod.None);
 			_packet.CompressMode = compression;
 			_packet.addDefaultCompression = false;
 			return this;
@@ -215,8 +215,8 @@ namespace SimpleSockets.Messaging
 		/// </summary>
 		/// <param name="encryption"></param>
 		/// <returns></returns>
-		public PacketBuilder SetEncryption(EncryptionType encryption) {
-			_packet.Encrypt = (encryption != EncryptionType.None);
+		public PacketBuilder SetEncryption(EncryptionMethod encryption) {
+			_packet.Encrypt = (encryption != EncryptionMethod.None);
 			_packet.EncryptMode = encryption;
 			_packet.addDefaultEncryption = false;
 			return this;

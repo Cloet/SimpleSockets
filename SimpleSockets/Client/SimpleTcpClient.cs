@@ -212,7 +212,7 @@ namespace SimpleSockets {
         }
 
 		// Called when the client clients.
-		private async void OnConnected(IAsyncResult result) {
+		private void OnConnected(IAsyncResult result) {
 			var socket = (Socket)result.AsyncState;
 
 			try
@@ -226,7 +226,7 @@ namespace SimpleSockets {
 					var stream = new NetworkStream(Listener);
 					_sslStream = new SslStream(stream, false, ValidateCertificate, null);
 
-					success = await Authenticate(_sslStream);
+					success = Authenticate(_sslStream).Result;
 				}
 
 				if (success) {
@@ -235,7 +235,7 @@ namespace SimpleSockets {
 					Sent.Set();
 					OnConnectedToServer();
 					SendAuthenticationMessage();
-					Receive(metadata);
+					Task.Run(() => Receive(metadata), Token);
 				}
 
 				if (SslEncryption && !success)
@@ -306,7 +306,6 @@ namespace SimpleSockets {
 		protected virtual void ReceiveCallback(IAsyncResult result)
 		{
 			var client = (ISessionMetadata)result.AsyncState;
-			var dReceiver = client.DataReceiver;
 			client.Timeout.Set();
 			try
 			{
@@ -328,18 +327,9 @@ namespace SimpleSockets {
 					if (received > 0)
 					{
 						SocketLogger?.Log($"Received {received} bytes.", LogLevel.Trace);
-						var readBuffer = client.DataReceiver.Buffer.Take(received).ToArray();
-						for (int i = 0; i < readBuffer.Length; i++)
-						{
-							var end = client.DataReceiver.AppendByteToReceived(readBuffer[i]);
-							if (end)
-							{
-								var message = client.DataReceiver.BuildMessageFromPayload(EncryptionPassphrase, PreSharedKey);
-								if (message != null)
-									OnMessageReceivedHandler(message);
-								client.ResetDataReceiver();
-							}
-						}
+						var readBuffer = new byte[received];
+						Array.Copy(client.DataReceiver.Buffer, 0, readBuffer, 0, readBuffer.Length);
+						ByteDecoder(client, readBuffer);
 					}
 					// Allow server to receive more bytes of a client.
 					client.ReceivingData.Set();

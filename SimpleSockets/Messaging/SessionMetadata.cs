@@ -35,7 +35,7 @@ namespace SimpleSockets.Messaging
 		public string IPv4 { get; set; }
 		public string IPv6 { get; set; }
 
-		public static int BufferSize { get; private set; } = 65535;
+		public static int BufferSize { get; private set; } = 4096;
 
 		private LogHelper _logger;
 

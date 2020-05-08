@@ -215,13 +215,13 @@ namespace SimpleSockets.Server {
 		/// </summary>
 		/// <param name="port"></param>
 		/// <param name="limit"></param>
-		public void Listen(int port, int limit) => Listen("*", port, MaximumConnections);
+		public void Listen(int port, int limit) => Listen("*", port, limit);
 
 		/// <inheritdoc />
 		public override void Listen(string ip, int port) => Listen(ip, port, MaximumConnections);
 
 		// Called when a client connects. Starts a receiving thread for the client.
-		protected virtual async void OnClientConnects(IAsyncResult result) {
+		protected virtual void OnClientConnects(IAsyncResult result) {
 
             try {
                 ISessionMetadata client;
@@ -256,12 +256,12 @@ namespace SimpleSockets.Server {
 					var stream = new NetworkStream(client.Listener);
 					client.SslStream = new SslStream(stream, false, AcceptCertificate);
 
-					var success = await Authenticate(client);
+					var success = Authenticate(client).Result;
 
 					if (success)
 					{
 						OnClientConnected(new ClientInfoEventArgs(client));
-						Receive(client);
+						Task.Run(() => Receive(client), Token);
 					}
 					else {
 						lock (ConnectedClients) {
@@ -325,7 +325,6 @@ namespace SimpleSockets.Server {
 		// Handles the received data from Receive
         protected virtual void ReceiveCallback(IAsyncResult result) {
             var client = (ISessionMetadata)result.AsyncState;
-            var dReceiver = client.DataReceiver;
             client.Timeout.Set();
             try {
                 if (!IsClientConnected(client.Id))
@@ -344,20 +343,9 @@ namespace SimpleSockets.Server {
 					// This way we can use a delimiter to check if a message has been received.
 					if (received > 0) {
 						SocketLogger?.Log($"Received {received} bytes from a client. {client.Info()}", LogLevel.Trace);
-						// var readBuffer = client.DataReceiver.Buffer.Take(received).ToArray();
 						var readBuffer = new byte[received];
 						Array.Copy(client.DataReceiver.Buffer, 0, readBuffer, 0, readBuffer.Length);
-						for (int i = 0; i < readBuffer.Length; i++)
-						{
-							var end = client.DataReceiver.AppendByteToReceived(readBuffer[i]);
-							if (end)
-							{
-								var message = client.DataReceiver.BuildMessageFromPayload(EncryptionPassphrase, PreSharedKey);
-								if (message != null)
-									OnMessageReceivedHandler(client, message);
-								client.ResetDataReceiver();
-							}
-						}
+						ByteDecoder(client, readBuffer);
 					}
 
 					// Resets buffer of the datareceiver.

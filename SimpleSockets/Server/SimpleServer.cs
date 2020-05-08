@@ -257,7 +257,103 @@ namespace SimpleSockets.Server
 
 		#region Data-Invokers
 
-		internal virtual void OnMessageReceivedHandler(ISessionMetadata client, Packet message)
+		protected override void ByteDecoder(ISessionMetadata session, byte[] array)
+		{
+			try {
+				for (int i = 0; i < array.Length; i++)
+				{
+					if (array[i] == PacketHelper.ESCAPE || session.DataReceiver.LastByteEscape == true)
+					{
+						var lastEscape = session.DataReceiver.LastByteEscape;
+						if (lastEscape)
+							session.DataReceiver.LastByteEscape = false;
+
+						if (i == (array.Length - 1))
+							session.DataReceiver.LastByteEscape = true;
+						else {
+							if (!lastEscape)
+								i++;
+							if (array[i] == PacketHelper.EOF)
+							{
+								var msg = session.DataReceiver.BuildMessageFromPayload(EncryptionPassphrase, PreSharedKey);
+								if (msg != null)
+									OnMessageReceivedHandler(session, msg);
+								session.ResetDataReceiver();
+							}
+							else
+								session.DataReceiver.AppendByteToReceived(array[i]);
+						}
+					}
+					else
+						session.DataReceiver.AppendByteToReceived(array[i]);
+				}
+			} catch (Exception ex) {
+				throw new Exception(ex.ToString(), ex);
+			}
+
+		}
+
+		protected virtual void RequestHandler(ISessionMetadata client, Packet packet) {
+
+			RequestPacket reqpacket = RequestPacket.ReceiverRequestPacket(SocketLogger);
+			reqpacket.Map(packet);
+			reqpacket.Build();
+
+			if (reqpacket.Request == Request.FileTransfer) {
+				var exists = reqpacket.AdditionalInternalInfo.TryGetValue(PacketHelper.REQPATH, out var filename);
+
+				if (exists) {
+					Response res = Response.Error;
+					string errormsg = "";
+					if (!FileTransferEnabled) {
+						res = Response.Error;
+						errormsg = "File transfer is not allowed.";
+					}
+					else
+					{
+						if (File.Exists(Path.GetFullPath(filename.ToString())))
+							res = Response.FileExists;
+						else
+							res = Response.ReqFilePathOk;
+					}
+
+					var resp = ResponsePacket.NewResponsePacket(SocketLogger, reqpacket.RequestGuid, res, errormsg);
+					SendPacket(client.Id, resp);
+				}
+			} else if (reqpacket.Request == Request.FileDelete) {
+				var exists = reqpacket.AdditionalInternalInfo.TryGetValue(PacketHelper.REQPATH, out var filename);
+
+				if (exists) {
+					Response res = Response.Error;
+					string errormsg = "";
+
+					if (!FileTransferEnabled)
+					{
+						res = Response.Error;
+						errormsg = "File transfer is not allowed.";
+					}
+					else {
+						try
+						{
+							File.Delete(Path.GetFullPath(filename.ToString()));
+							res = Response.FileDeleted;
+						}
+						catch (Exception ex) {
+							res = Response.Error;
+							errormsg = ex.ToString();
+						}
+					}
+
+					var resp = ResponsePacket.NewResponsePacket(SocketLogger, reqpacket.RequestGuid, res, errormsg);
+					SendPacket(client.Id, resp);
+				}
+			}
+
+
+
+		}
+
+		protected virtual void OnMessageReceivedHandler(ISessionMetadata client, Packet message)
 		{
 
 			Statistics?.AddReceivedMessages(1);
@@ -322,16 +418,17 @@ namespace SimpleSockets.Server
 			}
 
 			if (message.MessageType == PacketType.File) {
-				var partex = extraInfo?.TryGetValue(PacketHelper.PACKETPART, out var part);
-				var totex = extraInfo?.TryGetValue(PacketHelper.TOTALPACKET, out var total);
-				var destex = extraInfo?.TryGetValue(PacketHelper.DESTPATH, out var path);
+				if (extraInfo == null)
+					return;
 
-				// if (destex) {
-					// var file = Path.GetFullPath(path.ToString());
-					var file = Path.GetFullPath(@"D:\School2.rar");
+				var partex = extraInfo.TryGetValue(PacketHelper.PACKETPART, out var part);
+				var totex = extraInfo.TryGetValue(PacketHelper.TOTALPACKET, out var total);
+				var destex = extraInfo.TryGetValue(PacketHelper.DESTPATH, out var path);
 
-					//if ((long)part == 0) {
-					if (!File.Exists(file)) { 
+				if (destex) {
+					var file = Path.GetFullPath(path.ToString());
+
+					if ((long)part == 0) {
 						FileInfo finfo = new FileInfo(file);
 						finfo.Directory?.Create();
 					}
@@ -341,9 +438,21 @@ namespace SimpleSockets.Server
 						writer.Write(message.Data, 0, message.Data.Length);
 						writer.Close();
 					}
-				// }
+				}
+			}
 
+			if (message.MessageType == PacketType.Request) {
+				RequestHandler(client, message);
+			}
 
+			if (message.MessageType == PacketType.Response) {
+				// var resp = (ResponsePacket)message;
+				var resp = ResponsePacket.ReceiverResponsePacket(SocketLogger);
+				resp.Map(message);
+				resp.Build();
+				lock (_responsePackets) {
+					_responsePackets.Add(resp.ResponseGuid, resp);
+				}
 			}
 
 		}
@@ -356,7 +465,7 @@ namespace SimpleSockets.Server
 
 		protected abstract Task<bool> SendToSocketAsync(int clientId, byte[] payload);
 
-		protected bool SendInternal(int clientid, PacketType msgType, byte[] data, IDictionary<object, object> metadata, string eventKey, EncryptionType eType, CompressionType cType, Type objType = null)
+		protected bool SendInternal(int clientid, PacketType msgType, byte[] data, IDictionary<object, object> metadata, string eventKey, EncryptionMethod eType, CompressionMethod cType, Type objType = null)
 		{
 
 			var packet = PacketBuilder.NewPacket
@@ -373,7 +482,7 @@ namespace SimpleSockets.Server
 			return SendPacket(clientid, packet.Build());
 		}
 
-		protected async Task<bool> SendInternalAsync(int clientId, PacketType msgType, byte[] data, IDictionary<object, object> metadata, string eventKey, EncryptionType eType, CompressionType cType, Type objType = null)
+		protected async Task<bool> SendInternalAsync(int clientId, PacketType msgType, byte[] data, IDictionary<object, object> metadata, string eventKey, EncryptionMethod eType, CompressionMethod cType, Type objType = null)
 		{
 
 			var packet = PacketBuilder.NewPacket
@@ -399,13 +508,13 @@ namespace SimpleSockets.Server
 
 			if (packet.addDefaultEncryption)
 			{
-				packet.Encrypt = (EncryptionMethod != EncryptionType.None);
+				packet.Encrypt = (EncryptionMethod != EncryptionMethod.None);
 				packet.EncryptMode = EncryptionMethod;
 			}
 
 			if (packet.addDefaultCompression)
 			{
-				packet.Compress = (CompressionMethod != CompressionType.None);
+				packet.Compress = (CompressionMethod != CompressionMethod.None);
 				packet.CompressMode = CompressionMethod;
 			}
 

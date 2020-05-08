@@ -231,7 +231,7 @@ namespace SimpleSockets.Client {
 		#region Helper-Methods
 
 		// Handles the received packets
-		internal virtual void OnMessageReceivedHandler(Packet packet)
+		protected virtual void OnMessageReceivedHandler(Packet packet)
 		{
 
 			Statistics?.AddReceivedMessages(1);
@@ -277,6 +277,39 @@ namespace SimpleSockets.Client {
 					OnBytesReceived(ev);
 			}
 
+			if (packet.MessageType == PacketType.Response) {
+				var respPacket = ResponsePacket.ReceiverResponsePacket(SocketLogger);
+				respPacket.Map(packet).Build();
+				lock (_responsePackets) {
+					_responsePackets.Add(respPacket.ResponseGuid, respPacket);
+				}
+			}
+
+		}
+
+		protected override void ByteDecoder(ISessionMetadata session, byte[] array)
+		{
+			for (int i = 0; i < array.Length; i++)
+			{
+				if (array[i] == PacketHelper.ESCAPE)
+				{
+					if (i < array.Length)
+					{
+						i++;
+						if (array[i] == PacketHelper.EOF)
+						{
+							var msg = session.DataReceiver.BuildMessageFromPayload(EncryptionPassphrase, PreSharedKey);
+							if (msg != null)
+								OnMessageReceivedHandler(msg);
+							session.ResetDataReceiver();
+						}
+						else
+							session.DataReceiver.AppendByteToReceived(array[i]);
+					}
+				}
+				else
+					session.DataReceiver.AppendByteToReceived(array[i]);
+			}
 		}
 
 		protected IPAddress GetIp(string ip)
@@ -303,7 +336,7 @@ namespace SimpleSockets.Client {
 
 		protected abstract Task<bool> SendToServerAsync(byte[] payload);
 
-		protected bool SendInternal(PacketType msgType, byte[] data, IDictionary<object, object> metadata, string eventKey, EncryptionType encryption, CompressionType compression, Type objType = null)
+		protected bool SendInternal(PacketType msgType, byte[] data, IDictionary<object, object> metadata, string eventKey, EncryptionMethod encryption, CompressionMethod compression, Type objType = null)
 		{
 			var packet = PacketBuilder.NewPacket
 				.SetBytes(data)
@@ -319,7 +352,7 @@ namespace SimpleSockets.Client {
 			return SendPacket(packet.Build());
 		}
 
-		protected async Task<bool> SendInternalAsync(PacketType msgType, byte[] data, IDictionary<object, object> metadata, string eventKey, EncryptionType encryption, CompressionType compression, Type objType = null)
+		protected async Task<bool> SendInternalAsync(PacketType msgType, byte[] data, IDictionary<object, object> metadata, string eventKey, EncryptionMethod encryption, CompressionMethod compression, Type objType = null)
 		{
 			var packet = PacketBuilder.NewPacket
 				.SetBytes(data)
@@ -365,13 +398,13 @@ namespace SimpleSockets.Client {
 
 			if (packet.addDefaultEncryption)
 			{
-				packet.Encrypt = (EncryptionMethod != EncryptionType.None);
+				packet.Encrypt = (EncryptionMethod != EncryptionMethod.None);
 				packet.EncryptMode = EncryptionMethod;
 			}
 
 			if (packet.addDefaultCompression)
 			{
-				packet.Compress = (CompressionMethod != CompressionType.None);
+				packet.Compress = (CompressionMethod != CompressionMethod.None);
 				packet.CompressMode = CompressionMethod;
 			}
 
@@ -555,16 +588,79 @@ namespace SimpleSockets.Client {
 
 		#region File
 
-		public async Task<bool> SendFileAsync(string file, string remoteloc) {
+		private ResponsePacket GetResponse(Guid guid, DateTime expiration) {
+			ResponsePacket packet = null;
+			while (!Token.IsCancellationRequested)
+			{
+				lock (_responsePackets)
+				{
+					if (_responsePackets.ContainsKey(guid))
+					{
+						packet = _responsePackets[guid];
+						_responsePackets.Remove(guid);
+						return packet;
+					}
+				}
+				if (DateTime.Now >= expiration)
+					break;
+				Task.Delay(50).Wait();
+			}
+
+			throw new TimeoutException("No response received within the expected time window.");
+		}
+
+		private ResponsePacket RequestFileTransfer(int responseTimeInMs, string filename) {
+			var requestPacket = RequestPacket.NewRequestPacket(SocketLogger);
+			requestPacket.SetFileTransferRequest(filename);
+			requestPacket.Expiration = (DateTime.Now + new TimeSpan(0, 0, 0, 0, responseTimeInMs));
+			SendPacket(requestPacket);
+			return GetResponse(requestPacket.RequestGuid, requestPacket.Expiration);
+		}
+
+		private ResponsePacket RequestFileDelete(int responseTimeInMs, string filename) {
+			var requestPacket = RequestPacket.NewRequestPacket(SocketLogger);
+			requestPacket.SetDeleteFileRequest(filename);
+			requestPacket.Expiration = (DateTime.Now + new TimeSpan(0, 0, 0, 0, responseTimeInMs));
+			SendPacket(requestPacket);
+			return GetResponse(requestPacket.RequestGuid, requestPacket.Expiration);
+		}
+
+		public async Task<bool> SendFileAsync(string file, string remoteloc, bool overwrite) {
 
 			file = Path.GetFullPath(file);
+
+			var response = RequestFileTransfer(5000, remoteloc);
+
+			if (response.Response == Response.Error) {
+				throw new InvalidOperationException(response.Exception);
+			}
+
+			if (response.Response == Response.FileExists) {
+				if (overwrite)
+				{
+					response = RequestFileDelete(10000, remoteloc);
+					if (response.Response == Response.FileDeleted)
+						SocketLogger?.Log($"File at {remoteloc} was removed from remote location.", LogLevel.Trace);
+					else if (response.Response == Response.Error)
+					{
+						throw new InvalidOperationException(response.Exception);
+					}
+					else
+					{
+						throw new InvalidOperationException("Invalid response received.");
+					}
+				}
+				else
+					throw new InvalidOperationException($"A file already exists on the remote location at {remoteloc}.");
+
+			}
 
 			if (!File.Exists(file))
 				throw new ArgumentException("No file found at path.", nameof(file));
 			try
 			{
 				var start = DateTime.Now;
-				var bufLength = 16384;
+				var bufLength = 4096;
 				var buffer = new byte[bufLength]; //When this buffer exceeds 85000 bytes -> buffer will be stored in LOH -> bad for memory usage.			
 				using (var fileStream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, buffer.Length, true))
 				{

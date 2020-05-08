@@ -1,11 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
+using SimpleSockets.Client;
 using SimpleSockets.Helpers;
 using SimpleSockets.Helpers.Compression;
 using SimpleSockets.Helpers.Cryptography;
 using SimpleSockets.Messaging;
+using SimpleSockets.Server;
 
 namespace SimpleSockets {
 
@@ -24,6 +27,8 @@ namespace SimpleSockets {
         protected CancellationToken Token { get; set; }
 
 		protected bool Disposed { get; set; }
+
+		protected IDictionary<Guid,ResponsePacket> _responsePackets = new Dictionary<Guid,ResponsePacket>();
 
 		/// <summary>
 		/// Indicates if a socket is allowed to receive files from another socket.
@@ -46,13 +51,13 @@ namespace SimpleSockets {
 		/// The default encryption used when sending messages.
 		/// Alternate methods can be set for each message.
 		/// </summary>
-        public EncryptionType EncryptionMethod { get; set; } = EncryptionType.None;
+        public EncryptionMethod EncryptionMethod { get; set; } = EncryptionMethod.None;
 
 		/// <summary>
 		/// The default compression when sending messages.
 		/// Alternate compressions can be set for each message.
 		/// </summary>
-        public CompressionType CompressionMethod { get; set; } = CompressionType.GZip;
+        public CompressionMethod CompressionMethod { get; set; } = CompressionMethod.GZip;
 
 		/// <summary>
 		/// Readbuffer used when receiving messages.
@@ -124,11 +129,58 @@ namespace SimpleSockets {
 			Statistics = new SocketStatistics(SocketProtocol);
 		}
 
+		// Decodes a byte array.
+		protected abstract void ByteDecoder(ISessionMetadata session, byte[] array);
+
 		/// <summary>
 		/// Disposes of the Socket.
 		/// </summary>
 		public abstract void Dispose();
 
-    }
+		#region Static constructors
+
+		/// <summary>
+		/// Creates a new tcp server.
+		/// </summary>
+		/// <returns></returns>
+		public static SimpleServer CreateTcpServer() => new SimpleTcpServer();
+
+		/// <summary>
+		/// Creates a new Tcp server with ssl encryption.
+		/// </summary>
+		/// <param name="cert"></param>
+		/// <param name="protocol"></param>
+		/// <returns></returns>
+		public static SimpleServer CreateTcpSslServer(X509Certificate2 cert, TlsProtocol protocol) => new SimpleTcpServer(cert,protocol);
+
+		/// <summary>
+		/// Creates a new udp server.
+		/// </summary>
+		/// <returns></returns>
+		public static SimpleServer CreateUdpServer() => new SimpleUdpServer();
+
+		/// <summary>
+		/// Creates a new Tcp client
+		/// </summary>
+		/// <returns></returns>
+		public static SimpleClient CreateTcpClient() => new SimpleTcpClient();
+
+		/// <summary>
+		/// Creates a new Tcp
+		/// </summary>
+		/// <returns></returns>
+		public static SimpleClient CreateUdpClient() => new SimpleUdpClient();
+
+		/// <summary>
+		/// Creates a new Tcp client with ssl encryption.
+		/// </summary>
+		/// <param name="cert"></param>
+		/// <param name="protocol"></param>
+		/// <returns></returns>
+		public static SimpleClient CreateTcpSslClient(X509Certificate2 cert, TlsProtocol protocol) => new SimpleTcpClient(cert, protocol);
+
+		#endregion
+
+	}
 
 }

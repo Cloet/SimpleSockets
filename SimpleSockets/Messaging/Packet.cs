@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using SimpleSockets.Helpers.Serialization;
 using SimpleSockets.Client;
 using SimpleSockets.Server;
+using System.IO;
 
 namespace SimpleSockets.Messaging {
 
@@ -108,12 +109,12 @@ namespace SimpleSockets.Messaging {
 		/// <summary>
 		/// If a message is compressed this indicates what compression is used.
 		/// </summary>
-        public CompressionType CompressMode { get; set; }
+        public CompressionMethod CompressMode { get; internal set; }
 
 		/// <summary>
 		/// If a message is encrypted this indicates what encryption is used.
 		/// </summary>
-        public EncryptionType EncryptMode { get; set; }
+        public EncryptionMethod EncryptMode { get; internal set; }
 
 		/// <summary>
 		/// Length of the header
@@ -213,56 +214,65 @@ namespace SimpleSockets.Messaging {
 
             return headerFieldBytes;
         }
-        
-        /// <summary>
-        /// Content is converted from bytes to hex and written in netstring format.
-        /// https://en.wikipedia.org/wiki/Netstring
-        /// </summary>
-        /// <returns>Content Byte array</returns>
-        private byte[] BuildContent() {
 
-			// return Data;
+		/// <summary>
+		/// Format Length:Content
+		/// 1. Data
+		/// 2. Metadata
+		/// 3. InternalInfo
+		/// </summary>
+		/// <returns>Content Byte array</returns>
+		private byte[] BuildContent() {
 
-			var converted = PacketHelper.ByteArrayToString(Data);
+			if (_metadataBytes == null)
+				_metadataBytes = new byte[0];
 
-			var content = new StringBuilder();
+			if (_internalInfoBytes == null)
+				_internalInfoBytes = new byte[0];
 
-			if (converted.Length == 0)
-				content.Append("0:,");
-			else
-				content.Append($"{converted.Length}:{converted},");
+			var length = 20 + Data.Length;
 
 			if (HeaderFields[0])
-			{
-				converted = PacketHelper.ByteArrayToString(_metadataBytes);
-				if (converted.Length == 0)
-					content.Append("0:,");
-				else
-					content.Append($"{converted.Length}:{converted},");
-			}
-			else
-				content.Append("0:,");
+				length += _metadataBytes.Length;
 
 			if (HeaderFields[4])
-			{
-				converted = PacketHelper.ByteArrayToString(_internalInfoBytes);
-				if (converted.Length == 0)
-					content.Append("0:,");
-				else
-					content.Append($"{converted.Length}:{converted}");
-			}
-			else
-				content.Append("0:");
-         
-            return Encoding.UTF8.GetBytes(content.ToString());
+				length += _internalInfoBytes.Length;
 
+			var output = new byte[length];
+
+			var len = BitConverter.GetBytes(Data.LongLength);
+			long index = 0;
+
+			// Data
+			Array.Copy(len, 0, output, index, len.LongLength); // Length
+			index += len.LongLength;
+			Array.Copy(Data, 0, output, index, Data.LongLength); // Data
+			index += Data.LongLength;
+
+			// Metadata
+			len = BitConverter.GetBytes(_metadataBytes.LongLength);
+			Array.Copy(len, 0, output, index, len.LongLength);
+			index += len.LongLength;
+			if (HeaderFields[0]) {
+				Array.Copy(_metadataBytes, 0, output, index, _metadataBytes.LongLength);
+				index += len.LongLength;
+			}
+
+			len = BitConverter.GetBytes(_internalInfoBytes.Length);
+			Array.Copy(len, 0, output, index, len.Length);
+			index += len.Length;
+			if (HeaderFields[4]) {
+				Array.Copy(_internalInfoBytes, 0, output, index, _internalInfoBytes.Length);
+			}
+
+			return output;
         }
 
 		/// <summary>
 		/// Builds the payload of a message.
 		/// </summary>
 		/// <returns>Byte[] array</returns>
-        internal byte[] BuildPayload() {
+        internal virtual byte[] BuildPayload() {
             
             Logger?.Log("===========================================", LogLevel.Trace);
             Logger?.Log("Building packet.",LogLevel.Trace);
@@ -278,24 +288,25 @@ namespace SimpleSockets.Messaging {
             var originalContentLength = content.Length;
             
             // Compress the content if so desired.
-            if (Compress && CompressMode != CompressionType.None) {
+            if (Compress && CompressMode != CompressionMethod.None) {
                 Logger?.Log("Compressing content...", LogLevel.Trace);
                 content = CompressionHelper.Compress(content, CompressMode);
             }
 
             // Encrypt the content after potential compression if so desired.
-            if (Encrypt && EncryptMode != EncryptionType.None) {
+            if (Encrypt && EncryptMode != EncryptionMethod.None) {
                 Logger?.Log("Encrypting content...", LogLevel.Debug);
                 content = CryptographyHelper.Encrypt(Content, EncryptionKey, EncryptMode);
             }
 
             byte[] head = BuildMessageHeader(originalContentLength, content.Length);
-            byte[] tail = PacketHelper.PacketDelimiter;
-            byte[] payload = new byte[head.Length + content.Length + tail.Length];
+            // byte[] tail = PacketHelper.PacketDelimiter;
+            byte[] payload = new byte[head.Length + content.Length];
 
             head.CopyTo(payload,0);
             content.CopyTo(payload,head.Length);
-            tail.CopyTo(payload,head.Length + content.Length);
+			payload = PacketHelper.EncodeByteArray(payload);
+            // tail.CopyTo(payload,head.Length + content.Length);
 
             Logger?.Log("Build finished.", LogLevel.Trace);
 			Logger?.Log(ToString(), LogLevel.Trace);
@@ -335,8 +346,8 @@ namespace SimpleSockets.Messaging {
 
             // Get the messagetype of the message
             MessageType  = (PacketType)	 header[0];
-			CompressMode = (CompressionType) header[1];
-			EncryptMode  = (EncryptionType)  header[2];
+			CompressMode = (CompressionMethod) header[1];
+			EncryptMode  = (EncryptionMethod)  header[2];
 
             header = header.Skip(3).Take(header.Length -1).ToArray();
             
@@ -360,7 +371,7 @@ namespace SimpleSockets.Messaging {
 		/// Builds a message from the received bytes.
 		/// </summary>
 		/// <param name="preSharedKey"></param>
-		internal void BuildMessageFromContent(byte[] preSharedKey) {
+		internal virtual void BuildMessageFromContent(byte[] preSharedKey) {
 
 			if (preSharedKey != null && preSharedKey.Length > 0 && HeaderFields[3] == false)
 				throw new Exception("Expected a presharedkey but none was found.");
@@ -368,7 +379,7 @@ namespace SimpleSockets.Messaging {
 			if (HeaderFields[3] && !PreSharedKey.SequenceEqual(PreSharedKey))
 				throw new Exception("The presharedkey does not match between messages.");
 			
-			if (ContentLength != Content.Length)
+			if (ContentLength != Content.LongLength)
 				throw new Exception($"Expected contentlength differs from expected contentlength.{Environment.NewLine}Expected {ContentLength} bytes but received {Content.Length} bytes");
 
 			// Do decryption
@@ -382,46 +393,36 @@ namespace SimpleSockets.Messaging {
 			if (HeaderFields[2])
 				Content = CompressionHelper.Decompress(Content, CompressMode);
 
-			if (OriginalcontentLength != Content.Length)
+			if (OriginalcontentLength != Content.LongLength)
 				throw new Exception($"Expected contentlength differs from received contentlength after decryption/decompression.{Environment.NewLine}Expected {OriginalcontentLength} bytes but received {Content.Length} bytes.");
 
-			var netstring = Encoding.UTF8.GetString(Content);
-			var arr = netstring.Split(',');
 
-			for (int i = 0; i < arr.Length; i++)
-			{
-				if (i == 0)
-					Data = DataFromOneNetString(arr[i]);
-				if (i == 1)
-					_metadataBytes = DataFromOneNetString(arr[i]);
-				if (i == 2)
-					_internalInfoBytes = DataFromOneNetString(arr[2]);
-				if (i > 2)
-					Logger?.Log("Found more netstrings then possible.", LogLevel.Error);
+			long datalength = BitConverter.ToInt64(Content,0);
+			long index = 8;
+
+			Data = new byte[datalength];
+			if (datalength > 0) {
+				Array.Copy(Content, index, Data, 0, Data.Length);
+				index += Data.LongLength;
+			}
+
+			datalength = BitConverter.ToInt64(Content, (int)index);
+			_metadataBytes = new byte[datalength];
+			index += 8;
+			if (datalength > 0) {
+				Array.Copy(Content, index, _metadataBytes, 0, _metadataBytes.LongLength);
+				index += _metadataBytes.LongLength;
+			}
+
+			datalength = BitConverter.ToInt32(Content, (int)index);
+			index += 4;
+			_internalInfoBytes = new byte[datalength];
+			if (datalength > 0) {
+				Array.Copy(Content, index, _internalInfoBytes, 0, _internalInfoBytes.LongLength);
 			}
 
 			BuildMetadataFromBytes();
 			BuildInternalInfoFromBytes();
-		}
-
-		/// <summary>
-		/// Converts one Netstring to byte array.
-		/// Netstring format: 'Length:Content,'
-		/// Example: 5:Hello,
-		/// For these messages the content will be converted from bytes to a hex string.
-		/// </summary>
-		/// <param name="netstring"></param>
-		/// <returns></returns>
-		private byte[] DataFromOneNetString(string netstring) {
-			var netr = netstring.Split(':');
-
-			if (netr.Length != 2)
-				throw new Exception("Netstring must have 2 arguments.");
-
-			if (int.Parse(netr[0]) != netr[1].Length)
-				throw new Exception("Netstring predifined length is different then actual length.");
-
-			return PacketHelper.StringToByteArray(netr[1]);
 		}
 
 		/// <summary>
@@ -603,8 +604,8 @@ namespace SimpleSockets.Messaging {
 
 		public override string ToString() {
 			var stats = $"Packet has {Data.Length} bytes, {(MessageMetadata == null ? 0 : MessageMetadata?.Values.Count)} pieces of metadata.";
-			stats += $" uses {(EncryptionType.None == EncryptMode ? "no" : Enum.GetName(typeof(EncryptionType), EncryptMode))} encryption";
-			stats += $" and {(CompressionType.None == CompressMode ? "no" : Enum.GetName(typeof(CompressionType), CompressMode))} compression.";
+			stats += $" uses {(EncryptionMethod.None == EncryptMode ? "no" : Enum.GetName(typeof(EncryptionMethod), EncryptMode))} encryption";
+			stats += $" and {(CompressionMethod.None == CompressMode ? "no" : Enum.GetName(typeof(CompressionMethod), CompressMode))} compression.";
 			return stats;
 		}
 
@@ -615,8 +616,8 @@ namespace SimpleSockets.Messaging {
 			stats += "|---------------------------------------------------------------------|" + Environment.NewLine;
 			stats += "| - Data           : " + $"{Data.Length} Bytes".ToString().PadRight(49) + "|" + Environment.NewLine;
 			stats += "| - Metadata       : " + $"{(MessageMetadata == null ? 0 : MessageMetadata?.Values.Count)} pieces of metadata".ToString().PadRight(49) + "|" + Environment.NewLine;
-			stats += "| - Encryption     : " + $"{Enum.GetName(typeof(EncryptionType),EncryptMode)}".ToString().PadRight(49) + "|" + Environment.NewLine;
-			stats += "| - Compression    : " + $"{Enum.GetName(typeof(CompressionType),CompressMode)}".ToString().PadRight(49) + "|" + Environment.NewLine;
+			stats += "| - Encryption     : " + $"{Enum.GetName(typeof(EncryptionMethod),EncryptMode)}".ToString().PadRight(49) + "|" + Environment.NewLine;
+			stats += "| - Compression    : " + $"{Enum.GetName(typeof(CompressionMethod),CompressMode)}".ToString().PadRight(49) + "|" + Environment.NewLine;
 			stats += "=======================================================================" + Environment.NewLine;
 			return stats;
 		}

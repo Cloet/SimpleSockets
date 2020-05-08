@@ -64,7 +64,7 @@ namespace SimpleSockets.Client {
 				Sent.Set();
 				OnConnectedToServer();
 				SendAuthenticationMessage();
-				Receive(metadata);
+				Task.Run(() => Receive(metadata), Token);
 
 			}
 			catch (SocketException)
@@ -116,7 +116,6 @@ namespace SimpleSockets.Client {
 		protected virtual void ReceiveCallback(IAsyncResult result)
 		{
 			var client = (ISessionMetadata)result.AsyncState;
-			var dReceiver = client.DataReceiver;
 			try
 			{
 				var received = client.Listener.EndReceiveFrom(result, ref _epFrom);
@@ -128,18 +127,9 @@ namespace SimpleSockets.Client {
 				if (received > 0)
 				{
 					SocketLogger?.Log($"Received {received} bytes.", LogLevel.Trace);
-					var readBuffer = client.DataReceiver.Buffer.Take(received).ToArray();
-					for (int i = 0; i < readBuffer.Length; i++)
-					{
-						var end = client.DataReceiver.AppendByteToReceived(readBuffer[i]);
-						if (end)
-						{
-							var message = client.DataReceiver.BuildMessageFromPayload(EncryptionPassphrase, PreSharedKey);
-							if (message != null)
-								OnMessageReceivedHandler(message);
-							client.ResetDataReceiver();
-						}
-					}
+					var readBuffer = new byte[received];
+					Array.Copy(client.DataReceiver.Buffer, 0, readBuffer, 0, readBuffer.Length);
+					ByteDecoder(client, readBuffer);
 				}
 
 				// Resets buffer of the datareceiver.

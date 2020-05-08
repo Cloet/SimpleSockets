@@ -7,6 +7,8 @@ namespace SimpleSockets.Messaging
 		File=2,
 		Folder=3,
 		Object=4,
-		Auth=7
+		Auth=7,
+		Request=8,
+		Response=9
 	}
 }

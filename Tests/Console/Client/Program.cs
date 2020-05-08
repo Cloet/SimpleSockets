@@ -16,7 +16,7 @@ namespace Client
 		private static event EventHandler<DataReceivedEventArgs> PersonObjectReceived;
 		private static event EventHandler<DataReceivedEventArgs> CustomMessageReceived;
 
-		static void Main(string[] args)
+		static async Task Main(string[] args)
 		{
 			Console.WriteLine("Hello.");
 
@@ -25,7 +25,8 @@ namespace Client
 			var client = new SimpleTcpClient();
 
 			client.ConnectTo("127.0.0.1", 13000, 5);
-			client.CompressionMethod = CompressionType.None;
+			client.CompressionMethod = CompressionMethod.GZip;
+			BindEvents(client);
 
 			PersonObjectReceived += Program_PersonObjectReceived;
 			CustomMessageReceived += Program_CustomMessageReceived;
@@ -38,10 +39,6 @@ namespace Client
 				var msg = Console.ReadLine();
 				client.SendMessage(msg);
 			}
-
-			var start = DateTime.Now;
-
-			client.SendFileAsync(@"D:\School.rar", @"D:\School2.rarz");
 
 
 			Console.ReadLine();

@@ -59,7 +59,7 @@ namespace SimpleSockets {
 		//Sets the header bytes of a message.
         internal PacketReceiverBuilder AppendHeaderBytes(byte[] data) {
             ThePacket.MessageHeader = PacketHelper.MergeByteArrays(ThePacket.MessageHeader, data);
-            return this;
+			return this;
         }
 		#endregion
 
