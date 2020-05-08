@@ -43,11 +43,14 @@ namespace SimpleSockets.Messaging {
 			_received = PacketHelper.MergeByteArrays(_received, new byte[1] { readByte });
 
 			if (_received.Length >= PacketHelper.PacketDelimiter.Length) {
-				var end = _received.Skip(_received.Length - PacketHelper.PacketDelimiter.Length).Take(PacketHelper.PacketDelimiter.Length).ToArray();
+				var end = new byte[PacketHelper.PacketDelimiter.Length];
+				Array.Copy(_received, _received.Length - PacketHelper.PacketDelimiter.Length, end, 0, end.Length);
 				if (end.SequenceEqual(PacketHelper.PacketDelimiter))
 				{
-					_logger?.Log("Packet delimiter found.", LogLevel.Trace);
-					_received = _received.Take(_received.Length - PacketHelper.PacketDelimiter.Length).ToArray();
+					_logger?.Log("Packet delimiter found, building message from received bytes.", LogLevel.Trace);
+					var temp = new byte[_received.Length - PacketHelper.PacketDelimiter.Length];
+					Array.Copy(_received, 0, temp,0, temp.Length);
+					_received = temp;
 					return true;
 				}
 			}
@@ -57,10 +60,18 @@ namespace SimpleSockets.Messaging {
 		internal Packet BuildMessageFromPayload(byte[] encryptionPassphrase, byte[] presharedKey) {
 			try
 			{
-				return PacketReceiverBuilder.InitializeReceiver(_logger, _received[0], out var headerLength)
-					.AddPassphrase(encryptionPassphrase)
-					.AppendHeaderBytes(_received.Skip(1).Take(headerLength).ToArray())
-					.AppendContentBytes(_received.Skip(1 + headerLength).Take(_received.Length - 1 + headerLength).ToArray())
+
+				var pb = PacketReceiverBuilder.InitializeReceiver(_logger, _received[0], out var headerLength);
+
+				var header = new byte[headerLength];
+				var content = new byte[_received.Length - headerLength - 1];
+
+				Array.Copy(_received, 1, header, 0, header.Length);
+				Array.Copy(_received,1+headerLength,content,0,content.Length);
+
+				return pb.AddPassphrase(encryptionPassphrase)
+					.AppendHeaderBytes(header)
+					.AppendContentBytes(content)
 					.Build(presharedKey);
 			}
 			catch (Exception ex) {

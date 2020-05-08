@@ -243,7 +243,7 @@ namespace SimpleSockets.Server {
                 }
 
 				if (!IsConnectionAllowed(client)) {
-					SocketLogger?.Log("A blacklisted ip tried to connect.",LogLevel.Error);
+					SocketLogger?.Log($"Unidentified client tried to connect. {client.Info()}", LogLevel.Debug);
 					lock(ConnectedClients)
 					{
 						ConnectedClients.Remove(client.Id);
@@ -343,7 +343,10 @@ namespace SimpleSockets.Server {
 					// Add byte per byte to datareceiver,
 					// This way we can use a delimiter to check if a message has been received.
 					if (received > 0) {
-						var readBuffer = client.DataReceiver.Buffer.Take(received).ToArray();
+						SocketLogger?.Log($"Received {received} bytes from a client. {client.Info()}", LogLevel.Trace);
+						// var readBuffer = client.DataReceiver.Buffer.Take(received).ToArray();
+						var readBuffer = new byte[received];
+						Array.Copy(client.DataReceiver.Buffer, 0, readBuffer, 0, readBuffer.Length);
 						for (int i = 0; i < readBuffer.Length; i++)
 						{
 							var end = client.DataReceiver.AppendByteToReceived(readBuffer[i]);
@@ -387,6 +390,7 @@ namespace SimpleSockets.Server {
 					{
 						Statistics?.AddSentBytes(payload.Length);
 						client.SslStream.BeginWrite(payload, 0, payload.Length, SendCallback, client);
+						SocketLogger?.Log($"Sent {payload.Length} bytes to a client. {client.Info()}", LogLevel.Trace);
 					}
 					else {
 						client.Listener.BeginSend(payload, 0, payload.Length, SocketFlags.None, SendCallback, client);
@@ -417,6 +421,7 @@ namespace SimpleSockets.Server {
 				{
 					var count = client.Listener.EndSend(result);
 					Statistics?.AddSentBytes(count);
+					SocketLogger?.Log($"Sent {count} bytes to a client. {client.Info()}", LogLevel.Trace);
 				}
 
 				client.WritingData.Set();
@@ -446,11 +451,13 @@ namespace SimpleSockets.Server {
 						var result = client.SslStream.BeginWrite(payload, 0, payload.Length, _ => { }, client);
 						await Task.Factory.FromAsync(result, (r) => client.SslStream.EndWrite(r));
 						Statistics?.AddSentBytes(payload.Length);
+						SocketLogger?.Log($"Sent {payload.Length} bytes to a client. {client.Info()}", LogLevel.Trace);
 					}
 					else {
 						var result = client.Listener.BeginSend(payload, 0, payload.Length, SocketFlags.None, _ => { }, client);
 						var count = await Task.Factory.FromAsync(result, (r) => client.Listener.EndSend(r));
 						Statistics?.AddSentBytes(count);
+						SocketLogger?.Log($"Sent {count} bytes to a client. {client.Info()}", LogLevel.Trace);
 					}
 
 					client.WritingData.Set();

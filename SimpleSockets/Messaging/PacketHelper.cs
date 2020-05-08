@@ -11,6 +11,12 @@ namespace SimpleSockets {
 
 		internal static string GUID => "Guid";
 
+		internal static string PACKETPART => "Part";
+
+		internal static string TOTALPACKET => "TotalPart";
+
+		internal static string DESTPATH => "DestinationPath";
+
 		internal static string ByteArrayToString(byte[] array) {
             var hex = new StringBuilder(array.Length * 2);
             foreach(var b in array)

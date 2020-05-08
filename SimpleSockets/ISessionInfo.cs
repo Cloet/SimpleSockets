@@ -2,7 +2,7 @@ using System;
 
 namespace SimpleSockets {
 
-    public interface IClientInfo {
+    public interface ISessionInfo {
 
         int Id { get; }
 

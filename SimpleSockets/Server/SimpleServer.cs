@@ -1,42 +1,43 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Net.Sockets;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using SimpleSockets.Helpers;
 using SimpleSockets.Helpers.Compression;
 using SimpleSockets.Helpers.Cryptography;
 using SimpleSockets.Helpers.Serialization;
 using SimpleSockets.Messaging;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
-namespace SimpleSockets.Server {
+namespace SimpleSockets.Server
+{
 
-    public abstract class SimpleServer: SimpleSocket
-    {
+	public abstract class SimpleServer : SimpleSocket
+	{
 
-        #region Events
-        
-        /// <summary>
-        /// Event invoked when a client connects to the server.
-        /// </summary>
-        public event EventHandler<ClientInfoEventArgs> ClientConnected;
-        protected virtual void OnClientConnected(ClientInfoEventArgs eventArgs) => ClientConnected?.Invoke(this, eventArgs);
+		#region Events
 
-        /// <summary>
-        /// Event invoked when a client disconnects from the server.
-        /// </summary>
-        public event EventHandler<ClientDisconnectedEventArgs> ClientDisconnected;
-        protected virtual void OnClientDisconnected(ClientDisconnectedEventArgs eventArgs) => ClientDisconnected?.Invoke(this, eventArgs);
+		/// <summary>
+		/// Event invoked when a client connects to the server.
+		/// </summary>
+		public event EventHandler<ClientInfoEventArgs> ClientConnected;
+		protected virtual void OnClientConnected(ClientInfoEventArgs eventArgs) => ClientConnected?.Invoke(this, eventArgs);
 
-        /// <summary>
-        /// Event invoked when a server starts listening for connections.
-        /// </summary>
-        public event EventHandler ServerStartedListening;
-        protected virtual void OnServerStartedListening() => ServerStartedListening?.Invoke(this, null);
+		/// <summary>
+		/// Event invoked when a client disconnects from the server.
+		/// </summary>
+		public event EventHandler<ClientDisconnectedEventArgs> ClientDisconnected;
+		protected virtual void OnClientDisconnected(ClientDisconnectedEventArgs eventArgs) => ClientDisconnected?.Invoke(this, eventArgs);
+
+		/// <summary>
+		/// Event invoked when a server starts listening for connections.
+		/// </summary>
+		public event EventHandler ServerStartedListening;
+		protected virtual void OnServerStartedListening() => ServerStartedListening?.Invoke(this, null);
 
 		/// <summary>
 		/// Event invoked when the server received a message from a client.
@@ -80,9 +81,9 @@ namespace SimpleSockets.Server {
 
 		private TimeSpan _timeout = new TimeSpan(0, 0, 0);
 
-        protected readonly ManualResetEventSlim CanAcceptConnections = new ManualResetEventSlim(false);
+		protected readonly ManualResetEventSlim CanAcceptConnections = new ManualResetEventSlim(false);
 
-        protected Socket Listener { get; set; }
+		protected Socket Listener { get; set; }
 
 		/// <summary>
 		/// Indicates if the server is listening and accepting potential clients.
@@ -92,12 +93,12 @@ namespace SimpleSockets.Server {
 		/// <summary>
 		/// Port the server listens to.
 		/// </summary>
-        public int ListenerPort { get; set; }
+		public int ListenerPort { get; set; }
 
 		/// <summary>
 		/// Ip the server listens to.
 		/// </summary>
-        public string ListenerIp { get; set; }
+		public string ListenerIp { get; set; }
 
 		/// <summary>
 		/// Time until a client will timeout.
@@ -137,13 +138,14 @@ namespace SimpleSockets.Server {
 
 		#endregion
 
-		protected SimpleServer(SocketProtocolType protocol): base(protocol) {
-            Listening = false;
-            ConnectedClients = new Dictionary<int, ISessionMetadata>();
+		protected SimpleServer(SocketProtocolType protocol) : base(protocol)
+		{
+			Listening = false;
+			ConnectedClients = new Dictionary<int, ISessionMetadata>();
 			DynamicCallbacks = new Dictionary<string, EventHandler<ClientDataReceivedEventArgs>>();
 			BlackList = new List<IPAddress>();
 			WhiteList = new List<IPAddress>();
-        }
+		}
 
 		/// <summary>
 		/// Listen for clients on the IP:Port
@@ -158,34 +160,41 @@ namespace SimpleSockets.Server {
 		/// </summary>
 		/// <param name="port"></param>
 		/// <param name="limit"></param>
-        public void Listen(int port) => Listen("*", port);
+		public void Listen(int port) => Listen("*", port);
 
 		/// <summary>
 		/// Returns true if a client is connected.
 		/// </summary>
 		/// <param name="id"></param>
 		/// <returns></returns>
-		public bool IsClientConnected(int id) {
-            try {
-                if (GetClientMetadataById(id) is ISessionMetadata state && state.Listener is Socket socket) {
-                    return !((socket.Poll(1000, SelectMode.SelectRead) && (socket.Available == 0)) || !socket.Connected);
-                }
-            } catch (ObjectDisposedException) {
-                return false;
-            }
-            catch (Exception ex) {
-                SocketLogger?.Log("Something went wrong trying to check if a client is connected.", ex, LogLevel.Error);
-            }
+		public bool IsClientConnected(int id)
+		{
+			try
+			{
+				if (GetClientMetadataById(id) is ISessionMetadata state && state.Listener is Socket socket)
+				{
+					return !((socket.Poll(1000, SelectMode.SelectRead) && (socket.Available == 0)) || !socket.Connected);
+				}
+			}
+			catch (ObjectDisposedException)
+			{
+				return false;
+			}
+			catch (Exception ex)
+			{
+				SocketLogger?.Log("Something went wrong trying to check if a client is connected.", ex, LogLevel.Error);
+			}
 
-            return false;
-        }
+			return false;
+		}
 
 		/// <summary>
 		/// Returns true if a client is conntected.
 		/// </summary>
 		/// <param name="guid"></param>
 		/// <returns></returns>
-		public bool IsClientConnected(Guid guid) {
+		public bool IsClientConnected(Guid guid)
+		{
 			try
 			{
 				if (GetClientInfoByGuid(guid) is ISessionMetadata state && state.Listener is Socket socket)
@@ -209,25 +218,28 @@ namespace SimpleSockets.Server {
 		/// Shutdown a client.
 		/// </summary>
 		/// <param name="id"></param>
-        public void ShutDownClient(int id) {
-            ShutDownClient(id, DisconnectReason.Normal);
-        }
+		public void ShutDownClient(int id)
+		{
+			ShutDownClient(id, DisconnectReason.Normal);
+		}
 
 		/// <summary>
 		/// Get ClientInfo by id.
 		/// </summary>
 		/// <param name="id"></param>
 		/// <returns></returns>
-		public IClientInfo GetClientInfoById(int id) {
-            return GetClientMetadataById(id);
-        }
+		public ISessionInfo GetClientInfoById(int id)
+		{
+			return GetClientMetadataById(id);
+		}
 
 		/// <summary>
 		/// Get ClientInfo by guid.
 		/// </summary>
 		/// <param name="guid"></param>
 		/// <returns></returns>
-		public IClientInfo GetClientInfoByGuid(Guid guid) {
+		public ISessionInfo GetClientInfoByGuid(Guid guid)
+		{
 			return ConnectedClients?.Values.Single(x => x.Guid == guid);
 		}
 
@@ -235,16 +247,18 @@ namespace SimpleSockets.Server {
 		/// Get clientinfo of all connected clients
 		/// </summary>
 		/// <returns></returns>
-		public IList<IClientInfo> GetAllClients() {
-			var clients = ConnectedClients.Values.Cast<IClientInfo>().ToList();
+		public IList<ISessionInfo> GetAllClients()
+		{
+			var clients = ConnectedClients.Values.Cast<ISessionInfo>().ToList();
 			if (clients == null)
-				return new List<IClientInfo>();
+				return new List<ISessionInfo>();
 			return clients;
 		}
 
 		#region Data-Invokers
 
-		internal virtual void OnMessageReceivedHandler(ISessionMetadata client, Packet message) {
+		internal virtual void OnMessageReceivedHandler(ISessionMetadata client, Packet message)
+		{
 
 			Statistics?.AddReceivedMessages(1);
 
@@ -253,12 +267,27 @@ namespace SimpleSockets.Server {
 
 			Guid clientGuid;
 
-			if (SocketProtocol == SocketProtocolType.Udp) {
+			if (SocketProtocol == SocketProtocolType.Udp)
+			{
 				clientGuid = message.GetGuidFromMessage(extraInfo);
+				SocketLogger?.Log($"Message contains guid:{clientGuid} trying to link to an existing client.", LogLevel.Trace);
 			}
 
+			if (message.MessageType == PacketType.Auth)
+			{
+				var data = Encoding.UTF8.GetString(message.Data);
+				var split = data.Split('|');
 
-			if (message.MessageType == PacketType.Message) {
+				client.ClientName = split[0];
+				client.Guid = Guid.Parse(split[1]);
+				client.UserDomainName = split[2];
+				client.OsVersion = split[3];
+			}
+
+			SocketLogger?.Log($"Received a completed message from a client of type {Enum.GetName(typeof(PacketType), message.MessageType)}. {client.Info()}", LogLevel.Trace);
+
+			if (message.MessageType == PacketType.Message)
+			{
 				var ev = new ClientMessageReceivedEventArgs(message.BuildDataToString(), client, message.MessageMetadata);
 
 				if (eventHandler != null)
@@ -267,20 +296,24 @@ namespace SimpleSockets.Server {
 					OnClientMessageReceived(ev);
 			}
 
-			if (message.MessageType == PacketType.Object) {
+			if (message.MessageType == PacketType.Object)
+			{
 				var obj = message.BuildObjectFromBytes(extraInfo, out var type);
 
-				if (obj == null || type == null) {
+				if (obj == null || type == null)
+				{
 					var ev = new ClientObjectReceivedEventArgs(obj, type, client, message.MessageMetadata);
 					if (eventHandler != null)
 						eventHandler?.Invoke(this, ev);
 					else
 						OnClientObjectReceived(ev);
-				} else
+				}
+				else
 					SocketLogger?.Log("Error receiving an object.", LogLevel.Error);
 			}
 
-			if (message.MessageType == PacketType.Bytes) {
+			if (message.MessageType == PacketType.Bytes)
+			{
 				var ev = new ClientBytesReceivedEventArgs(client, message.Data, message.MessageMetadata);
 				if (eventHandler != null)
 					eventHandler?.Invoke(this, ev);
@@ -288,14 +321,29 @@ namespace SimpleSockets.Server {
 					OnClientBytesReceived(ev);
 			}
 
-			if (message.MessageType == PacketType.Auth) {
-				var data = Encoding.UTF8.GetString(message.Data);
-				var split = data.Split('|');
+			if (message.MessageType == PacketType.File) {
+				var partex = extraInfo?.TryGetValue(PacketHelper.PACKETPART, out var part);
+				var totex = extraInfo?.TryGetValue(PacketHelper.TOTALPACKET, out var total);
+				var destex = extraInfo?.TryGetValue(PacketHelper.DESTPATH, out var path);
 
-				client.ClientName = split[0];
-				client.Guid = Guid.Parse(split[1]);
-				client.UserDomainName = split[2];
-				client.OsVersion = split[3];
+				// if (destex) {
+					// var file = Path.GetFullPath(path.ToString());
+					var file = Path.GetFullPath(@"D:\School2.rar");
+
+					//if ((long)part == 0) {
+					if (!File.Exists(file)) { 
+						FileInfo finfo = new FileInfo(file);
+						finfo.Directory?.Create();
+					}
+
+					using (BinaryWriter writer = new BinaryWriter(File.Open(file, FileMode.Append)))
+					{
+						writer.Write(message.Data, 0, message.Data.Length);
+						writer.Close();
+					}
+				// }
+
+
 			}
 
 		}
@@ -308,7 +356,8 @@ namespace SimpleSockets.Server {
 
 		protected abstract Task<bool> SendToSocketAsync(int clientId, byte[] payload);
 
-		protected bool SendInternal(int clientid, PacketType msgType, byte[] data, IDictionary<object,object> metadata, string eventKey, EncryptionType eType, CompressionType cType) {
+		protected bool SendInternal(int clientid, PacketType msgType, byte[] data, IDictionary<object, object> metadata, string eventKey, EncryptionType eType, CompressionType cType, Type objType = null)
+		{
 
 			var packet = PacketBuilder.NewPacket
 				.SetBytes(data)
@@ -316,13 +365,16 @@ namespace SimpleSockets.Server {
 				.SetMetadata(metadata)
 				.SetCompression(cType)
 				.SetEncryption(eType)
-				.SetDynamicCallback(eventKey)
-				.Build();
+				.SetDynamicCallback(eventKey);
 
-			return SendPacket(clientid, packet);
+			if (msgType == PacketType.Object)
+				packet.SetObjectType(objType);
+
+			return SendPacket(clientid, packet.Build());
 		}
 
-		protected async Task<bool> SendInternalAsync(int clientId, PacketType msgType, byte[] data, IDictionary<object, object> metadata, string eventKey, EncryptionType eType, CompressionType cType) {
+		protected async Task<bool> SendInternalAsync(int clientId, PacketType msgType, byte[] data, IDictionary<object, object> metadata, string eventKey, EncryptionType eType, CompressionType cType, Type objType = null)
+		{
 
 			var packet = PacketBuilder.NewPacket
 				.SetBytes(data)
@@ -330,10 +382,12 @@ namespace SimpleSockets.Server {
 				.SetMetadata(metadata)
 				.SetCompression(cType)
 				.SetEncryption(eType)
-				.SetDynamicCallback(eventKey)
-				.Build();
+				.SetDynamicCallback(eventKey);
 
-			return await SendPacketAsync(clientId, packet);
+			if (msgType == PacketType.Object)
+				packet.SetObjectType(objType);
+
+			return await SendPacketAsync(clientId, packet.Build());
 		}
 
 		// Add some extra data to a packet that will be sent.
@@ -398,16 +452,89 @@ namespace SimpleSockets.Server {
 			}
 		}
 
-		public bool SendMessage(int clientId, string message) {
+		#region Message
+
+		public bool SendMessage(int clientId, string message)
+		{
 			return SendInternal(clientId, PacketType.Message, Encoding.UTF8.GetBytes(message), null, string.Empty, EncryptionMethod, CompressionMethod);
 		}
+
+		public bool SendMessage(int clientId, string message, IDictionary<object, object> metadata)
+		{
+			return SendInternal(clientId, PacketType.Message, Encoding.UTF8.GetBytes(message), null, string.Empty, EncryptionMethod, CompressionMethod);
+		}
+
+		public async Task<bool> SendMessageAsync(int clientId, string message)
+		{
+			return await SendInternalAsync(clientId, PacketType.Message, Encoding.UTF8.GetBytes(message), null, string.Empty, EncryptionMethod, CompressionMethod);
+		}
+
+		public async Task<bool> SendMessageAsync(int clientId, string message, IDictionary<object, object> metadata)
+		{
+			return await SendInternalAsync(clientId, PacketType.Message, Encoding.UTF8.GetBytes(message), metadata, string.Empty, EncryptionMethod, CompressionMethod);
+		}
+
+		#endregion
+
+		#region Bytes
+
+		public bool SendBytes(int clientId, byte[] bytes)
+		{
+			return SendInternal(clientId, PacketType.Bytes, bytes, null, string.Empty, EncryptionMethod, CompressionMethod);
+		}
+
+		public bool SendBytes(int clientId, byte[] bytes, IDictionary<object, object> metadata)
+		{
+			return SendInternal(clientId, PacketType.Bytes, bytes, null, string.Empty, EncryptionMethod, CompressionMethod);
+		}
+
+		public async Task<bool> SendBytesAsync(int clientId, byte[] bytes)
+		{
+			return await SendInternalAsync(clientId, PacketType.Bytes, bytes, null, string.Empty, EncryptionMethod, CompressionMethod);
+		}
+
+		public async Task<bool> SendMessageAsync(int clientId, byte[] bytes, IDictionary<object, object> metadata)
+		{
+			return await SendInternalAsync(clientId, PacketType.Message, bytes, metadata, string.Empty, EncryptionMethod, CompressionMethod);
+		}
+
+
+		#endregion
+
+		#region Object
+
+		public bool SendObject(int clientId, object obj)
+		{
+			return SendObject(clientId, obj, null);
+		}
+
+		public bool SendObject(int clientId, object obj, IDictionary<object, object> metadata)
+		{
+			var bytes = SerializationHelper.SerializeObjectToBytes(obj);
+			return SendInternal(clientId, PacketType.Object, bytes, metadata, string.Empty, EncryptionMethod, CompressionMethod, obj.GetType());
+		}
+
+		public async Task<bool> SendObjectAsync(int clientId, object obj)
+		{
+			return await SendObjectAsync(clientId, obj, null);
+		}
+
+		public async Task<bool> SendObjectAsync(int clientId, object obj, IDictionary<object, object> metadata)
+		{
+			var bytes = SerializationHelper.SerializeObjectToBytes(obj);
+			return await SendInternalAsync(clientId, PacketType.Object, bytes, metadata, string.Empty, EncryptionMethod, CompressionMethod, obj.GetType());
+		}
+
+
+		#endregion
 
 		#endregion
 
 		/// <summary>
 		/// Disposes of the server.
 		/// </summary>
-		public override void Dispose() {
+		public override void Dispose()
+		{
 			try
 			{
 				if (!Disposed)
@@ -439,7 +566,7 @@ namespace SimpleSockets.Server {
 				SocketLogger?.Log(ex, LogLevel.Error);
 			}
 		}
-		
+
 
 		#region Helper Methods
 
@@ -457,6 +584,7 @@ namespace SimpleSockets.Server {
 					client.Listener.Shutdown(SocketShutdown.Both);
 					client.Listener.Close();
 					client.Listener = null;
+					SocketLogger?.Log($"client has been closed. {client.Info()}", LogLevel.Trace);
 				}
 			}
 			catch (ObjectDisposedException de)

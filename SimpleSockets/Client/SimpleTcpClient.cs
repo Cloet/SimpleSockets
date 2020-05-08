@@ -10,8 +10,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using SimpleSockets.Client;
 using SimpleSockets.Helpers;
-using SimpleSockets.Helpers.Compression;
-using SimpleSockets.Helpers.Cryptography;
 using SimpleSockets.Messaging;
 
 namespace SimpleSockets {
@@ -329,6 +327,7 @@ namespace SimpleSockets {
 
 					if (received > 0)
 					{
+						SocketLogger?.Log($"Received {received} bytes.", LogLevel.Trace);
 						var readBuffer = client.DataReceiver.Buffer.Take(received).ToArray();
 						for (int i = 0; i < readBuffer.Length; i++)
 						{
@@ -371,7 +370,7 @@ namespace SimpleSockets {
 				Sent.Wait();
 				Sent.Reset();
 
-				if (Listener == null || _sslStream == null)
+				if (Listener == null || (_sslStream == null && SslEncryption))
 					return false;
 
 				if (SslEncryption)
@@ -379,11 +378,13 @@ namespace SimpleSockets {
 					var result = _sslStream.BeginWrite(payload, 0, payload.Length, SendCallback, _sslStream);
 					await Task.Factory.FromAsync(result, (r) => _sslStream.EndWrite(r));
 					Statistics?.AddSentBytes(payload.Length);
+					SocketLogger?.Log($"Sent {payload.Length} bytes to the server.", LogLevel.Trace);
 				}
 				else {
 					var result = Listener.BeginSend(payload, 0, payload.Length, SocketFlags.None, _ => { }, Listener);
 					var count = await Task.Factory.FromAsync(result, (r) => Listener.EndSend(r));
 					Statistics?.AddSentBytes(count);
+					SocketLogger?.Log($"Sent {count} bytes to the server.", LogLevel.Trace);
 				}
 
 				Statistics?.AddSentMessages(1);
@@ -416,6 +417,7 @@ namespace SimpleSockets {
 				if (SslEncryption) {
 					Statistics?.AddSentBytes(payload.Length);
 					_sslStream.BeginWrite(payload, 0, payload.Length, SendCallback, _sslStream);
+					SocketLogger?.Log($"Sent {payload.Length} bytes to the server.", LogLevel.Trace);
 				}
 				else
 					Listener.BeginSend(payload, 0, payload.Length, SocketFlags.None, SendCallback, Listener);
@@ -440,6 +442,7 @@ namespace SimpleSockets {
 					var socket = (Socket)result.AsyncState;
 					var count = socket.EndSend(result);
 					Statistics?.AddSentBytes(count);
+					SocketLogger?.Log($"Sent {count} bytes to the server.", LogLevel.Trace);
 				}
 					
 				Sent.Set();

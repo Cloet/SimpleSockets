@@ -7,24 +7,25 @@ using Shared;
 using SimpleSockets;
 using SimpleSockets.Helpers;
 using SimpleSockets.Helpers.Compression;
+using SimpleSockets.Messaging;
 using SimpleSockets.Server;
 
 namespace Server
 {
     class Program
     {
-		private static SimpleUdpServer _server;
+		private static SimpleServer _server;
 
         static void Main(string[] args)
         {
             Console.WriteLine("Starting TCP Server.");
 			var cert = new X509Certificate2(new SocketHelper().GetCertFileContents(), "Password");
 
-			// _server = new SimpleTcpServer();
+			//_server = new SimpleTcpServer();
 			//_server = new SimpleTcpServer(cert);
-			_server = new SimpleUdpServer();
+			_server = new SimpleTcpServer();
 
-            _server.LoggerLevel = LogLevel.Debug;
+            _server.LoggerLevel = LogLevel.Trace;
 			BindEvents(_server);
 			_server.CompressionMethod = CompressionType.Deflate;
 
@@ -39,10 +40,9 @@ namespace Server
 
 			input = input.Trim().ToLower();
 
-			if (input == "msgmd" || input == "msg" || input == "msgdc")
+			if (input == "msgmd" || input == "msg")
 			{
 				var clientid = GetClient();
-				var eventKey = "";
 
 				if (clientid < 0)
 					return;
@@ -54,18 +54,14 @@ namespace Server
 				if (input == "msgmd")
 					md = Metadata();
 
-				if (input == "msgdc")
-					eventKey = "CustomMessage";
-
-				// _server.SendMessage(clientid, msg, md, eventKey);
+				_server.SendMessage(clientid, msg, md);
 			}
 			else if (input == "stats") {
 				Console.WriteLine(_server.Statistics.ToString());
 			}
-			else if (input == "obj" || input == "objmd" || input == "objdc")
+			else if (input == "obj" || input == "objmd")
 			{
 				var clientid = GetClient();
-				var eventKey = "";
 
 				if (clientid < 0)
 					return;
@@ -81,10 +77,7 @@ namespace Server
 				if (input == "objmd")
 					md = Metadata();
 
-				if (input == "objdc")
-					eventKey = "PersonObject";
-
-				// _server.SendObject(clientid, new Person(fname, lname), md, eventKey);
+				_server.SendObject(clientid, new Person(fname, lname), md);
 
 			}
 			else if (input == "h" || input == "?")
@@ -93,10 +86,8 @@ namespace Server
 				stb.Append("Possible commands:" + Environment.NewLine);
 				stb.Append("\tmsg\t\tSend a message to the server." + Environment.NewLine);
 				stb.Append("\tmsgmd\t\tSend a message with metadata to the server." + Environment.NewLine);
-				stb.Append("\tmsgdc\t\tSend a message with a custom callback to the server." + Environment.NewLine);
 				stb.Append("\tobj\t\tSend a test object to the server." + Environment.NewLine);
 				stb.Append("\tobjmd\t\tSend a test object with metadata to the server." + Environment.NewLine);
-				stb.Append("\tobjdc\t\tSend a test object with a custom callback to the server." + Environment.NewLine);
 				stb.Append("\tclear\t\tClears the terminal." + Environment.NewLine);
 				stb.Append("\trestart\t\tRestarts the server." + Environment.NewLine);
 				stb.Append("\tstats\t\tStatistics of the server." + Environment.NewLine);
@@ -222,7 +213,7 @@ namespace Server
 
 		private static void Logger(string obj)
         {
-			Console.WriteLine();
+			// Console.WriteLine();
             Console.WriteLine(obj);
         }
 

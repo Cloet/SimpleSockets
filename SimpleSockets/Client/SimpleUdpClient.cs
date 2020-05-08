@@ -4,10 +4,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Net.Security;
 using System.Net.Sockets;
-using System.Security.Authentication;
-using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -130,6 +127,7 @@ namespace SimpleSockets.Client {
 				// This way we can use a delimiter to check if a message has been received.
 				if (received > 0)
 				{
+					SocketLogger?.Log($"Received {received} bytes.", LogLevel.Trace);
 					var readBuffer = client.DataReceiver.Buffer.Take(received).ToArray();
 					for (int i = 0; i < readBuffer.Length; i++)
 					{
@@ -184,6 +182,7 @@ namespace SimpleSockets.Client {
 				var socket = (Socket)result.AsyncState;
 				var count = socket.EndSend(result);
 				Statistics?.AddSentBytes(count);
+				SocketLogger?.Log($"Sent {count} bytes to the server.", LogLevel.Trace);
 
 				Sent.Set();
 			}
@@ -211,7 +210,7 @@ namespace SimpleSockets.Client {
 				var result = Listener.BeginSend(payload, 0, payload.Length, SocketFlags.None, _ => { }, Listener);
 				var count = await Task.Factory.FromAsync(result, (r) => Listener.EndSend(r));
 				Statistics?.AddSentBytes(count);
-
+				SocketLogger?.Log($"Sent {count} bytes to the server.", LogLevel.Trace);
 				Statistics?.AddSentMessages(1);
 
 				Sent.Set();

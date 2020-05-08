@@ -220,39 +220,42 @@ namespace SimpleSockets.Messaging {
         /// </summary>
         /// <returns>Content Byte array</returns>
         private byte[] BuildContent() {
-            
-            var converted = PacketHelper.ByteArrayToString(Data);
 
-			var content = string.Empty;
+			// return Data;
+
+			var converted = PacketHelper.ByteArrayToString(Data);
+
+			var content = new StringBuilder();
 
 			if (converted.Length == 0)
-				content = "0:,";
+				content.Append("0:,");
 			else
-				content = $"{converted.Length}:{converted},";
+				content.Append($"{converted.Length}:{converted},");
 
 			if (HeaderFields[0])
 			{
 				converted = PacketHelper.ByteArrayToString(_metadataBytes);
 				if (converted.Length == 0)
-					content += "0:,";
+					content.Append("0:,");
 				else
-					content += $"{converted.Length}:{converted},";
+					content.Append($"{converted.Length}:{converted},");
 			}
 			else
-				content += "0:,";
+				content.Append("0:,");
 
 			if (HeaderFields[4])
 			{
 				converted = PacketHelper.ByteArrayToString(_internalInfoBytes);
 				if (converted.Length == 0)
-					content += "0:,";
+					content.Append("0:,");
 				else
-					content += $"{converted.Length}:{converted}";
+					content.Append($"{converted.Length}:{converted}");
 			}
 			else
-				content += "0:";
+				content.Append("0:");
          
-            return Encoding.UTF8.GetBytes(content);
+            return Encoding.UTF8.GetBytes(content.ToString());
+
         }
 
 		/// <summary>
@@ -262,7 +265,7 @@ namespace SimpleSockets.Messaging {
         internal byte[] BuildPayload() {
             
             Logger?.Log("===========================================", LogLevel.Trace);
-            Logger?.Log("Building Message.",LogLevel.Trace);
+            Logger?.Log("Building packet.",LogLevel.Trace);
 
 			_internalInfoBytes = SerializationHelper.SerializeObjectToBytes(AdditionalInternalInfo);
 			_metadataBytes = SerializationHelper.SerializeObjectToBytes(MessageMetadata);
@@ -290,15 +293,13 @@ namespace SimpleSockets.Messaging {
             byte[] tail = PacketHelper.PacketDelimiter;
             byte[] payload = new byte[head.Length + content.Length + tail.Length];
 
-            Logger?.Log("Messageheader is " + head.Length + " bytes long.", LogLevel.Trace);
-            Logger?.Log("Message content is " + content.Length + " bytes long.", LogLevel.Trace);
-
             head.CopyTo(payload,0);
             content.CopyTo(payload,head.Length);
             tail.CopyTo(payload,head.Length + content.Length);
 
-            Logger?.Log("The message has been built.", LogLevel.Trace);
-            Logger?.Log("===========================================", LogLevel.Trace);
+            Logger?.Log("Build finished.", LogLevel.Trace);
+			Logger?.Log(ToString(), LogLevel.Trace);
+			Logger?.Log("===========================================", LogLevel.Trace);
             return payload;
         }
 
@@ -598,8 +599,28 @@ namespace SimpleSockets.Messaging {
 		}
 
 
-        #endregion
+		#endregion
 
-    }
+		public override string ToString() {
+			var stats = $"Packet has {Data.Length} bytes, {(MessageMetadata == null ? 0 : MessageMetadata?.Values.Count)} pieces of metadata.";
+			stats += $" uses {(EncryptionType.None == EncryptMode ? "no" : Enum.GetName(typeof(EncryptionType), EncryptMode))} encryption";
+			stats += $" and {(CompressionType.None == CompressMode ? "no" : Enum.GetName(typeof(CompressionType), CompressMode))} compression.";
+			return stats;
+		}
+
+		public string PrintInfo()
+		{
+			var stats = "=======================================================================" + Environment.NewLine;
+			stats += "|  Packet                                                             |" + Environment.NewLine;
+			stats += "|---------------------------------------------------------------------|" + Environment.NewLine;
+			stats += "| - Data           : " + $"{Data.Length} Bytes".ToString().PadRight(49) + "|" + Environment.NewLine;
+			stats += "| - Metadata       : " + $"{(MessageMetadata == null ? 0 : MessageMetadata?.Values.Count)} pieces of metadata".ToString().PadRight(49) + "|" + Environment.NewLine;
+			stats += "| - Encryption     : " + $"{Enum.GetName(typeof(EncryptionType),EncryptMode)}".ToString().PadRight(49) + "|" + Environment.NewLine;
+			stats += "| - Compression    : " + $"{Enum.GetName(typeof(CompressionType),CompressMode)}".ToString().PadRight(49) + "|" + Environment.NewLine;
+			stats += "=======================================================================" + Environment.NewLine;
+			return stats;
+		}
+
+	}
 
 }

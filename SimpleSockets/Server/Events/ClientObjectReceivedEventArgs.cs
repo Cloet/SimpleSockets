@@ -6,7 +6,7 @@ namespace SimpleSockets.Server
 {
 	public class ClientObjectReceivedEventArgs: ClientDataReceivedEventArgs
 	{
-		internal ClientObjectReceivedEventArgs(object recObj, Type objType, IClientInfo clientInfo, IDictionary<object,object> metadata) {
+		internal ClientObjectReceivedEventArgs(object recObj, Type objType, ISessionInfo clientInfo, IDictionary<object,object> metadata) {
 			_recObj = recObj;
 			_objType = objType;
 			Metadata = metadata;

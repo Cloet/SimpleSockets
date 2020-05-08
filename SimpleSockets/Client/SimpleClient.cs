@@ -1,11 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
-using System.Net.Security;
 using System.Net.Sockets;
-using System.Security.Authentication;
-using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -241,6 +239,8 @@ namespace SimpleSockets.Client {
 			var extraInfo = packet.AdditionalInternalInfo;
 			var eventHandler = packet.GetDynamicCallbackClient(extraInfo, DynamicCallbacks);
 
+			SocketLogger?.Log($"Received a completed message from the server of type {Enum.GetName(typeof(PacketType), packet.MessageType)}.", LogLevel.Trace);
+
 			if (packet.MessageType == PacketType.Message)
 			{
 				var ev = new MessageReceivedEventArgs(packet.BuildDataToString(), packet.MessageMetadata);
@@ -303,7 +303,7 @@ namespace SimpleSockets.Client {
 
 		protected abstract Task<bool> SendToServerAsync(byte[] payload);
 
-		protected bool SendInternal(PacketType msgType, byte[] data, IDictionary<object, object> metadata, string eventKey, EncryptionType encryption, CompressionType compression)
+		protected bool SendInternal(PacketType msgType, byte[] data, IDictionary<object, object> metadata, string eventKey, EncryptionType encryption, CompressionType compression, Type objType = null)
 		{
 			var packet = PacketBuilder.NewPacket
 				.SetBytes(data)
@@ -311,13 +311,15 @@ namespace SimpleSockets.Client {
 				.SetMetadata(metadata)
 				.SetCompression(compression)
 				.SetEncryption(encryption)
-				.SetDynamicCallback(eventKey)
-				.Build();
+				.SetDynamicCallback(eventKey);
 
-			return SendPacket(packet);
+			if (msgType == PacketType.Object)
+				packet.SetObjectType(objType);
+
+			return SendPacket(packet.Build());
 		}
 
-		protected async Task<bool> SendInternalAsync(PacketType msgType, byte[] data, IDictionary<object, object> metadata, string eventKey, EncryptionType encryption, CompressionType compression)
+		protected async Task<bool> SendInternalAsync(PacketType msgType, byte[] data, IDictionary<object, object> metadata, string eventKey, EncryptionType encryption, CompressionType compression, Type objType = null)
 		{
 			var packet = PacketBuilder.NewPacket
 				.SetBytes(data)
@@ -325,12 +327,15 @@ namespace SimpleSockets.Client {
 				.SetMetadata(metadata)
 				.SetCompression(compression)
 				.SetEncryption(encryption)
-				.SetDynamicCallback(eventKey)
-				.Build();
+				.SetDynamicCallback(eventKey);
 
-			return await SendPacketAsync(packet);
+			if (msgType == PacketType.Object)
+				packet.SetObjectType(objType);
+
+			return await SendPacketAsync(packet.Build());
 		}
 
+		// Sends an authentication to the server. this way the server can always identify a client based on the guid.
 		protected bool SendAuthenticationMessage() {
 			var username = Environment.UserName;
 			var osVersion = Environment.OSVersion;
@@ -374,7 +379,7 @@ namespace SimpleSockets.Client {
 		}
 
 		/// <summary>
-		/// Send a packet build with <seealso cref="PacketBuilder"/>.
+		/// Send a packet to the server. The packet build with <seealso cref="PacketBuilder"/>.
 		/// </summary>
 		/// <param name="packet"></param>
 		/// <returns></returns>
@@ -393,7 +398,7 @@ namespace SimpleSockets.Client {
 		}
 
 		/// <summary>
-		/// Sends a packet build with <seealso cref="PacketBuilder"/>
+		/// Sends a packet to the server asynchronous. The packet is build with <seealso cref="PacketBuilder"/>
 		/// </summary>
 		/// <param name="packet"></param>
 		/// <returns></returns>
@@ -410,9 +415,204 @@ namespace SimpleSockets.Client {
 			}
 		}
 
+		#region Message
+
+		/// <summary>
+		/// Sends a message to the server.
+		/// </summary>
+		/// <param name="message"></param>
+		/// <returns></returns>
 		public bool SendMessage(string message) {
-			return SendInternal(PacketType.Message, Encoding.UTF8.GetBytes(message), null, null, EncryptionMethod, CompressionMethod);
+			return SendInternal(PacketType.Message, Encoding.UTF8.GetBytes(message), null, string.Empty, EncryptionMethod, CompressionMethod);
 		}
+
+		/// <summary>
+		/// Sends a message with metadata to the server.
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="metadata"></param>
+		/// <returns></returns>
+		public bool SendMessage(string message, IDictionary<object, object> metadata) {
+			return SendInternal(PacketType.Message, Encoding.UTF8.GetBytes(message), null, string.Empty, EncryptionMethod, CompressionMethod);
+		}
+
+		/// <summary>
+		/// Send a message to the server asynchronous.
+		/// </summary>
+		/// <param name="message"></param>
+		/// <returns></returns>
+		public async Task<bool> SendMessageAsync(string message) {
+			return await SendInternalAsync(PacketType.Message, Encoding.UTF8.GetBytes(message), null, string.Empty, EncryptionMethod, CompressionMethod);
+		}
+
+		/// <summary>
+		/// Send a message to the server asynchronous.
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="metadata"></param>
+		/// <returns></returns>
+		public async Task<bool> SendMessageAsync(string message, IDictionary<object, object> metadata) {
+			return await SendInternalAsync(PacketType.Message, Encoding.UTF8.GetBytes(message), metadata, string.Empty, EncryptionMethod, CompressionMethod);
+		}
+
+		#endregion
+
+		#region Bytes
+
+		/// <summary>
+		/// Send bytes to the server.
+		/// </summary>
+		/// <param name="bytes"></param>
+		/// <returns></returns>
+		public bool SendBytes(byte[] bytes)
+		{
+			return SendInternal(PacketType.Bytes, bytes, null, string.Empty, EncryptionMethod, CompressionMethod);
+		}
+
+		/// <summary>
+		/// Send bytes to the server with metadata.
+		/// </summary>
+		/// <param name="bytes"></param>
+		/// <param name="metadata"></param>
+		/// <returns></returns>
+		public bool SendBytes(byte[] bytes, IDictionary<object, object> metadata)
+		{
+			return SendInternal(PacketType.Bytes, bytes, null, string.Empty, EncryptionMethod, CompressionMethod);
+		}
+
+		/// <summary>
+		/// Send bytes to the server asynchronous.
+		/// </summary>
+		/// <param name="bytes"></param>
+		/// <returns></returns>
+		public async Task<bool> SendBytesAsync(byte[] bytes)
+		{
+			return await SendInternalAsync(PacketType.Bytes, bytes, null, string.Empty, EncryptionMethod, CompressionMethod);
+		}
+
+		/// <summary>
+		/// Send bytes with metadata to the server asynchronous.
+		/// </summary>
+		/// <param name="bytes"></param>
+		/// <param name="metadata"></param>
+		/// <returns></returns>
+		public async Task<bool> SendMessageAsync(byte[] bytes, IDictionary<object, object> metadata)
+		{
+			return await SendInternalAsync(PacketType.Message, bytes, metadata, string.Empty, EncryptionMethod, CompressionMethod);
+		}
+
+
+		#endregion
+
+		#region Object
+
+		/// <summary>
+		/// Send an object to the server.
+		/// </summary>
+		/// <param name="obj"></param>
+		/// <returns></returns>
+		public bool SendObject(object obj)
+		{
+			return SendObject(obj, null);
+		}
+
+		/// <summary>
+		/// Send an object with metadata to the server.
+		/// </summary>
+		/// <param name="obj"></param>
+		/// <param name="metadata"></param>
+		/// <returns></returns>
+		public bool SendObject(object obj, IDictionary<object, object> metadata)
+		{
+			var bytes = SerializationHelper.SerializeObjectToBytes(obj);
+			return SendInternal(PacketType.Object, bytes, metadata, string.Empty, EncryptionMethod, CompressionMethod, obj.GetType());
+		}
+
+		/// <summary>
+		/// Send an object to the server asynchronous.
+		/// </summary>
+		/// <param name="obj"></param>
+		/// <returns></returns>
+		public async Task<bool> SendObjectAsync(object obj)
+		{
+			return await SendObjectAsync(obj, null);
+		}
+
+		/// <summary>
+		/// Send an object with metadata to the server asynchronous.
+		/// </summary>
+		/// <param name="obj"></param>
+		/// <param name="metadata"></param>
+		/// <returns></returns>
+		public async Task<bool> SendObjectAsync(object obj, IDictionary<object, object> metadata)
+		{
+			var bytes = SerializationHelper.SerializeObjectToBytes(obj);
+			return await SendInternalAsync(PacketType.Object, bytes, metadata, string.Empty, EncryptionMethod, CompressionMethod, obj.GetType());
+		}
+
+
+		#endregion
+
+		#region File
+
+		public async Task<bool> SendFileAsync(string file, string remoteloc) {
+
+			file = Path.GetFullPath(file);
+
+			if (!File.Exists(file))
+				throw new ArgumentException("No file found at path.", nameof(file));
+			try
+			{
+				var start = DateTime.Now;
+				var bufLength = 16384;
+				var buffer = new byte[bufLength]; //When this buffer exceeds 85000 bytes -> buffer will be stored in LOH -> bad for memory usage.			
+				using (var fileStream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, buffer.Length, true))
+				{
+					var read = 0;
+					var currentPart = 0;
+					var totalLength = fileStream.Length;
+					int totalParts = (int)Math.Ceiling((double)(totalLength / bufLength));
+
+					while ((read = await fileStream.ReadAsync(buffer, 0, buffer.Length, Token)) > 0)
+					{
+						currentPart++;
+						var data = new byte[read];
+						if (read == buffer.Length)
+							data = buffer;
+						else
+							Array.Copy(buffer, 0, data, 0, read);
+
+						var packet = PacketBuilder.NewPacket
+							.SetBytes(data)
+							.SetPacketType(PacketType.File)
+							.SetPartNumber(currentPart, totalParts)
+							.SetEncryption(EncryptionMethod)
+							.SetDestinationPath(remoteloc)
+							.Build();
+
+
+						var send = await SendToServerAsync(packet.BuildPayload());
+
+						if (send == false)
+						{
+							SocketLogger?.Log($"Part {currentPart} or {totalParts} failed to be sent.", LogLevel.Error);
+							return false;
+						}
+
+						buffer = new byte[bufLength];
+					}
+				}
+
+				Console.WriteLine("Took: " + (start.ToUniversalTime() - DateTime.Now.ToUniversalTime()).ToString());
+				return true;
+			}
+			catch (Exception ex) {
+				SocketLogger?.Log("Error sending a file.", ex, LogLevel.Error);
+				return false;
+			}
+		}
+
+		#endregion
 
 		#endregion
 

@@ -22,20 +22,29 @@ namespace Client
 
 			var cert = new X509Certificate2(new SocketHelper().GetCertFileContents(), "Password");
 
-			var client = new SimpleUdpClient();
+			var client = new SimpleTcpClient();
 
 			client.ConnectTo("127.0.0.1", 13000, 5);
+			client.CompressionMethod = CompressionType.None;
 
 			PersonObjectReceived += Program_PersonObjectReceived;
 			CustomMessageReceived += Program_CustomMessageReceived;
 			// client.DynamicCallbacks.Add("PersonObject", PersonObjectReceived);
 			// client.DynamicCallbacks.Add("CustomMessage", CustomMessageReceived);
 
-			while (true) {
+			while (true)
+			{
 				Console.Write("Enter a message: ");
 				var msg = Console.ReadLine();
 				client.SendMessage(msg);
 			}
+
+			var start = DateTime.Now;
+
+			client.SendFileAsync(@"D:\School.rar", @"D:\School2.rarz");
+
+
+			Console.ReadLine();
 
 		}
 

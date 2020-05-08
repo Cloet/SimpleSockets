@@ -6,7 +6,7 @@ using SimpleSockets.Messaging;
 
 namespace SimpleSockets {
 
-    public interface ISessionMetadata: IClientInfo, IDisposable {
+    public interface ISessionMetadata: ISessionInfo, IDisposable {
 
 		new string ClientName { get; set; }
 
@@ -29,6 +29,8 @@ namespace SimpleSockets {
         Socket Listener { get; set; }
 
 		void ChangeBufferSize(int size);
+
+		string Info();
 
 		void ResetDataReceiver();
 

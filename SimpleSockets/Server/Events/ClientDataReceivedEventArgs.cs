@@ -11,7 +11,7 @@ namespace SimpleSockets.Server
 
 		public abstract Type ReceivedObjectType { get; }
 
-		public IClientInfo ClientInfo { get; protected set; }
+		public ISessionInfo ClientInfo { get; protected set; }
 
 		public IDictionary<object, object> Metadata { get; protected set; }
 
