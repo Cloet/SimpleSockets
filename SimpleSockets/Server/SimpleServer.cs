@@ -293,60 +293,47 @@ namespace SimpleSockets.Server
 
 		}
 
-		protected virtual void RequestHandler(ISessionMetadata client, Packet packet) {
+		protected virtual void RequestHandler(ISessionMetadata client, Request request) {
 
-			RequestPacket reqpacket = RequestPacket.ReceiverRequestPacket(SocketLogger);
-			reqpacket.Map(packet);
-			reqpacket.Build();
-
-			if (reqpacket.Request == Request.FileTransfer) {
-				var exists = reqpacket.AdditionalInternalInfo.TryGetValue(PacketHelper.REQPATH, out var filename);
-
-				if (exists) {
-					Response res = Response.Error;
-					string errormsg = "";
-					if (!FileTransferEnabled) {
-						res = Response.Error;
-						errormsg = "File transfer is not allowed.";
-					}
+			if (request.Req == Requests.FileTransfer) {
+				var filename = request.Data;
+				Responses res = Responses.Error;
+				string errormsg = "";
+				if (!FileTransferEnabled) {
+					res = Responses.Error;
+					errormsg = "File transfer is not allowed.";
+				}
+				else
+				{
+					if (File.Exists(Path.GetFullPath(filename)))
+						res = Responses.FileExists;
 					else
-					{
-						if (File.Exists(Path.GetFullPath(filename.ToString())))
-							res = Response.FileExists;
-						else
-							res = Response.ReqFilePathOk;
-					}
-
-					var resp = ResponsePacket.NewResponsePacket(SocketLogger, reqpacket.RequestGuid, res, errormsg);
-					SendPacket(client.Id, resp);
+						res = Responses.ReqFilePathOk;
 				}
-			} else if (reqpacket.Request == Request.FileDelete) {
-				var exists = reqpacket.AdditionalInternalInfo.TryGetValue(PacketHelper.REQPATH, out var filename);
+				SendPacket(client.Id, Response.CreateResponse(request.RequestGuid, res, errormsg, null).BuildResponseToPacket());
+			} else if (request.Req == Requests.FileDelete) {
+				Responses res = Responses.Error;
+				string errormsg = "";
+				var filename = request.Data;
 
-				if (exists) {
-					Response res = Response.Error;
-					string errormsg = "";
-
-					if (!FileTransferEnabled)
-					{
-						res = Response.Error;
-						errormsg = "File transfer is not allowed.";
-					}
-					else {
-						try
-						{
-							File.Delete(Path.GetFullPath(filename.ToString()));
-							res = Response.FileDeleted;
-						}
-						catch (Exception ex) {
-							res = Response.Error;
-							errormsg = ex.ToString();
-						}
-					}
-
-					var resp = ResponsePacket.NewResponsePacket(SocketLogger, reqpacket.RequestGuid, res, errormsg);
-					SendPacket(client.Id, resp);
+				if (!FileTransferEnabled)
+				{
+					res = Responses.Error;
+					errormsg = "File transfer is not allowed.";
 				}
+				else {
+					try
+					{
+						File.Delete(Path.GetFullPath(filename));
+						res = Responses.FileDeleted;
+					}
+					catch (Exception ex) {
+						res = Responses.Error;
+						errormsg = ex.ToString();
+					}
+				}
+
+				SendPacket(client.Id, Response.CreateResponse(request.RequestGuid, res, errormsg, null).BuildResponseToPacket());
 			}
 
 
@@ -396,7 +383,7 @@ namespace SimpleSockets.Server
 			{
 				var obj = message.BuildObjectFromBytes(extraInfo, out var type);
 
-				if (obj == null || type == null)
+				if (obj != null && type != null)
 				{
 					var ev = new ClientObjectReceivedEventArgs(obj, type, client, message.MessageMetadata);
 					if (eventHandler != null)
@@ -442,14 +429,12 @@ namespace SimpleSockets.Server
 			}
 
 			if (message.MessageType == PacketType.Request) {
-				RequestHandler(client, message);
+				var req = SerializationHelper.DeserializeJson<Request>(message.Data);
+				RequestHandler(client, req);
 			}
 
 			if (message.MessageType == PacketType.Response) {
-				// var resp = (ResponsePacket)message;
-				var resp = ResponsePacket.ReceiverResponsePacket(SocketLogger);
-				resp.Map(message);
-				resp.Build();
+				var resp = SerializationHelper.DeserializeJson<Response>(message.Data);
 				lock (_responsePackets) {
 					_responsePackets.Add(resp.ResponseGuid, resp);
 				}

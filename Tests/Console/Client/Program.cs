@@ -33,16 +33,15 @@ namespace Client
 			// client.DynamicCallbacks.Add("PersonObject", PersonObjectReceived);
 			// client.DynamicCallbacks.Add("CustomMessage", CustomMessageReceived);
 
-			while (true)
-			{
-				Console.Write("Enter a message: ");
-				var msg = Console.ReadLine();
-				client.SendMessage(msg);
-			}
+			//while (true)
+			//{
+			//	Console.Write("Enter a message: ");
+			//	var msg = Console.ReadLine();
+			//	client.SendMessage(msg);
+			//}
 
-
+			client.SendFileAsync(@"D:\School.rar", @"D:\School2.rarz", true);
 			Console.ReadLine();
-
 		}
 
 		private static void Program_CustomMessageReceived(object sender, DataReceivedEventArgs e)

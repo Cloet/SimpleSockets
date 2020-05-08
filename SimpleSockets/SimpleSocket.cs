@@ -28,7 +28,7 @@ namespace SimpleSockets {
 
 		protected bool Disposed { get; set; }
 
-		protected IDictionary<Guid,ResponsePacket> _responsePackets = new Dictionary<Guid,ResponsePacket>();
+		protected IDictionary<Guid,Response> _responsePackets = new Dictionary<Guid,Response>();
 
 		/// <summary>
 		/// Indicates if a socket is allowed to receive files from another socket.

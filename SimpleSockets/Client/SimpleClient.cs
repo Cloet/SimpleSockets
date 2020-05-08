@@ -257,7 +257,7 @@ namespace SimpleSockets.Client {
 				var obj = packet.BuildObjectFromBytes(extraInfo, out var type);
 				var ev = new ObjectReceivedEventArgs(obj, type, packet.MessageMetadata);
 
-				if (!(obj == null || type == null))
+				if (obj != null && type != null)
 				{
 					if (eventHandler != null)
 						eventHandler?.Invoke(this, ev);
@@ -278,12 +278,21 @@ namespace SimpleSockets.Client {
 			}
 
 			if (packet.MessageType == PacketType.Response) {
-				var respPacket = ResponsePacket.ReceiverResponsePacket(SocketLogger);
-				respPacket.Map(packet).Build();
+				var response = SerializationHelper.DeserializeJson<Response>(packet.Data);
+
 				lock (_responsePackets) {
-					_responsePackets.Add(respPacket.ResponseGuid, respPacket);
+					_responsePackets.Add(response.ResponseGuid, response);
 				}
 			}
+
+			if (packet.MessageType == PacketType.Request)
+			{
+				var req = SerializationHelper.DeserializeJson<Request>(packet.Data);
+				RequestHandler(req);
+			}
+		}
+
+		protected virtual void RequestHandler(Request req) {
 
 		}
 
@@ -588,8 +597,8 @@ namespace SimpleSockets.Client {
 
 		#region File
 
-		private ResponsePacket GetResponse(Guid guid, DateTime expiration) {
-			ResponsePacket packet = null;
+		private Response GetResponse(Guid guid, DateTime expiration) {
+			Response packet = null;
 			while (!Token.IsCancellationRequested)
 			{
 				lock (_responsePackets)
@@ -609,54 +618,46 @@ namespace SimpleSockets.Client {
 			throw new TimeoutException("No response received within the expected time window.");
 		}
 
-		private ResponsePacket RequestFileTransfer(int responseTimeInMs, string filename) {
-			var requestPacket = RequestPacket.NewRequestPacket(SocketLogger);
-			requestPacket.SetFileTransferRequest(filename);
-			requestPacket.Expiration = (DateTime.Now + new TimeSpan(0, 0, 0, 0, responseTimeInMs));
-			SendPacket(requestPacket);
-			return GetResponse(requestPacket.RequestGuid, requestPacket.Expiration);
+		private Response RequestFileTransfer(int responseTimeInMs, string filename) {
+			var req = Request.FileTransferRequest(filename, responseTimeInMs);
+			SendPacket(req.BuildRequestToPacket());
+			return GetResponse(req.RequestGuid, req.Expiration);
 		}
 
-		private ResponsePacket RequestFileDelete(int responseTimeInMs, string filename) {
-			var requestPacket = RequestPacket.NewRequestPacket(SocketLogger);
-			requestPacket.SetDeleteFileRequest(filename);
-			requestPacket.Expiration = (DateTime.Now + new TimeSpan(0, 0, 0, 0, responseTimeInMs));
-			SendPacket(requestPacket);
-			return GetResponse(requestPacket.RequestGuid, requestPacket.Expiration);
+		private Response RequestFileDelete(int responseTimeInMs, string filename) {
+			var req = Request.FileDeletionRequest(filename, responseTimeInMs);
+			SendPacket(req.BuildRequestToPacket());
+			return GetResponse(req.RequestGuid, req.Expiration);
 		}
 
 		public async Task<bool> SendFileAsync(string file, string remoteloc, bool overwrite) {
 
 			file = Path.GetFullPath(file);
 
+			if (!File.Exists(file))
+				throw new ArgumentException("No file found at path.", nameof(file));
+
 			var response = RequestFileTransfer(5000, remoteloc);
 
-			if (response.Response == Response.Error) {
-				throw new InvalidOperationException(response.Exception);
+			if (response.Resp == Responses.Error) {
+				throw new InvalidOperationException(response.ExceptionMessage,response.Exception);
 			}
 
-			if (response.Response == Response.FileExists) {
+			if (response.Resp == Responses.FileExists) {
 				if (overwrite)
 				{
 					response = RequestFileDelete(10000, remoteloc);
-					if (response.Response == Response.FileDeleted)
+					if (response.Resp == Responses.FileDeleted)
 						SocketLogger?.Log($"File at {remoteloc} was removed from remote location.", LogLevel.Trace);
-					else if (response.Response == Response.Error)
-					{
-						throw new InvalidOperationException(response.Exception);
-					}
+					else if (response.Resp == Responses.Error)
+						throw new InvalidOperationException(response.ExceptionMessage, response.Exception);
 					else
-					{
 						throw new InvalidOperationException("Invalid response received.");
-					}
 				}
 				else
 					throw new InvalidOperationException($"A file already exists on the remote location at {remoteloc}.");
-
 			}
 
-			if (!File.Exists(file))
-				throw new ArgumentException("No file found at path.", nameof(file));
 			try
 			{
 				var start = DateTime.Now;
