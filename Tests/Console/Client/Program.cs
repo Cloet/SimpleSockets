@@ -20,7 +20,7 @@ namespace Client
 		{
 			Console.WriteLine("Hello.");
 
-			var cert = new X509Certificate2(new SocketHelper().GetCertFileContents(), "Password");
+			var context = new SslContext(new X509Certificate2(new SocketHelper().GetCertFileContents(), "Password"));
 
 			var client = new SimpleTcpClient();
 

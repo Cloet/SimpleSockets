@@ -292,8 +292,52 @@ namespace SimpleSockets.Client {
 			}
 		}
 
-		protected virtual void RequestHandler(Request req) {
+		protected virtual void RequestHandler(Request request) {
+			if (request.Req == Requests.FileTransfer)
+			{
+				var filename = request.Data;
+				Responses res = Responses.Error;
+				string errormsg = "";
+				if (!FileTransferEnabled)
+				{
+					res = Responses.Error;
+					errormsg = "File transfer is not allowed.";
+				}
+				else
+				{
+					if (File.Exists(Path.GetFullPath(filename)))
+						res = Responses.FileExists;
+					else
+						res = Responses.ReqFilePathOk;
+				}
+				SendPacket(Response.CreateResponse(request.RequestGuid, res, errormsg, null).BuildResponseToPacket());
+			}
+			else if (request.Req == Requests.FileDelete)
+			{
+				Responses res = Responses.Error;
+				string errormsg = "";
+				var filename = request.Data;
 
+				if (!FileTransferEnabled)
+				{
+					res = Responses.Error;
+					errormsg = "File transfer is not allowed.";
+				}
+				else
+				{
+					try
+					{
+						File.Delete(Path.GetFullPath(filename));
+						res = Responses.FileDeleted;
+					}
+					catch (Exception ex)
+					{
+						res = Responses.Error;
+						errormsg = ex.ToString();
+					}
+				}
+				SendPacket(Response.CreateResponse(request.RequestGuid, res, errormsg, null).BuildResponseToPacket());
+			}
 		}
 
 		protected override void ByteDecoder(ISessionMetadata session, byte[] array)

@@ -9,6 +9,7 @@ namespace SimpleSockets.Messaging
 		Error=0,
 		ReqFilePathOk=0,
 		FileExists=1,
-		FileDeleted=2
+		FileDeleted=2,
+		DirectoryInfo=3
 	}
 }

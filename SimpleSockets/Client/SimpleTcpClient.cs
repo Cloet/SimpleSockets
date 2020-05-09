@@ -63,21 +63,6 @@ namespace SimpleSockets {
         }
 
 		/// <summary>
-		/// Constructor for the client, enables ssl.
-		/// </summary>
-		/// <param name="certificate"></param>
-		/// <param name="tls"></param>
-		/// <param name="acceptInvalidCertificates"></param>
-		/// <param name="mutualAuth"></param>
-		public SimpleTcpClient(X509Certificate2 certificate, TlsProtocol tls = TlsProtocol.Tls12, bool acceptInvalidCertificates = true, bool mutualAuth = false): base(SocketProtocolType.Tcp) {
-			_sslCertificate = certificate ?? throw new ArgumentNullException(nameof(certificate));
-
-			_tlsProtocol = tls;
-			AcceptInvalidCertificates = acceptInvalidCertificates;
-			MutualAuthentication = mutualAuth;
-		}
-
-		/// <summary>
 		/// Constructor, enables ssl.
 		/// </summary>
 		/// <param name="certData"></param>
@@ -85,29 +70,16 @@ namespace SimpleSockets {
 		/// <param name="tls"></param>
 		/// <param name="acceptInvalidCertificates"></param>
 		/// <param name="mutualAuth"></param>
-		public SimpleTcpClient(byte[] certData, string certPass, TlsProtocol tls = TlsProtocol.Tls12, bool acceptInvalidCertificates = true, bool mutualAuth = false) : base(SocketProtocolType.Tcp) {
-			if (certData == null || certData.Length == 0)
-				throw new ArgumentNullException(nameof(certData));
+		public SimpleTcpClient(SslContext context) : base(SocketProtocolType.Tcp) {
+			SslEncryption = true;
 
-			if (string.IsNullOrEmpty(certPass))
-				_sslCertificate = new X509Certificate2(certData);
-			else
-				_sslCertificate = new X509Certificate2(certData, certPass);
+			if (context.Certificate == null)
+				throw new ArgumentException("No ssl certificate found.", nameof(context));
 
-			_tlsProtocol = tls;
-			AcceptInvalidCertificates = acceptInvalidCertificates;
-			MutualAuthentication = mutualAuth;
-		}
-
-		/// <summary>
-		/// Constructor, enables ssl.
-		/// </summary>
-		/// <param name="cert">The location of the certificate.</param>
-		/// <param name="certPass"></param>
-		/// <param name="tls"></param>
-		/// <param name="acceptInvalidCertificates"></param>
-		/// <param name="mutualAuth"></param>
-		public SimpleTcpClient(string cert, string certPass, TlsProtocol tls = TlsProtocol.Tls12, bool acceptInvalidCertificates = true, bool mutualAuth = false) : this(File.ReadAllBytes(Path.GetFullPath(cert)), certPass, tls, acceptInvalidCertificates, mutualAuth) {
+			_sslCertificate = context.Certificate;
+			_tlsProtocol = context.TlsProtocol;
+			AcceptInvalidCertificates = context.AcceptInvalidCertificates;
+			MutualAuthentication = MutualAuthentication;
 		}
 
 		#endregion

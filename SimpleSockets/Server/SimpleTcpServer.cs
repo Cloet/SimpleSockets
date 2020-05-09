@@ -67,50 +67,14 @@ namespace SimpleSockets.Server {
 		/// <param name="tls"></param>
 		/// <param name="acceptInvalidCertificates"></param>
 		/// <param name="mutualAuth"></param>
-		public SimpleTcpServer(X509Certificate2 certificate, TlsProtocol tls = TlsProtocol.Tls12, bool acceptInvalidCertificates = true, bool mutualAuth = false) : base(SocketProtocolType.Tcp)
+		public SimpleTcpServer(SslContext context) : base(SocketProtocolType.Tcp)
 		{
-			_serverCertificate = certificate ?? throw new ArgumentNullException(nameof(certificate));
+			_serverCertificate = context.Certificate ?? throw new ArgumentNullException(nameof(context));
 			SslEncryption = true;
 
-			_tlsProtocol = tls;
-			AcceptInvalidCertificates = acceptInvalidCertificates;
-			MutualAuthentication = mutualAuth;
-		}
-
-		/// <summary>
-		/// Constructor, enables ssl.
-		/// </summary>
-		/// <param name="certData"></param>
-		/// <param name="certPass"></param>
-		/// <param name="tls"></param>
-		/// <param name="acceptInvalidCertificates"></param>
-		/// <param name="mutualAuth"></param>
-		public SimpleTcpServer(byte[] certData, string certPass, TlsProtocol tls = TlsProtocol.Tls12, bool acceptInvalidCertificates = true, bool mutualAuth = false) : base(SocketProtocolType.Tcp)
-		{
-			if (certData == null || certData.Length == 0)
-				throw new ArgumentNullException(nameof(certData));
-
-			if (string.IsNullOrEmpty(certPass))
-				_serverCertificate = new X509Certificate2(certData);
-			else
-				_serverCertificate = new X509Certificate2(certData, certPass);
-
-			SslEncryption = true;
-			_tlsProtocol = tls;
-			AcceptInvalidCertificates = acceptInvalidCertificates;
-			MutualAuthentication = mutualAuth;
-		}
-
-		/// <summary>
-		/// Constructor, enables ssl.
-		/// </summary>
-		/// <param name="cert">The location of the certificate.</param>
-		/// <param name="certPass"></param>
-		/// <param name="tls"></param>
-		/// <param name="acceptInvalidCertificates"></param>
-		/// <param name="mutualAuth"></param>
-		public SimpleTcpServer(string cert, string certPass, TlsProtocol tls = TlsProtocol.Tls12, bool acceptInvalidCertificates = true, bool mutualAuth = false) : this(File.ReadAllBytes(Path.GetFullPath(cert)), certPass, tls, acceptInvalidCertificates, mutualAuth)
-		{
+			_tlsProtocol = context.TlsProtocol;
+			AcceptInvalidCertificates = context.AcceptInvalidCertificates;
+			MutualAuthentication = context.MutualAuth;
 		}
 
 		#endregion

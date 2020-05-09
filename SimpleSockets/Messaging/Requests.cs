@@ -7,6 +7,7 @@ namespace SimpleSockets.Messaging
 	public enum Requests
 	{
 		FileTransfer=0,
-		FileDelete=1
+		FileDelete=1,
+		DirectoryInfo=2
 	}
 }

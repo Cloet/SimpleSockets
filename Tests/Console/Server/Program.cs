@@ -19,10 +19,8 @@ namespace Server
         static void Main(string[] args)
         {
             Console.WriteLine("Starting TCP Server.");
-			var cert = new X509Certificate2(new SocketHelper().GetCertFileContents(), "Password");
+			var context = new SslContext(new X509Certificate2(new SocketHelper().GetCertFileContents(), "Password"));
 
-			//_server = new SimpleTcpServer();
-			//_server = new SimpleTcpServer(cert);
 			_server = new SimpleTcpServer();
 			_server.FileTransferEnabled = true;
 

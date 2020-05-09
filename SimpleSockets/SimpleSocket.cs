@@ -151,7 +151,7 @@ namespace SimpleSockets {
 		/// <param name="cert"></param>
 		/// <param name="protocol"></param>
 		/// <returns></returns>
-		public static SimpleServer CreateTcpSslServer(X509Certificate2 cert, TlsProtocol protocol) => new SimpleTcpServer(cert,protocol);
+		public static SimpleServer CreateTcpSslServer(SslContext context) => new SimpleTcpServer(context);
 
 		/// <summary>
 		/// Creates a new udp server.
@@ -177,7 +177,7 @@ namespace SimpleSockets {
 		/// <param name="cert"></param>
 		/// <param name="protocol"></param>
 		/// <returns></returns>
-		public static SimpleClient CreateTcpSslClient(X509Certificate2 cert, TlsProtocol protocol) => new SimpleTcpClient(cert, protocol);
+		public static SimpleClient CreateTcpSslClient(SslContext context) => new SimpleTcpClient(context);
 
 		#endregion
 

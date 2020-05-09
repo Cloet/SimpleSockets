@@ -45,7 +45,6 @@ namespace SimpleSockets.Messaging
 		[JsonConstructor]
 		private Response()
 		{
-
 		}
 
 		internal Packet BuildResponseToPacket() {

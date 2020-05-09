@@ -52,7 +52,6 @@ namespace SimpleSockets.Messaging
 
 		[JsonConstructor]
 		private Request() {
-
 		}
 
 		internal Packet BuildRequestToPacket()

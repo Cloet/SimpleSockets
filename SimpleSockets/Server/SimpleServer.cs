@@ -335,9 +335,6 @@ namespace SimpleSockets.Server
 
 				SendPacket(client.Id, Response.CreateResponse(request.RequestGuid, res, errormsg, null).BuildResponseToPacket());
 			}
-
-
-
 		}
 
 		protected virtual void OnMessageReceivedHandler(ISessionMetadata client, Packet message)
