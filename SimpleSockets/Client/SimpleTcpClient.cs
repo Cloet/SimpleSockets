@@ -59,7 +59,7 @@ namespace SimpleSockets {
 		/// <summary>
 		/// Constructor
 		/// </summary>
-		public SimpleTcpClient(): base( SocketProtocolType.Tcp) {
+		public SimpleTcpClient(): base(SocketProtocolType.Tcp) {
         }
 
 		/// <summary>
@@ -173,12 +173,12 @@ namespace SimpleSockets {
 
 			Task.Run(() =>
 			{
-				if (Token.IsCancellationRequested)
+				if (Disposed || Token.IsCancellationRequested)
 					return;
 
 				Listener = new Socket(EndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 				Listener.BeginConnect(EndPoint, OnConnected, Listener);
-				Connected.Wait(Token);		
+				Connected.WaitOne();		
 
 			});
         }
@@ -204,10 +204,10 @@ namespace SimpleSockets {
 				if (success) {
 					Connected.Set();
 					var metadata = new SessionMetadata(Listener, -1, SocketLogger);
-					Sent.Set();
 					OnConnectedToServer();
+					Sent.Set();
 					SendAuthenticationMessage();
-					Task.Run(() => Receive(metadata), Token);
+					Receive(metadata);
 				}
 
 				if (SslEncryption && !success)
@@ -329,7 +329,7 @@ namespace SimpleSockets {
 				if (!IsConnected())
 					throw new InvalidOperationException("Client is not connected.");
 
-				Sent.Wait();
+				Sent.WaitOne();
 				Sent.Reset();
 
 				if (Listener == null || (_sslStream == null && SslEncryption))
@@ -373,7 +373,7 @@ namespace SimpleSockets {
 				if ((_sslStream == null && SslEncryption) || Listener == null)
 					throw new InvalidOperationException(SslEncryption ? "Sslstream is null." : "Listener is null.");
 
-				Sent.Wait();
+				Sent.WaitOne();
 				Sent.Reset();
 
 				if (SslEncryption) {

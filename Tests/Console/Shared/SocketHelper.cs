@@ -9,20 +9,8 @@ namespace Shared
 	{
 		public byte[] GetCertFileContents()
 		{
-			using (var stream = this.GetType().Assembly.GetManifestResourceStream("Shared.Security.cert.pfx"))
-			{
-				byte[] buffer = new byte[16 * 1024];
-				using (MemoryStream ms = new MemoryStream())
-				{
-					int read;
-					while ((read = stream.Read(buffer, 0, buffer.Length)) > 0)
-					{
-						ms.Write(buffer, 0, read);
-					}
-					return ms.ToArray();
-				}
-			}
-
+			var path = Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location) + "/Security/TestCertificate.pfx";
+			return File.ReadAllBytes(path);
 		}
 
 	}

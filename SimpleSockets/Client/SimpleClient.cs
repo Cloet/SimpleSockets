@@ -72,9 +72,9 @@ namespace SimpleSockets.Client {
 
 		private Action<string> _logger;
 
-		protected readonly ManualResetEventSlim Connected = new ManualResetEventSlim(false);
+		protected readonly ManualResetEvent Connected = new ManualResetEvent(false);
 
-		protected readonly ManualResetEventSlim Sent = new ManualResetEventSlim(false);
+		protected readonly ManualResetEvent Sent = new ManualResetEvent(false);
 
 		private Guid _clientGuid;
 

@@ -9,34 +9,53 @@ namespace Throughput
 {
 	class Program
 	{
-		static int clients = 500;
-		static int amount = 1000000;
+		static int clients = 25;
+		static int amount = 100000;
 		static string errors = "";
 		static Counter counter = new Counter();
 		static Random _random = new Random((int)DateTime.Now.Ticks);
 
+		static long expected => clients * amount;
+
+		private static SimpleServer _server;
 
 		static void Main(string[] args)
 		{
-			var server = new SimpleTcpServer();
-			server.LoggerLevel = SimpleSockets.Helpers.LogLevel.Debug;
-			BindServerEvents(server);
-			server.Listen(13000);
+
+			Console.Write("TCP (1) or UDP (2) Test ? ");
+			var choice = Console.ReadLine();
+
+			var useUDP = (choice == "2");
+
+			if (useUDP)
+				_server = new SimpleUdpServer();
+			else
+				_server = new SimpleTcpServer();
+
+			_server.LoggerLevel = SimpleSockets.Helpers.LogLevel.Debug;
+			BindServerEvents(_server);
+			_server.Listen(13000);
 
 			for (int i = 0; i < clients; i++) {
-				new Thread(() => WriteMessages()).Start();
+				new Thread(() => WriteMessages(useUDP)).Start();
 			}
 
 			while (true) {
 				Console.ReadLine();
-				Console.WriteLine("Amount of messages received: " + counter.GetCount + " expected: "+(clients*amount));
-				Console.WriteLine(server.Statistics.ToString());
+				Console.WriteLine("Amount of messages received: " + counter.GetCount + " expected: "+(expected));
+				Console.WriteLine(_server.Statistics.ToString());
 				Console.WriteLine(errors.ToString());
 			}
 		}
 
-		private static void WriteMessages() {
-			var client = new SimpleTcpClient();
+		private static void WriteMessages(bool useUDP) {
+
+			SimpleClient client;
+			if (useUDP)
+				client = new SimpleUdpClient();
+			else
+				client = new SimpleTcpClient();
+
 			client.LoggerLevel = SimpleSockets.Helpers.LogLevel.Debug;
 			client.ConnectTo("127.0.0.1", 13000);
 			client.Logger += ClientLogger;
@@ -52,7 +71,7 @@ namespace Throughput
 
 		}
 
-		private static void BindServerEvents(SimpleTcpServer server) {
+		private static void BindServerEvents(SimpleServer server) {
 			server.MessageReceived += Server_MessageReceived;
 			server.Logger += Logger;
 		}
@@ -70,7 +89,10 @@ namespace Throughput
 		private static void Server_MessageReceived(object sender, ClientMessageReceivedEventArgs e)
 		{
 			counter.Count();
-			Console.WriteLine($"{e.ClientInfo.Id}:{e.Message}");
+			if ( (counter.GetCount- clients) == expected) {
+				Console.WriteLine("All messages have been received:" + _server.Statistics.UpTime);
+			}
+			// Console.WriteLine($"{e.ClientInfo.Id}|{e.ClientInfo.Guid}:{e.Message}");
 		}
 	}
 

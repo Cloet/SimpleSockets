@@ -80,7 +80,7 @@ namespace SimpleSockets.Messaging {
 		public byte[] Data { get; internal set; }
 
 		/// <summary>
-		/// When receiving a message all content will be stored here in netstring format
+		/// When receiving a message all content will be stored in this variable.
 		/// When all bytes are received this will be deconstructed.
 		/// </summary>
         internal byte[] Content { get; set; }
@@ -274,8 +274,7 @@ namespace SimpleSockets.Messaging {
 		/// <returns>Byte[] array</returns>
         internal virtual byte[] BuildPayload() {
             
-            Logger?.Log("===========================================", LogLevel.Trace);
-            Logger?.Log("Building packet.",LogLevel.Trace);
+            Logger?.Log("Building a packet.", LogLevel.Trace);
 
 			_internalInfoBytes = SerializationHelper.SerializeObjectToBytes(AdditionalInternalInfo);
 			_metadataBytes = SerializationHelper.SerializeObjectToBytes(MessageMetadata);
@@ -295,7 +294,7 @@ namespace SimpleSockets.Messaging {
 
             // Encrypt the content after potential compression if so desired.
             if (Encrypt && EncryptMode != EncryptionMethod.None) {
-                Logger?.Log("Encrypting content...", LogLevel.Debug);
+                Logger?.Log("Encrypting content...", LogLevel.Trace);
                 content = CryptographyHelper.Encrypt(Content, EncryptionKey, EncryptMode);
             }
 
@@ -308,9 +307,7 @@ namespace SimpleSockets.Messaging {
 			payload = PacketHelper.EncodeByteArray(payload);
             // tail.CopyTo(payload,head.Length + content.Length);
 
-            Logger?.Log("Build finished.", LogLevel.Trace);
-			Logger?.Log(ToString(), LogLevel.Trace);
-			Logger?.Log("===========================================", LogLevel.Trace);
+            Logger?.Log("Build finished : " + this.ToString(), LogLevel.Trace);
             return payload;
         }
 
@@ -327,13 +324,13 @@ namespace SimpleSockets.Messaging {
 			byte[] bytes = new byte[1];
 			bytes[0] = headerFieldByte;
 			HeaderFields = new BitArray(bytes);
-            HeaderLength = 11; //Eerste bit wordt niet meegeteld.
+            HeaderLength = 11; // First bit isn't counted.
 
             // Extra length if using presharedkey
             if (HeaderFields[3])
                 HeaderLength += 16;
 
-            // Extra length is encrypted / compressed
+            // Extra length if encrypted / compressed
             if (HeaderFields[2] || HeaderFields[1])
                 HeaderLength += 8;
         }
@@ -480,7 +477,7 @@ namespace SimpleSockets.Messaging {
 				if (info == null)
 					return null;
 
-				var exists = info.TryGetValue("DynamicCallback", out var output);
+				var exists = info.TryGetValue(PacketHelper.CALLBACK, out var output);
 
 				if (!exists)
 					return null;

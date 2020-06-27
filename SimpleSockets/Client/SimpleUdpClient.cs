@@ -44,7 +44,7 @@ namespace SimpleSockets.Client {
 
 				Listener = new Socket(EndPoint.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
 				Listener.BeginConnect(EndPoint, OnConnected, Listener);
-				Connected.Wait(Token);
+				Connected.WaitOne();
 
 			});
 		}
@@ -152,7 +152,7 @@ namespace SimpleSockets.Client {
 				if (Listener == null)
 					throw new InvalidOperationException("Listener is null.");
 
-				Sent.Wait();
+				Sent.WaitOne();
 				Sent.Reset();
 
 				Listener.BeginSend(payload, 0, payload.Length, SocketFlags.None, SendCallback, Listener);
@@ -191,7 +191,7 @@ namespace SimpleSockets.Client {
 				if (!IsConnected())
 					throw new InvalidOperationException("Client is not connected.");
 
-				Sent.Wait();
+				Sent.WaitOne();
 				Sent.Reset();
 
 				if (Listener == null)

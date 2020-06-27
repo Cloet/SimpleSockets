@@ -161,15 +161,19 @@ namespace SimpleSockets.Server {
 						Listening = true;
 
                         OnServerStartedListening();
-                        while(!Token.IsCancellationRequested) {
+                        while(!Disposed && !Token.IsCancellationRequested) {
                             CanAcceptConnections.Reset();
                             listener.BeginAccept(OnClientConnects, listener);
-                            CanAcceptConnections.Wait(Token);
+                            CanAcceptConnections.WaitOne();
                         }
                     }
+				} catch (OperationCanceledException) {
+					SocketLogger?.Log("Server has been closed down.", LogLevel.Trace);
                 } catch (ObjectDisposedException ode) {
                     SocketLogger?.Log(ode,LogLevel.Fatal);
-                }
+                } catch (Exception ex) {
+					SocketLogger?.Log("An unhandled exception occurred. " + ex.ToString(), LogLevel.Error);
+				}
             }, Token);
 
         }
@@ -187,11 +191,25 @@ namespace SimpleSockets.Server {
 		// Called when a client connects. Starts a receiving thread for the client.
 		protected virtual void OnClientConnects(IAsyncResult result) {
 
+			if (Token.IsCancellationRequested)
+				return;
+
             try {
                 ISessionMetadata client;
+
+				// It's possible this method is still called when a cancelation of the server is requested.
+				if (ConnectedClients == null) {
+					return;
+				}
+
                 lock (ConnectedClients) {
                     var id = !ConnectedClients.Any() ? 1 : ConnectedClients.Keys.Max() + 1;
                     client = new SessionMetadata(((Socket)result.AsyncState).EndAccept(result), id, SocketLogger);
+
+					if (!IsConnectionAllowed(client)) {
+						SocketLogger?.Log($"Unidentified client tried to connect. {client.Info()}", LogLevel.Debug);
+						return;
+					}
 
                     var exists = ConnectedClients.FirstOrDefault(x => x.Value == client);
 
@@ -201,43 +219,30 @@ namespace SimpleSockets.Server {
                         ConnectedClients.Add(id, client);
                     } else 
                         ConnectedClients.Add(id, client);
-
-					CanAcceptConnections.Set();
 					client.WritingData.Set();
                 }
-
-				if (!IsConnectionAllowed(client)) {
-					SocketLogger?.Log($"Unidentified client tried to connect. {client.Info()}", LogLevel.Debug);
-					lock(ConnectedClients)
-					{
-						ConnectedClients.Remove(client.Id);
-					}
-					return;
-				}
-
+				CanAcceptConnections.Set();	
+				
 				if (SslEncryption)
 				{
 					var stream = new NetworkStream(client.Listener);
 					client.SslStream = new SslStream(stream, false, AcceptCertificate);
 
+					SocketLogger?.Log($"Authenticating client {client.Id}...", LogLevel.Trace);
 					var success = Authenticate(client).Result;
+					SocketLogger?.Log($"Done authenticating client {client.Id}.", LogLevel.Trace);
 
-					if (success)
-					{
-						OnClientConnected(new ClientInfoEventArgs(client));
-						Task.Run(() => Receive(client), Token);
-					}
-					else {
+					if (!success) {
 						lock (ConnectedClients) {
 							ConnectedClients.Remove(client.Id);
 						}
 						SocketLogger?.Log("Unable to authenticate server.", LogLevel.Error);
 					}
 				}
-				else {
-					OnClientConnected(new ClientInfoEventArgs(client));
-					Receive(client);
-				}
+
+				OnClientConnected(new ClientInfoEventArgs(client));
+				Task.Run( () => Receive(client));
+
 
             } catch (Exception ex) {
 				CanAcceptConnections.Set();
@@ -245,7 +250,7 @@ namespace SimpleSockets.Server {
             }
         }
 
-		// Starts receving data. Calls ReceiveCallback when data is received.
+		// Starts receiving data. Calls ReceiveCallback when data is received.
         protected virtual void Receive(ISessionMetadata client) {
 			try
 			{
@@ -268,7 +273,7 @@ namespace SimpleSockets.Server {
 					}
 
 					if (Timeout.TotalMilliseconds > 0 && !client.Timeout.Wait(Timeout))
-						throw new SocketException((int)SocketError.TimedOut);
+					  	throw new SocketException((int)SocketError.TimedOut);
 				}
 			}
 			catch (SocketException se) {

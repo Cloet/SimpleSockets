@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using System.Text;
+using System.Threading;
 
 namespace SimpleSockets.Helpers {
 
@@ -27,6 +28,10 @@ namespace SimpleSockets.Helpers {
                 _prefix = "[SimpleClient]";
             else
                 _prefix = "[SimpleServer]";
+
+            if (Thread.CurrentThread.Name != null) {
+                _prefix += "[" + Thread.CurrentThread.Name + "]";
+            }
 
             if (tcp)
                 _prefix += "[TCP]";

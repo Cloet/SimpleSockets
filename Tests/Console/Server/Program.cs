@@ -18,22 +18,44 @@ namespace Server
 
         static void Main(string[] args)
         {
-            Console.WriteLine("Starting TCP Server.");
+			BootstrapServer();
+        }
+
+		private static void BootstrapServer() {
+            Console.WriteLine("Starting server.");
+			_server = null;
 			var context = new SslContext(new X509Certificate2(new SocketHelper().GetCertFileContents(), "Password"));
 
-			_server = new SimpleTcpServer();
+			var enableSsl = EnableSsl();
+
+			if (enableSsl == "y")
+				_server = new SimpleTcpServer(context);
+			else
+				_server = new SimpleTcpServer();
 			_server.FileTransferEnabled = true;
 
-            _server.LoggerLevel = LogLevel.Debug;
+            _server.LoggerLevel = LogLevel.Trace;
 			BindEvents(_server);
 			_server.CompressionMethod = CompressionMethod.Deflate;
-
+			_server.Timeout = new TimeSpan(1,0,0);
 			_server.Listen(13000);
 
 			while (true) {
 				Process(Choice());
 			}
-        }
+		}
+
+		private static string EnableSsl() {
+
+			while (true) {
+				Console.Write("Enable ssl ? [y/n] ");				
+				var input = Console.ReadLine();
+				if (input.Trim() == "y" || input.Trim() == "n")
+					return input.Trim();
+				else
+					Console.WriteLine("invalid input.");
+			}
+		}
 
 		private static void Process(string input) {
 
@@ -66,9 +88,9 @@ namespace Server
 					return;
 
 				Console.WriteLine("Creating new 'Person' object");
-				Console.Write("Enter a firstname:");
+				Console.Write("Enter a firstname: ");
 				var fname = Console.ReadLine();
-				Console.Write("Enter a lastname:");
+				Console.Write("Enter a lastname: ");
 				var lname = Console.ReadLine();
 
 				IDictionary<object, object> md = null;
@@ -99,6 +121,10 @@ namespace Server
 			{
 				_server.Dispose();
 				Environment.Exit(0);
+			}
+			else if (input == "restart") {
+				_server.Dispose();
+				BootstrapServer();
 			}
 			else if (input.Trim() == "")
 				Console.WriteLine("");

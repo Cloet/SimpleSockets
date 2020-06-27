@@ -59,29 +59,38 @@ namespace SimpleSockets
 		}
 
 		internal void AddReceivedBytes(long amount) {
-			if (amount > 0) {
-				Interlocked.Add(ref _received, amount);
+			try {
+				if (amount > 0)
+					Interlocked.Add(ref _received, amount);
+			} catch (OverflowException) {
+				_received = 0;
 			}
 		}
 
 		internal void AddSentBytes(long amount) {
-			if (amount > 0)
-			{
-				Interlocked.Add(ref _sent, amount);
+			try {
+				if (amount > 0)
+					Interlocked.Add(ref _sent, amount);
+			} catch (OverflowException) {
+				_sent = 0;
 			}
 		}
 
 		internal void AddReceivedMessages(int amount) {
-			if (amount > 0)
-			{
-				Interlocked.Add(ref _receivedMessages, amount);
+			try {
+				if (amount > 0)
+					Interlocked.Add(ref _receivedMessages, amount);
+			} catch (OverflowException) {
+				_receivedMessages= 0;
 			}
 		}
 
 		internal void AddSentMessages(int amount) {
-			if (amount > 0)
-			{
-				Interlocked.Add(ref _sentMessages, amount);
+			try {
+				if (amount > 0)
+					Interlocked.Add(ref _sentMessages, amount);
+			} catch (OverflowException) {
+				_sentMessages = 0;
 			}
 		}
 

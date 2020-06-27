@@ -5,13 +5,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Security\cert.pfx" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <EmbeddedResource Include="Security\cert.pfx">
+    <None Include="Security/TestCertificate.pfx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
+    </None>
   </ItemGroup>
 
 </Project>

@@ -81,7 +81,7 @@ namespace SimpleSockets.Server
 
 		private TimeSpan _timeout = new TimeSpan(0, 0, 0);
 
-		protected readonly ManualResetEventSlim CanAcceptConnections = new ManualResetEventSlim(false);
+		protected readonly ManualResetEvent CanAcceptConnections = new ManualResetEvent(false);
 
 		protected Socket Listener { get; set; }
 
@@ -447,7 +447,7 @@ namespace SimpleSockets.Server
 
 		protected abstract Task<bool> SendToSocketAsync(int clientId, byte[] payload);
 
-		protected bool SendInternal(int clientid, PacketType msgType, byte[] data, IDictionary<object, object> metadata, string eventKey, EncryptionMethod eType, CompressionMethod cType, Type objType = null)
+		protected bool SendInternal(int clientId, PacketType msgType, byte[] data, IDictionary<object, object> metadata, string eventKey, EncryptionMethod eType, CompressionMethod cType, Type objType = null)
 		{
 
 			var packet = PacketBuilder.NewPacket
@@ -461,7 +461,7 @@ namespace SimpleSockets.Server
 			if (msgType == PacketType.Object)
 				packet.SetObjectType(objType);
 
-			return SendPacket(clientid, packet.Build());
+			return SendPacket(clientId, packet.Build());
 		}
 
 		protected async Task<bool> SendInternalAsync(int clientId, PacketType msgType, byte[] data, IDictionary<object, object> metadata, string eventKey, EncryptionMethod eType, CompressionMethod cType, Type objType = null)
@@ -630,6 +630,7 @@ namespace SimpleSockets.Server
 			{
 				if (!Disposed)
 				{
+					Disposed = true;
 					TokenSource.Cancel();
 					TokenSource.Dispose();
 					Listening = false;
@@ -642,8 +643,6 @@ namespace SimpleSockets.Server
 					}
 
 					ConnectedClients = new Dictionary<int, ISessionMetadata>();
-					TokenSource.Dispose();
-					Disposed = true;
 					GC.SuppressFinalize(this);
 				}
 				else
