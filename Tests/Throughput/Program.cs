@@ -10,7 +10,7 @@ namespace Throughput
 	class Program
 	{
 		static int clients = 25;
-		static int amount = 100000;
+		static int amount = 10000;
 		static string errors = "";
 		static Counter counter = new Counter();
 		static Random _random = new Random((int)DateTime.Now.Ticks);
