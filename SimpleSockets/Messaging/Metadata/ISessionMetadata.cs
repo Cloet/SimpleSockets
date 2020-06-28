@@ -1,4 +1,5 @@
 using System;
+using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Threading;
@@ -15,15 +16,17 @@ namespace SimpleSockets.Messaging.Metadata {
 
 		new string UserDomainName { get; set; }
 
+		EndPoint UDPEndPoint { get; set; }
+
 		PacketReceiver DataReceiver { get; }
 
         SslStream SslStream { get; set;  }
 
-        ManualResetEventSlim ReceivingData { get; set; }
+        ManualResetEvent ReceivingData { get; set; }
 
-        ManualResetEventSlim Timeout { get; set; }
+        ManualResetEvent Timeout { get; set; }
 
-        ManualResetEventSlim WritingData { get; set; }
+        ManualResetEvent WritingData { get; set; }
 
         Socket Listener { get; set; }
 

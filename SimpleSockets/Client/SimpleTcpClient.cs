@@ -248,7 +248,7 @@ namespace SimpleSockets {
 			while (!Token.IsCancellationRequested)
 			{
 
-				metadata.ReceivingData.Wait(Token);
+				metadata.ReceivingData.WaitOne();
 				metadata.Timeout.Reset();
 				metadata.ReceivingData.Reset();
 

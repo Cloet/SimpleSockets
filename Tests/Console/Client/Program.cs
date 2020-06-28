@@ -277,12 +277,12 @@ namespace Client
 
 		private static void Client_DisconnectedFromServer(object sender, EventArgs e)
 		{
-			Console.WriteLine("Disconnected from the server.");
+			// Console.WriteLine("Disconnected from the server.");
 		}
 
 		private static void Client_ConnectedToServer(object sender, EventArgs e)
 		{
-			Console.WriteLine("Connected to the server.");
+			// Console.WriteLine("Connected to the server.");
 		}
 
 		private static void Logger(string obj)

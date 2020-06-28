@@ -230,7 +230,7 @@ namespace SimpleSockets.Messaging
 		public Packet Build() {
 			if (!_hasdata)
 				throw new InvalidOperationException("Packet has no data.");
-			_packet.AdditionalInternalInfo =_internalInfo;
+			_packet.AdditionalInternalInfo = _internalInfo;
 			return _packet;
 		}
 

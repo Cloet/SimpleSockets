@@ -23,15 +23,17 @@ namespace SimpleSockets.Messaging.Metadata
 
 		public SslStream SslStream { get; set; }
 
-		public ManualResetEventSlim ReceivingData { get; set; } = new ManualResetEventSlim(true);
+		public ManualResetEvent ReceivingData { get; set; } = new ManualResetEvent(true);
 
-		public ManualResetEventSlim Timeout { get; set; } = new ManualResetEventSlim(true);
+		public ManualResetEvent Timeout { get; set; } = new ManualResetEvent(true);
 
-		public ManualResetEventSlim WritingData { get; set; } = new ManualResetEventSlim(false);
+		public ManualResetEvent WritingData { get; set; } = new ManualResetEvent(false);
 
 		public Socket Listener { get; set; }
 
 		public PacketReceiver DataReceiver { get; private set; }
+
+		public EndPoint UDPEndPoint { get; set; }
 
 		public string IPv4 { get; set; }
 		public string IPv6 { get; set; }
@@ -54,6 +56,10 @@ namespace SimpleSockets.Messaging.Metadata
 		private void DetermineIPAddresses() {
 			try {
 				IPAddress remote = ((IPEndPoint) Listener.RemoteEndPoint).Address;
+				
+				if (Listener.ProtocolType == ProtocolType.Udp)
+					remote = ((IPEndPoint)UDPEndPoint).Address;
+
 				IPv4 = remote.MapToIPv4().ToString();
 				IPv6 = remote.MapToIPv6().ToString();
 			} catch (Exception) {
@@ -101,6 +107,7 @@ namespace SimpleSockets.Messaging.Metadata
 			session.Guid = this.Guid;
 			session.UserDomainName = this.UserDomainName;
 			session.OsVersion = this.OsVersion;
+			session.UDPEndPoint = this.UDPEndPoint;
 			return session;
         }
     }

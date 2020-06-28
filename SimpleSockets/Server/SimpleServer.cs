@@ -174,6 +174,9 @@ namespace SimpleSockets.Server
 			{
 				if (GetClientMetadataById(id) is ISessionMetadata state && state.Listener is Socket socket)
 				{
+					if (SocketProtocolType.Udp == SocketProtocol)
+						return (socket.Poll(1000, SelectMode.SelectRead));
+
 					return !((socket.Poll(1000, SelectMode.SelectRead) && (socket.Available == 0)) || !socket.Connected);
 				}
 			}
@@ -376,6 +379,7 @@ namespace SimpleSockets.Server
 					} else {
 						var id = !ConnectedClients.Any() ? 1 : ConnectedClients.Keys.Max() + 1;
 						var cloned = client.Clone(id);
+						cloned.WritingData.Set();
 						ConnectedClients.Add(id, cloned);
 					}
 				}

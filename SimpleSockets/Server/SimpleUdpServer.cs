@@ -65,7 +65,7 @@ namespace SimpleSockets.Server {
 				while (!Token.IsCancellationRequested)
 				{
 
-					client.ReceivingData.Wait(Token);
+					client.ReceivingData.WaitOne();
 					client.Timeout.Reset();
 					client.ReceivingData.Reset();
 
@@ -86,6 +86,7 @@ namespace SimpleSockets.Server {
 			{
 				
 				var received = client.Listener.EndReceiveFrom(result, ref _epFrom);
+				client.UDPEndPoint = _epFrom;	
 
 				if (!IsConnectionAllowed(client)) {
 					SocketLogger?.Log($"Connection from client not allowed. {client.Info()}",LogLevel.Warning);
@@ -128,12 +129,11 @@ namespace SimpleSockets.Server {
 
 				if (client != null)
 				{
-					client.WritingData.Wait();
+					client.WritingData.WaitOne();
 					client.WritingData.Reset();
 
-					client.Listener.BeginSend(payload, 0, payload.Length, SocketFlags.None, SendCallback, client);
+					client.Listener.BeginSendTo(payload, 0, payload.Length, SocketFlags.None, client.UDPEndPoint, SendCallback, client);
 				}
-
 			}
 			catch (Exception ex)
 			{
@@ -152,7 +152,7 @@ namespace SimpleSockets.Server {
 			{
 				Statistics?.AddSentMessages(1);
 
-				var count = client.Listener.EndSend(result);
+				var count = client.Listener.EndSendTo(result);
 				Statistics?.AddSentBytes(count);
 				SocketLogger?.Log($"Sent {count} bytes to a client. {client.Info()}", LogLevel.Trace);
 
@@ -175,12 +175,12 @@ namespace SimpleSockets.Server {
 				if (client != null)
 				{
 
-					client.WritingData.Wait();
+					client.WritingData.WaitOne();
 					client.WritingData.Reset();
 					Statistics?.AddSentMessages(1);
 
-					var result = client.Listener.BeginSend(payload, 0, payload.Length, SocketFlags.None, _ => { }, client);
-					var count = await Task.Factory.FromAsync(result, (r) => client.Listener.EndSend(r));
+					var result = client.Listener.BeginSendTo(payload, 0, payload.Length, SocketFlags.None, client.UDPEndPoint, _ => { }, client);
+					var count = await Task.Factory.FromAsync(result, (r) => client.Listener.EndSendTo(r));
 					Statistics?.AddSentBytes(count);
 					SocketLogger?.Log($"Sent {count} bytes to a client. {client.Info()}", LogLevel.Trace);
 

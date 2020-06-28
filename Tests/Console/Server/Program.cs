@@ -216,7 +216,7 @@ namespace Server
 
 		private static void Server_ClientDisconnected(object sender, ClientDisconnectedEventArgs e)
 		{
-			Console.WriteLine("Client " + e.ClientInfo.Id + " has disconnected from the server.");
+			// Console.WriteLine("Client " + e.ClientInfo.Id + " has disconnected from the server.");
 		}
 
 		private static void Server_ObjectReceived(object sender, ClientObjectReceivedEventArgs e)
@@ -239,8 +239,12 @@ namespace Server
 			}
 
 			Console.WriteLine("All clients:");
-			foreach (var client in clients)
-				Console.WriteLine("\t ID:"+client.Id + " IPv4:" + client.IPv4);
+			foreach (var client in clients) {
+				if (_server.SocketProtocol == SocketProtocolType.Udp)
+					Console.WriteLine("\t ID: "  + client.Id + " Endpoint:" + client.)
+				else
+					Console.WriteLine("\t ID:"+client.Id + " IPv4:" + client.IPv4);
+			}
 
 			Console.Write("select a client: ");
 			var c = Console.ReadLine();
@@ -264,7 +268,7 @@ namespace Server
 
 		private static void Server_MessageReceived(object sender, ClientMessageReceivedEventArgs e)
 		{
-			Console.WriteLine();
+			// Console.WriteLine();
 			Console.WriteLine("Client " + e.ClientInfo.Id + ": " + e.Message);
 			WriteMetadata(e.Metadata);
 		}
@@ -278,7 +282,7 @@ namespace Server
         private static void ClientConnected(object sender, ClientInfoEventArgs e)
         {
 			// Console.WriteLine();
-            Console.WriteLine("Client has connected:" + e.ClientInfo.Id);
+            // Console.WriteLine("Client has connected:" + e.ClientInfo.Id);
         }
 
 		private static void WriteMetadata(IDictionary<object, object> metadata)

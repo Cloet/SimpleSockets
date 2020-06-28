@@ -40,13 +40,12 @@ namespace SimpleSockets.Client {
 
 			Task.Run(() =>
 			{
-				if (Token.IsCancellationRequested)
+				if (Disposed || Token.IsCancellationRequested)
 					return;
 
 				Listener = new Socket(EndPoint.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
 				Listener.BeginConnect(EndPoint, OnConnected, Listener);
 				Connected.WaitOne();
-
 			});
 		}
 
@@ -59,14 +58,12 @@ namespace SimpleSockets.Client {
 			{
 				socket.EndConnect(result);
 
-
 				Connected.Set();
 				var metadata = new SessionMetadata(Listener, -1, SocketLogger);
 				Sent.Set();
 				OnConnectedToServer();
 				SendAuthenticationMessage();
 				Task.Run(() => Receive(metadata), Token);
-
 			}
 			catch (SocketException)
 			{
@@ -100,7 +97,7 @@ namespace SimpleSockets.Client {
 				while (!Token.IsCancellationRequested)
 				{
 
-					client.ReceivingData.Wait(Token);
+					client.ReceivingData.WaitOne();
 					client.Timeout.Reset();
 					client.ReceivingData.Reset();
 

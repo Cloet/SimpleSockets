@@ -258,7 +258,7 @@ namespace SimpleSockets.Server {
 				while (!Token.IsCancellationRequested)
 				{
 
-					client.ReceivingData.Wait(Token);
+					client.ReceivingData.WaitOne();
 					client.Timeout.Reset();
 					client.ReceivingData.Reset();
 
@@ -273,7 +273,7 @@ namespace SimpleSockets.Server {
 						client.Listener.BeginReceive(rec.Buffer, 0, rec.BufferSize, SocketFlags.None, ReceiveCallback, client);
 					}
 
-					if (Timeout.TotalMilliseconds > 0 && !client.Timeout.Wait(Timeout))
+					if (Timeout.TotalMilliseconds > 0 && !client.Timeout.WaitOne(Timeout))
 					  	throw new SocketException((int)SocketError.TimedOut);
 				}
 			}
@@ -341,7 +341,7 @@ namespace SimpleSockets.Server {
 			{
 
 				if (client != null) {
-					client.WritingData.Wait();
+					client.WritingData.WaitOne();
 					client.WritingData.Reset();
 
 					if (SslEncryption)
@@ -400,7 +400,7 @@ namespace SimpleSockets.Server {
 			{
 				if (client != null) {
 
-					client.WritingData.Wait();
+					client.WritingData.WaitOne();
 					client.WritingData.Reset();
 					Statistics?.AddSentMessages(1);
 
