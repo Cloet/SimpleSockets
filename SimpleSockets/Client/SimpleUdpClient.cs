@@ -26,7 +26,7 @@ namespace SimpleSockets.Client {
 				throw new ArgumentNullException(nameof(serverIp),"Invalid server ip.");
 			if (serverPort < 1 || serverPort > 65535)
 				throw new ArgumentOutOfRangeException(nameof(serverPort),"A server port must be between 1 and 65535.");
-			if (autoReconnect.TotalSeconds <= 5) // at least 5 seconds
+			if (autoReconnect.TotalSeconds < 5) // at least 5 seconds
 				throw new ArgumentOutOfRangeException(nameof(autoReconnect),"The autoreconnect time needs to be at least 5 seconds.");
 
 			ServerIp = serverIp;

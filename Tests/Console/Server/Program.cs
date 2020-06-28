@@ -26,12 +26,20 @@ namespace Server
 			_server = null;
 			var context = new SslContext(new X509Certificate2(new SocketHelper().GetCertFileContents(), "Password"));
 
-			var enableSsl = EnableSsl();
+			var usetcp = UseUDPorTCP();
+			string enableSsl = "";
 
-			if (enableSsl == "y")
-				_server = new SimpleTcpServer(context);
-			else
-				_server = new SimpleTcpServer();
+			if (usetcp == "1")
+				enableSsl = EnableSsl();
+
+			if (usetcp == "1") {
+				if (enableSsl == "y")
+					_server = new SimpleTcpServer(context);
+				else
+					_server = new SimpleTcpServer();
+			} else
+				_server = new SimpleUdpServer();
+
 			_server.FileTransferEnabled = true;
 
             _server.LoggerLevel = LogLevel.Debug;
@@ -42,6 +50,17 @@ namespace Server
 
 			while (true) {
 				Process(Choice());
+			}
+		}
+
+		private static string UseUDPorTCP() {
+			while (true) {
+				Console.Write("Use TCP (1) or UDP (2) ? ");
+				var input = Console.ReadLine();
+				if (input.Trim() == "1" || input.Trim() == "2")
+					return input.Trim();
+				else
+					Console.WriteLine("invalid input.");
 			}
 		}
 

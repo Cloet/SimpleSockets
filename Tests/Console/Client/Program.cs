@@ -31,7 +31,12 @@ namespace Client
 
 			Clients = new List<SimpleClient>();
 
-			var input = EnableSsl();
+			var usetcp = UseUDPorTCP();
+			string input = "n";
+
+			if (usetcp == "1")
+				input = EnableSsl();
+			
 			var no_clients = Amount_Of_Clients();
 			var context = new SslContext(new X509Certificate2(new SocketHelper().GetCertFileContents(), "Password"));	
 			
@@ -39,7 +44,7 @@ namespace Client
 			CustomMessageReceived += Program_CustomMessageReceived;
 
 			for (var i = 0; i < no_clients; i++) {
-				StartClient(input == "y", context);
+				StartClient(usetcp == "1", input == "y", context);
 			}
 			
 			// Messaging
@@ -66,13 +71,17 @@ namespace Client
 			}
 		}
 
-		private static void StartClient(bool ssl, SslContext context) {
+		private static void StartClient(bool tcp, bool ssl, SslContext context) {
 			SimpleClient client;
 			
-			if (ssl)
-				client = new SimpleTcpClient(context);
-			else
-				client = new SimpleTcpClient();
+			if (tcp) {
+				if (ssl)
+					client = new SimpleTcpClient(context);
+				else
+					client = new SimpleTcpClient();
+			} else {
+				client = new SimpleUdpClient();
+			}
 			
 			client.LoggerLevel = LogLevel.Debug;
 			
@@ -85,6 +94,17 @@ namespace Client
 			client.DynamicCallbacks.Add("Person", PersonObjectReceived);
 			client.DynamicCallbacks.Add("CustomMessage", CustomMessageReceived);
 
+		}
+
+		private static string UseUDPorTCP() {
+			while (true) {
+				Console.Write("Use TCP (1) or UDP (2) ? ");
+				var input = Console.ReadLine();
+				if (input.Trim() == "1" || input.Trim() == "2")
+					return input.Trim();
+				else
+					Console.WriteLine("invalid input.");
+			}
 		}
 
 		private static string EnableSsl() {
