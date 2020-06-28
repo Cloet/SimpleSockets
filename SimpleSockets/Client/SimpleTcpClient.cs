@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using SimpleSockets.Client;
 using SimpleSockets.Helpers;
 using SimpleSockets.Messaging;
+using SimpleSockets.Messaging.Metadata;
 
 namespace SimpleSockets {
 
@@ -150,21 +151,21 @@ namespace SimpleSockets {
 		/// <param name="serverIp"></param>
 		/// <param name="serverPort"></param>
 		/// <param name="autoReconnect">Set to 0 to disable autoreconnect.</param>
-		public override void ConnectTo(string serverIp, int serverPort, int autoReconnect) {
+		public override void ConnectTo(string serverIp, int serverPort, TimeSpan autoReconnect) {
 
 			if (string.IsNullOrEmpty(serverIp))
-				throw new ArgumentNullException(nameof(serverIp));
+				throw new ArgumentNullException(nameof(serverIp),"Invalid server ip.");
 			if (serverPort < 1 || serverPort > 65535)
-				throw new ArgumentOutOfRangeException(nameof(serverPort));
-			if (autoReconnect > 0 && autoReconnect < 4)
-				throw new ArgumentOutOfRangeException(nameof(autoReconnect));
+				throw new ArgumentOutOfRangeException(nameof(serverPort),"A server port must be between 1 and 65535.");
+			if (autoReconnect.TotalSeconds < 5) // at least 5 seconds.
+				throw new ArgumentOutOfRangeException(nameof(autoReconnect),"The autoreconnect time needs to be at least 5 seconds.");
 
 			if (SslEncryption) 
 				_sslCertificateCollection = new X509Certificate2Collection { _sslCertificate };
 
 			ServerIp = serverIp;
 			ServerPort = serverPort;
-			AutoReconnect = new TimeSpan(0, 0, 0, autoReconnect);
+			AutoReconnect = autoReconnect;
 
 			EndPoint = new IPEndPoint(GetIp(ServerIp), ServerPort);
 
@@ -225,17 +226,19 @@ namespace SimpleSockets {
 
 				Connected.Reset();
 
-				if (AutoReconnect.Seconds == 0)
+				if (AutoReconnect.TotalMilliseconds <= 0)
 					return;
 
-				Thread.Sleep(AutoReconnect.Seconds);
-				if (Listener != null & !Disposed)
+				Thread.Sleep((int)AutoReconnect.TotalMilliseconds);
+				if (!Disposed && Listener != null)
 					Listener.BeginConnect(EndPoint, OnConnected, Listener);
-				else if (Listener == null && !Disposed)
-					ConnectTo(ServerIp, ServerPort, AutoReconnect.Seconds);
+				else if (!Disposed && Listener == null)
+					ConnectTo(ServerIp, ServerPort, AutoReconnect);
+			} catch (OperationCanceledException) {
+				ShutDownConnectionLost();
 			}
 			catch (Exception ex) {
-				OnDisconnectedFromServer();
+				ShutDownConnectionLost();
 				SocketLogger?.Log("Error finalizing connection.", ex, LogLevel.Fatal);
 			}
 		}
@@ -254,7 +257,7 @@ namespace SimpleSockets {
 				if (SslEncryption)
 				{
 					if (_sslStream == null) {
-						ShutDown();
+						ShutDownConnectionLost();
 						throw new SocketException((int)SocketError.NotConnected);
 					}
 
@@ -265,7 +268,7 @@ namespace SimpleSockets {
 				else {
 					if (metadata.Listener == null)
 					{
-						ShutDown();
+						ShutDownConnectionLost();
 						throw new SocketException((int)SocketError.NotConnected);
 					}
 
@@ -285,7 +288,7 @@ namespace SimpleSockets {
 					throw new SocketException((int)SocketError.NotConnected);
 
 				if (!IsConnected())
-					ShutDown();
+					ShutDownConnectionLost();
 				else
 				{
 					int received = 0;
@@ -308,9 +311,9 @@ namespace SimpleSockets {
 				}
 			}
 			catch (SocketException se) {
-				if (se.ErrorCode != (int)SocketError.NotConnected)
+				if (se.ErrorCode != (int)SocketError.NotConnected && se.ErrorCode != 107)
 					SocketLogger?.Log("Server was forcibly closed.", se, LogLevel.Fatal);
-				ShutDown();
+				ShutDownConnectionLost();
 				client.ReceivingData.Set();
 			}
 			catch (Exception ex)

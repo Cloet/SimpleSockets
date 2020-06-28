@@ -12,6 +12,7 @@ using SimpleSockets.Helpers.Compression;
 using SimpleSockets.Helpers.Cryptography;
 using SimpleSockets.Helpers.Serialization;
 using SimpleSockets.Messaging;
+using SimpleSockets.Messaging.Metadata;
 
 namespace SimpleSockets.Client {
 
@@ -69,7 +70,7 @@ namespace SimpleSockets.Client {
 		#endregion
 
 		private bool _connected;
-
+		
 		private Action<string> _logger;
 
 		protected readonly ManualResetEvent Connected = new ManualResetEvent(false);
@@ -119,6 +120,8 @@ namespace SimpleSockets.Client {
 
 		/// <summary>
 		/// Time the client waits to autoreconnect.
+		/// When this is set to 0 the client will never try ro reconnect automatically.
+		/// The default value of this parameters is 5 seconds.
 		/// </summary>
 		public TimeSpan AutoReconnect { get; protected set; }
 
@@ -155,7 +158,7 @@ namespace SimpleSockets.Client {
 			try
 			{
 				if (Listener == null) {
-					OnDisconnectedFromServer();
+					ShutDownConnectionLost();
 					return false;
 				}
 
@@ -163,7 +166,7 @@ namespace SimpleSockets.Client {
 			}
 			catch (Exception)
 			{
-				OnDisconnectedFromServer();
+				ShutDownConnectionLost();
 				return false;
 			}
 		}
@@ -174,7 +177,7 @@ namespace SimpleSockets.Client {
 		/// <param name="serverIp"></param>
 		/// <param name="serverPort"></param>
 		/// <param name="autoReconnect">Amount of seconds the client waits before trying to reconnect.</param>
-		public abstract void ConnectTo(string serverIp, int serverPort, int autoReconnect);
+		public abstract void ConnectTo(string serverIp, int serverPort, TimeSpan autoReconnect);
 
 		/// <summary>
 		/// Connects the client to a given ip:port.
@@ -182,7 +185,27 @@ namespace SimpleSockets.Client {
 		/// </summary>
 		/// <param name="serverIp"></param>
 		/// <param name="serverPort"></param>
-		public void ConnectTo(string serverIp, int serverPort) => ConnectTo(serverIp, serverPort, AutoReconnect.Seconds);
+		public void ConnectTo(string serverIp, int serverPort) => ConnectTo(serverIp, serverPort, AutoReconnect);
+
+		// For internal use, if the client loses connection this method should be used.
+		// If this method is called the client will try to reconnect to the server every X seconds.
+		// When ShutDown() is called by a user this is not the case.
+		protected virtual void ShutDownConnectionLost() {
+			try  {
+				if (Disposed || !_connected)
+					return;
+
+				SocketLogger?.Log("Connection to the server has been lost.", LogLevel.Trace);
+
+				ShutDown();
+
+				// Attempt to reconnect after losing connection.
+				if (AutoReconnect.TotalMilliseconds > 0)
+					ConnectTo(ServerIp, ServerPort, AutoReconnect);
+			} catch (Exception ex) {
+				SocketLogger?.Log("Error closing the client", ex, LogLevel.Error);
+			}
+		}
 
 		/// <summary>
 		/// Shutdowns the client
@@ -191,6 +214,9 @@ namespace SimpleSockets.Client {
 		{
 			try
 			{
+				if (Disposed)
+					return;
+
 				Connected.Reset();
 				if (Listener != null)
 				{
@@ -519,7 +545,7 @@ namespace SimpleSockets.Client {
 		/// <param name="metadata"></param>
 		/// <returns></returns>
 		public bool SendMessage(string message, IDictionary<object, object> metadata) {
-			return SendInternal(PacketType.Message, Encoding.UTF8.GetBytes(message), null, string.Empty, EncryptionMethod, CompressionMethod);
+			return SendInternal(PacketType.Message, Encoding.UTF8.GetBytes(message), metadata, string.Empty, EncryptionMethod, CompressionMethod);
 		}
 
 		/// <summary>
@@ -563,7 +589,7 @@ namespace SimpleSockets.Client {
 		/// <returns></returns>
 		public bool SendBytes(byte[] bytes, IDictionary<object, object> metadata)
 		{
-			return SendInternal(PacketType.Bytes, bytes, null, string.Empty, EncryptionMethod, CompressionMethod);
+			return SendInternal(PacketType.Bytes, bytes, metadata, string.Empty, EncryptionMethod, CompressionMethod);
 		}
 
 		/// <summary>

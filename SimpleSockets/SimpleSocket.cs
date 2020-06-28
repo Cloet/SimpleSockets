@@ -8,6 +8,7 @@ using SimpleSockets.Helpers;
 using SimpleSockets.Helpers.Compression;
 using SimpleSockets.Helpers.Cryptography;
 using SimpleSockets.Messaging;
+using SimpleSockets.Messaging.Metadata;
 using SimpleSockets.Server;
 
 namespace SimpleSockets {
@@ -166,18 +167,18 @@ namespace SimpleSockets {
 		public static SimpleClient CreateTcpClient() => new SimpleTcpClient();
 
 		/// <summary>
-		/// Creates a new Tcp
-		/// </summary>
-		/// <returns></returns>
-		public static SimpleClient CreateUdpClient() => new SimpleUdpClient();
-
-		/// <summary>
 		/// Creates a new Tcp client with ssl encryption.
 		/// </summary>
 		/// <param name="cert"></param>
 		/// <param name="protocol"></param>
 		/// <returns></returns>
 		public static SimpleClient CreateTcpSslClient(SslContext context) => new SimpleTcpClient(context);
+
+		/// <summary>
+		/// Creates a new Tcp
+		/// </summary>
+		/// <returns></returns>
+		public static SimpleClient CreateUdpClient() => new SimpleUdpClient();
 
 		#endregion
 

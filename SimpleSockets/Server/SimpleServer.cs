@@ -3,6 +3,7 @@ using SimpleSockets.Helpers.Compression;
 using SimpleSockets.Helpers.Cryptography;
 using SimpleSockets.Helpers.Serialization;
 using SimpleSockets.Messaging;
+using SimpleSockets.Messaging.Metadata;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -351,6 +352,7 @@ namespace SimpleSockets.Server
 			{
 				clientGuid = message.GetGuidFromMessage(extraInfo);
 				SocketLogger?.Log($"Message contains guid:{clientGuid} trying to link to an existing client.", LogLevel.Trace);
+				// ToDO
 			}
 
 			if (message.MessageType == PacketType.Auth)
@@ -358,10 +360,10 @@ namespace SimpleSockets.Server
 				var data = Encoding.UTF8.GetString(message.Data);
 				var split = data.Split('|');
 
-				client.ClientName = split[0];
+				client.ClientName = split[0].Trim();
 				client.Guid = Guid.Parse(split[1]);
-				client.UserDomainName = split[2];
-				client.OsVersion = split[3];
+				client.UserDomainName = split[2].Trim();
+				client.OsVersion = split[3].Trim();
 			}
 
 			SocketLogger?.Log($"Received a completed message from a client of type {Enum.GetName(typeof(PacketType), message.MessageType)}. {client.Info()}", LogLevel.Trace);
@@ -552,7 +554,7 @@ namespace SimpleSockets.Server
 
 		public bool SendMessage(int clientId, string message, IDictionary<object, object> metadata)
 		{
-			return SendInternal(clientId, PacketType.Message, Encoding.UTF8.GetBytes(message), null, string.Empty, EncryptionMethod, CompressionMethod);
+			return SendInternal(clientId, PacketType.Message, Encoding.UTF8.GetBytes(message), metadata, string.Empty, EncryptionMethod, CompressionMethod);
 		}
 
 		public async Task<bool> SendMessageAsync(int clientId, string message)
@@ -576,7 +578,7 @@ namespace SimpleSockets.Server
 
 		public bool SendBytes(int clientId, byte[] bytes, IDictionary<object, object> metadata)
 		{
-			return SendInternal(clientId, PacketType.Bytes, bytes, null, string.Empty, EncryptionMethod, CompressionMethod);
+			return SendInternal(clientId, PacketType.Bytes, bytes, metadata, string.Empty, EncryptionMethod, CompressionMethod);
 		}
 
 		public async Task<bool> SendBytesAsync(int clientId, byte[] bytes)

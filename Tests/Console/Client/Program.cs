@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -18,13 +19,17 @@ namespace Client
 		private static event EventHandler<DataReceivedEventArgs> PersonObjectReceived;
 		private static event EventHandler<DataReceivedEventArgs> CustomMessageReceived;
 
-		private static IList<SimpleClient> Clients = new List<SimpleClient>();
-
-		private static ManualResetEvent _connected = new ManualResetEvent(false);
+		private static IList<SimpleClient> Clients = null;
 
 		static void Main(string[] args)
 		{
+			BootstrapClient();
+		}
+
+		private static void BootstrapClient() {
 			Console.WriteLine("Starting client.");
+
+			Clients = new List<SimpleClient>();
 
 			var input = EnableSsl();
 			var no_clients = Amount_Of_Clients();
@@ -34,20 +39,13 @@ namespace Client
 			CustomMessageReceived += Program_CustomMessageReceived;
 
 			for (var i = 0; i < no_clients; i++) {
-				_connected.Reset();
 				StartClient(input == "y", context);
-				_connected.WaitOne();
 			}
 			
-
 			// Messaging
 			while (true)
 			{
-				Console.Write("Enter a message: ");
-				var msg = Console.ReadLine();
-				foreach(var client in Clients) {
-					client.SendMessage(msg);
-				}
+				Process(Choice());
 			}
 		}
 
@@ -76,9 +74,10 @@ namespace Client
 			else
 				client = new SimpleTcpClient();
 			
-			client.LoggerLevel = LogLevel.Trace;
+			client.LoggerLevel = LogLevel.Debug;
 			
-			client.ConnectTo("127.0.0.1", 13000, 5);
+
+			client.ConnectTo("127.0.0.1", 13000, new TimeSpan(0,0,5));
 			client.CompressionMethod = CompressionMethod.None;
 			BindEvents(client);
 			Clients.Add(client);
@@ -100,6 +99,123 @@ namespace Client
 			}
 		}
 
+		private static void Process(string input) {
+
+			input = input.Trim().ToLower();
+
+			if (input == "msgmd" || input == "msg")
+			{
+
+				Console.Write("Enter a message: ");
+				var msg = Console.ReadLine();
+				IDictionary<object, object> md = null;
+
+				if (input == "msgmd")
+					md = Metadata();
+				
+				foreach( var client in Clients) {
+					client.SendMessage(msg,md);
+				}
+			}
+			else if (input == "stats") {
+				foreach (var client in Clients) {
+					Console.WriteLine(client.Statistics.ToString());
+				}
+			}
+			else if (input == "obj" || input == "objmd")
+			{
+
+				Console.WriteLine("Creating new 'Person' object");
+				Console.Write("Enter a firstname: ");
+				var fname = Console.ReadLine();
+				Console.Write("Enter a lastname: ");
+				var lname = Console.ReadLine();
+
+				IDictionary<object, object> md = null;
+
+				if (input == "objmd")
+					md = Metadata();
+
+				foreach( var client in Clients) {
+					client.SendObject(new Person(fname, lname), md);
+				}
+
+			}
+			else if (input == "h" || input == "?")
+			{
+				var stb = new StringBuilder();
+				stb.Append("Possible commands:" + Environment.NewLine);
+				stb.Append("\tmsg\t\tSend a message to the server." + Environment.NewLine);
+				stb.Append("\tmsgmd\t\tSend a message with metadata to the server." + Environment.NewLine);
+				stb.Append("\tobj\t\tSend a test object to the server." + Environment.NewLine);
+				stb.Append("\tobjmd\t\tSend a test object with metadata to the server." + Environment.NewLine);
+				stb.Append("\tclear\t\tClears the terminal." + Environment.NewLine);
+				stb.Append("\trestart\t\tRestarts the server." + Environment.NewLine);
+				stb.Append("\tstats\t\tStatistics of the server." + Environment.NewLine);
+				stb.Append("\tquit\t\tClose the server and terminal." + Environment.NewLine);
+				Console.WriteLine(stb.ToString());
+			}
+			else if (input == "clear")
+				Console.Clear();
+			else if (input == "quit")
+			{
+				foreach(var client in Clients) {
+					client.Dispose();
+				}
+				Environment.Exit(0);
+			}
+			else if (input == "restart") {
+				foreach(var client in Clients) {
+					client.Dispose();
+				}
+				BootstrapClient();			
+			}
+			else if (input.Trim() == "")
+				Console.WriteLine("");
+			else
+				Console.WriteLine("Invalid input try again.");			
+		}
+
+		private static IDictionary<object, object> Metadata() {
+			IDictionary<object, object> md = null;
+
+			Console.WriteLine("Enter metadata (q to quit)");
+
+			while (true) {
+				if (md != null) {
+					Console.WriteLine(md.Count + " pieces of metadata.");
+					Console.WriteLine("quit - To quit adding metadata.");
+					Console.Write(">");
+					var resp = Console.ReadLine();
+
+					if (resp.ToLower().Trim() == "quit")
+						return md;
+				}
+
+				Console.Write("key: ");
+				var key = Console.ReadLine();
+
+				if (key.ToLower().Trim() == "q")
+					return md;
+
+				Console.Write("value: ");
+				var value = Console.ReadLine();
+
+				if (value.ToLower().Trim() == "q")
+					return md;
+
+				if (md == null)
+					md = new Dictionary<object, object>();
+
+				md.Add(key, value);
+			}
+		}
+
+		private static string Choice() {
+			Console.WriteLine("Command [h|? for help]");
+			Console.Write("> ");
+			return Console.ReadLine();
+		}
 
 		private static void Program_CustomMessageReceived(object sender, DataReceivedEventArgs e)
 		{
@@ -146,7 +262,6 @@ namespace Client
 
 		private static void Client_ConnectedToServer(object sender, EventArgs e)
 		{
-			_connected.Set();
 			Console.WriteLine("Connected to the server.");
 		}
 

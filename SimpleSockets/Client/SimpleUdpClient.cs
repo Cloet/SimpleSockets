@@ -1,5 +1,6 @@
 using SimpleSockets.Helpers;
 using SimpleSockets.Messaging;
+using SimpleSockets.Messaging.Metadata;
 using System;
 using System.IO;
 using System.Linq;
@@ -19,18 +20,18 @@ namespace SimpleSockets.Client {
 
 		}
 
-		public override void ConnectTo(string serverIp, int serverPort, int autoReconnect)
+		public override void ConnectTo(string serverIp, int serverPort, TimeSpan autoReconnect)
 		{
 			if (string.IsNullOrEmpty(serverIp))
-				throw new ArgumentNullException(nameof(serverIp));
+				throw new ArgumentNullException(nameof(serverIp),"Invalid server ip.");
 			if (serverPort < 1 || serverPort > 65535)
-				throw new ArgumentOutOfRangeException(nameof(serverPort));
-			if (autoReconnect > 0 && autoReconnect < 4)
-				throw new ArgumentOutOfRangeException(nameof(autoReconnect));
+				throw new ArgumentOutOfRangeException(nameof(serverPort),"A server port must be between 1 and 65535.");
+			if (autoReconnect.TotalSeconds <= 5) // at least 5 seconds
+				throw new ArgumentOutOfRangeException(nameof(autoReconnect),"The autoreconnect time needs to be at least 5 seconds.");
 
 			ServerIp = serverIp;
 			ServerPort = serverPort;
-			AutoReconnect = new TimeSpan(0, 0, 0, autoReconnect);
+			AutoReconnect = autoReconnect;
 
 			EndPoint = new IPEndPoint(GetIp(ServerIp), ServerPort);
 
@@ -74,14 +75,14 @@ namespace SimpleSockets.Client {
 
 				Connected.Reset();
 
-				if (AutoReconnect.Seconds == 0)
+				if (AutoReconnect.TotalMilliseconds <= 0)
 					return;
 
-				Thread.Sleep(AutoReconnect.Seconds);
+				Thread.Sleep((int)AutoReconnect.TotalMilliseconds);
 				if (Listener != null & !Disposed)
 					Listener.BeginConnect(EndPoint, OnConnected, Listener);
 				else if (Listener == null && !Disposed)
-					ConnectTo(ServerIp, ServerPort, AutoReconnect.Seconds);
+					ConnectTo(ServerIp, ServerPort, AutoReconnect);
 			}
 			catch (Exception ex)
 			{

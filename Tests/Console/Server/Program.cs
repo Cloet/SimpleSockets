@@ -34,10 +34,10 @@ namespace Server
 				_server = new SimpleTcpServer();
 			_server.FileTransferEnabled = true;
 
-            _server.LoggerLevel = LogLevel.Trace;
+            _server.LoggerLevel = LogLevel.Debug;
 			BindEvents(_server);
 			_server.CompressionMethod = CompressionMethod.Deflate;
-			_server.Timeout = new TimeSpan(1,0,0);
+			_server.Timeout = new TimeSpan(0,10,0);
 			_server.Listen(13000);
 
 			while (true) {
@@ -77,6 +77,19 @@ namespace Server
 
 				_server.SendMessage(clientid, msg, md);
 			}
+			else if (input == "clients") {
+				StringBuilder stb = new StringBuilder();
+				foreach(var client in _server.GetAllClients()) {
+					stb.Append($"Client {client.Id}, {client.ClientName} @ {client.IPv4}" + Environment.NewLine);
+					stb.Append($"\t- Guid:\t\t{client.Guid.ToString()}" + Environment.NewLine);
+					stb.Append($"\t- OS:\t\t{client.OsVersion}" + Environment.NewLine);
+				}
+
+				if (String.IsNullOrEmpty(stb.ToString()))
+					stb.Append("No clients are currently connected to the server.");
+
+				Console.WriteLine(stb.ToString());
+			}
 			else if (input == "stats") {
 				Console.WriteLine(_server.Statistics.ToString());
 			}
@@ -110,6 +123,7 @@ namespace Server
 				stb.Append("\tobj\t\tSend a test object to the server." + Environment.NewLine);
 				stb.Append("\tobjmd\t\tSend a test object with metadata to the server." + Environment.NewLine);
 				stb.Append("\tclear\t\tClears the terminal." + Environment.NewLine);
+				stb.Append("\tclients\t\tList of all the connected clients." + Environment.NewLine);
 				stb.Append("\trestart\t\tRestarts the server." + Environment.NewLine);
 				stb.Append("\tstats\t\tStatistics of the server." + Environment.NewLine);
 				stb.Append("\tquit\t\tClose the server and terminal." + Environment.NewLine);
@@ -244,7 +258,7 @@ namespace Server
 
         private static void ClientConnected(object sender, ClientInfoEventArgs e)
         {
-			Console.WriteLine();
+			// Console.WriteLine();
             Console.WriteLine("Client has connected:" + e.ClientInfo.Id);
         }
 

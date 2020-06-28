@@ -1,5 +1,6 @@
 using SimpleSockets.Helpers;
 using SimpleSockets.Messaging;
+using SimpleSockets.Messaging.Metadata;
 using System;
 using System.Linq;
 using System.Net;

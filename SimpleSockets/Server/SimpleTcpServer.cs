@@ -12,6 +12,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using SimpleSockets.Helpers;
 using SimpleSockets.Messaging;
+using SimpleSockets.Messaging.Metadata;
 
 namespace SimpleSockets.Server {
 
