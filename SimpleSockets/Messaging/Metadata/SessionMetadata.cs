@@ -56,10 +56,13 @@ namespace SimpleSockets.Messaging.Metadata
 				IPAddress remote = ((IPEndPoint) Listener.RemoteEndPoint).Address;
 				IPv4 = remote.MapToIPv4().ToString();
 				IPv6 = remote.MapToIPv6().ToString();
-
 			} catch (Exception) {
 
 			}
+		}
+
+		public void ChangeDataReceiver(PacketReceiver receiver) {
+			DataReceiver = receiver;
 		}
 
 		public void ResetDataReceiver()
@@ -89,6 +92,17 @@ namespace SimpleSockets.Messaging.Metadata
 		{
 			DataReceiver = null;
 		}
-	}
+
+        public ISessionMetadata Clone(int id)
+        {
+            var session = new SessionMetadata(this.Listener, id, this._logger);
+			session.ClientName = this.ClientName;
+			session.DataReceiver = this.DataReceiver;
+			session.Guid = this.Guid;
+			session.UserDomainName = this.UserDomainName;
+			session.OsVersion = this.OsVersion;
+			return session;
+        }
+    }
 
 }

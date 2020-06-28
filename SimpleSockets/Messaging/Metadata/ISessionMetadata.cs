@@ -31,7 +31,11 @@ namespace SimpleSockets.Messaging.Metadata {
 
 		string Info();
 
+		void ChangeDataReceiver(PacketReceiver receiver);
+
 		void ResetDataReceiver();
+
+		ISessionMetadata Clone(int id);
 
     }
 

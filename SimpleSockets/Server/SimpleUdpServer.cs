@@ -84,7 +84,15 @@ namespace SimpleSockets.Server {
 			var client = (ISessionMetadata)result.AsyncState;
 			try
 			{
+				
 				var received = client.Listener.EndReceiveFrom(result, ref _epFrom);
+
+				if (!IsConnectionAllowed(client)) {
+					SocketLogger?.Log($"Connection from client not allowed. {client.Info()}",LogLevel.Warning);
+					client.DataReceiver.ClearBuffer();
+					client.ReceivingData.Set();
+					return;
+				}
 
 				Statistics?.AddReceivedBytes(received);
 

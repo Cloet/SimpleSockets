@@ -510,7 +510,7 @@ namespace SimpleSockets.Messaging {
 				if (!exists)
 					return Guid.Empty;
 
-				return (Guid)guid;
+				return Guid.Parse(guid.ToString());
 			}
 			catch (Exception ex) {
 				Logger?.Log("Unable to retrieve the guid.", ex, LogLevel.Warning);

@@ -346,15 +346,6 @@ namespace SimpleSockets.Server
 			var extraInfo = message.AdditionalInternalInfo;
 			var eventHandler = message.GetDynamicCallbackServer(extraInfo, DynamicCallbacks);
 
-			Guid clientGuid;
-
-			if (SocketProtocol == SocketProtocolType.Udp)
-			{
-				clientGuid = message.GetGuidFromMessage(extraInfo);
-				SocketLogger?.Log($"Message contains guid:{clientGuid} trying to link to an existing client.", LogLevel.Trace);
-				// ToDO
-			}
-
 			if (message.MessageType == PacketType.Auth)
 			{
 				var data = Encoding.UTF8.GetString(message.Data);
@@ -364,6 +355,31 @@ namespace SimpleSockets.Server
 				client.Guid = Guid.Parse(split[1]);
 				client.UserDomainName = split[2].Trim();
 				client.OsVersion = split[3].Trim();
+			}
+
+			if (SocketProtocol == SocketProtocolType.Udp)
+			{
+				Guid clientGuid;
+				if (message.MessageType != PacketType.Auth) {
+					clientGuid = message.GetGuidFromMessage(extraInfo);
+					client.Guid = clientGuid;
+				} else 
+					clientGuid = client.Guid;
+				SocketLogger?.Log($"Message contains guid:{clientGuid} trying to link to an existing client.", LogLevel.Trace);
+				
+				lock(ConnectedClients) {
+					var metadata = ConnectedClients.FirstOrDefault(x => x.Value.Guid == clientGuid).Value;
+					if (metadata != null) {
+						var temp = client;
+						client = metadata;
+						client.ChangeDataReceiver(temp.DataReceiver);
+					} else {
+						var id = !ConnectedClients.Any() ? 1 : ConnectedClients.Keys.Max() + 1;
+						var cloned = client.Clone(id);
+						ConnectedClients.Add(id, cloned);
+					}
+				}
+
 			}
 
 			SocketLogger?.Log($"Received a completed message from a client of type {Enum.GetName(typeof(PacketType), message.MessageType)}. {client.Info()}", LogLevel.Trace);

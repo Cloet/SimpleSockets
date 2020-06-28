@@ -463,12 +463,14 @@ namespace SimpleSockets.Client {
 
 		// Add some extra data to a packet that will be sent.
 		private Packet AddDataOntoPacket(Packet packet) {
+			
 			if (SocketProtocol == SocketProtocolType.Udp)
 			{
 				var info = packet.AdditionalInternalInfo;
 				if (info == null)
 					info = new Dictionary<object, object>();
 				info.Add(PacketHelper.GUID, ClientGuid);
+				packet.AdditionalInternalInfo = info;
 			}
 
 			packet.PreSharedKey = PreSharedKey;

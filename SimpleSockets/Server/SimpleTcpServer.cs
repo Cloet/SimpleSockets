@@ -208,7 +208,7 @@ namespace SimpleSockets.Server {
                     client = new SessionMetadata(((Socket)result.AsyncState).EndAccept(result), id, SocketLogger);
 
 					if (!IsConnectionAllowed(client)) {
-						SocketLogger?.Log($"Unidentified client tried to connect. {client.Info()}", LogLevel.Debug);
+						SocketLogger?.Log($"Unidentified client tried to connect. {client.Info()}", LogLevel.Warning);
 						return;
 					}
 
@@ -327,8 +327,8 @@ namespace SimpleSockets.Server {
             } catch (Exception ex) {
 				client.ReceivingData.Set();
                 SocketLogger?.Log("Error receiving a message.", ex, LogLevel.Error);
-				Receive(client);
 				SocketLogger?.Log("Trying to restart the datareceiver for client " + client.Id, LogLevel.Debug);
+				Receive(client);
 			}
         }
 

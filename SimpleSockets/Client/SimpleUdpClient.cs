@@ -106,19 +106,28 @@ namespace SimpleSockets.Client {
 
 					Listener.BeginReceiveFrom(client.DataReceiver.Buffer, 0, client.DataReceiver.Buffer.Length, SocketFlags.None, ref _epFrom, ReceiveCallback, client);
 				}
+			} catch (OperationCanceledException) {
+				ShutDownConnectionLost();
 			}
 			catch (Exception ex)
 			{
 				SocketLogger?.Log("Error receiving data from client", ex, LogLevel.Error);
+				ShutDownConnectionLost();
 			}
 		}
 
 		// Called by Receive
 		protected virtual void ReceiveCallback(IAsyncResult result)
 		{
+			if (Disposed)
+				return;
+
 			var client = (ISessionMetadata)result.AsyncState;
 			try
 			{
+				if (client.Listener == null)
+					return;
+
 				var received = client.Listener.EndReceiveFrom(result, ref _epFrom);
 
 				Statistics?.AddReceivedBytes(received);
@@ -136,8 +145,14 @@ namespace SimpleSockets.Client {
 				// Resets buffer of the datareceiver.
 				client.DataReceiver.ClearBuffer();
 				client.ReceivingData.Set();
-			}
-			catch (Exception ex)
+			} catch (SocketException se) {
+				if (se.ErrorCode != (int)SocketError.NotConnected && se.ErrorCode != 107)
+					SocketLogger?.Log("Server was forcibly closed.", se, LogLevel.Fatal);
+				ShutDownConnectionLost();
+				client.ReceivingData.Set();
+			} catch (ObjectDisposedException) {
+				ShutDownConnectionLost();
+			} catch (Exception ex)
 			{
 				client.ReceivingData.Set();
 				SocketLogger?.Log("Error receiving a message.", ex, LogLevel.Error);
