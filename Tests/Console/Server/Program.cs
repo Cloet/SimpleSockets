@@ -161,7 +161,7 @@ namespace Server
 				Console.Write("Enter the path of the directory. ");
 				var directory = Console.ReadLine();
 
-				var files = _server.RequestDirectoryInfo(clientid, 60000, directory);
+				var files = _server.RequestDirectoryInfo(clientid, 10000, directory);
 
 				foreach (var info in files) {
 					if (info.DirectoryName == "") {

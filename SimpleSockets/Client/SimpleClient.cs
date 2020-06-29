@@ -396,22 +396,28 @@ namespace SimpleSockets.Client {
 					dirInfo = Path.GetFullPath(dirInfo);
 					List<FileInfoSerializable> fileInfos = new List<FileInfoSerializable>();
 
-					if (!Directory.Exists(dirInfo)) {
+					if (!FileTransferEnabled) {
 						res = ResponseType.Error;
-						errormsg = "Directory does not exist.";
+						errormsg = "This client does not have filetransfer enabled.";
 					} else {
-						DirectoryInfo dir = new DirectoryInfo(dirInfo);
-						res = ResponseType.DirectoryInfo;
-						var files = dir.GetFiles();
-						foreach (var file in files) {
-							fileInfos.Add(new FileInfoSerializable(file));
-						}
+						if (!Directory.Exists(dirInfo)) {
+							res = ResponseType.Error;
+							errormsg = "Directory does not exist.";
+						} else {
+							DirectoryInfo dir = new DirectoryInfo(dirInfo);
+							res = ResponseType.DirectoryInfo;
+							var files = dir.GetFiles();
+							foreach (var file in files) {
+								fileInfos.Add(new FileInfoSerializable(file));
+							}
 
-						var dirs = dir.GetDirectories();
-						foreach (var d in dirs) {
-							fileInfos.Add(new FileInfoSerializable(d));
+							var dirs = dir.GetDirectories();
+							foreach (var d in dirs) {
+								fileInfos.Add(new FileInfoSerializable(d));
+							}
 						}
 					}
+
 					SendPacket(Response.CreateResponse(request.RequestGuid, res, errormsg, null, fileInfos).BuildResponseToPacket());
 				} catch (Exception ex) {
 					res = ResponseType.Error;
