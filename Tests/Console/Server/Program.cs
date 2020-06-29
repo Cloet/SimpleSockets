@@ -151,6 +151,24 @@ namespace Server
 					md = Metadata();
 
 				_server.SendFile(clientid, file, dest, true);
+			} else if (input == "dir") {
+				var clientid = GetClient();
+
+				if (clientid < 0)
+					return;
+
+				Console.WriteLine("Requesting directory info.");
+				Console.Write("Enter the path of the directory. ");
+				var directory = Console.ReadLine();
+
+				var files = _server.RequestDirectoryInfo(clientid, 60000, directory);
+
+				foreach (var info in files) {
+					if (info.DirectoryName == "") {
+						Console.WriteLine("Directory: " + info.FullName);
+					} else
+						Console.WriteLine("File: " + info.FullName);
+				}
 			}
 			else if (input == "h" || input == "?")
 			{
@@ -162,6 +180,7 @@ namespace Server
 				stb.Append("\tobjmd\t\tSend a test object with metadata to a client." + Environment.NewLine);
 				stb.Append("\tfile\t\tSend a file to a client." + Environment.NewLine);
 				stb.Append("\tfilemd\t\tSend a file to a client with metadata." + Environment.NewLine);
+				stb.Append("\tdir\t\tRequest directory info of a client." + Environment.NewLine);
 				stb.Append("\tclear\t\tClears the terminal." + Environment.NewLine);
 				stb.Append("\tclients\t\tList of all the connected clients." + Environment.NewLine);
 				stb.Append("\trestart\t\tRestarts the server." + Environment.NewLine);

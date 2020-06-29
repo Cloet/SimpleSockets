@@ -45,6 +45,13 @@ namespace SimpleSockets.Messaging
 			return p;
 		}
 
+		internal static Request DirectoryInfoRequest(string directory, int timeInMs) {
+			var p = new Request(timeInMs);
+			p.Req = RequestType.DirectoryInfo;
+			p.Data = directory;
+			return p;
+		}
+
 		private Request(int timeInMs) {
 			RequestGuid = Guid.NewGuid();
 			Expiration = (DateTime.Now + new TimeSpan(0, 0, 0, 0, timeInMs));

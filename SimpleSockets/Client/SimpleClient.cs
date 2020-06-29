@@ -387,6 +387,36 @@ namespace SimpleSockets.Client {
 					}
 				}
 				SendPacket(Response.CreateResponse(request.RequestGuid, res, errormsg, null).BuildResponseToPacket());
+			} else if (request.Req == RequestType.DirectoryInfo) {
+				ResponseType res = ResponseType.Error;
+				string errormsg = "";
+				var dirInfo = request.Data;
+
+				try {
+					dirInfo = Path.GetFullPath(dirInfo);
+					List<FileInfoSerializable> fileInfos = new List<FileInfoSerializable>();
+
+					if (!Directory.Exists(dirInfo)) {
+						res = ResponseType.Error;
+						errormsg = "Directory does not exist.";
+					} else {
+						DirectoryInfo dir = new DirectoryInfo(dirInfo);
+						res = ResponseType.DirectoryInfo;
+						var files = dir.GetFiles();
+						foreach (var file in files) {
+							fileInfos.Add(new FileInfoSerializable(file));
+						}
+
+						var dirs = dir.GetDirectories();
+						foreach (var d in dirs) {
+							fileInfos.Add(new FileInfoSerializable(d));
+						}
+					}
+					SendPacket(Response.CreateResponse(request.RequestGuid, res, errormsg, null, fileInfos).BuildResponseToPacket());
+				} catch (Exception ex) {
+					res = ResponseType.Error;
+					errormsg = ex.ToString();
+				}
 			}
 		}
 

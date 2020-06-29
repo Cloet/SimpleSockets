@@ -532,7 +532,6 @@ namespace SimpleSockets.Server
 		/// <returns></returns>
 		public bool SendPacket(int clientId, Packet packet)
 		{
-
 			try
 			{
 				var p = AddDataOntoPacket(packet);
@@ -672,7 +671,9 @@ namespace SimpleSockets.Server
 				return true;
 			}
 
-			public bool SendFile(int clientId, string file, string remoteloc, bool overwrite) {
+			public bool SendFile(int clientId, string file, string remoteloc, bool overwrite) => SendFile(clientId, file, remoteloc, overwrite, null);
+
+			public bool SendFile(int clientId, string file, string remoteloc, bool overwrite, IDictionary<object,object> metadata) {
 
 				try {
 					SendFileRequests(clientId, file, remoteloc, overwrite);
@@ -700,6 +701,7 @@ namespace SimpleSockets.Server
 								.SetPartNumber(currentPart, totalParts)
 								.SetEncryption(EncryptionMethod)
 								.SetDestinationPath(remoteloc)
+								.SetMetadata(metadata)
 								.Build();
 
 							SocketLogger?.Log($"Sending part {currentPart} of {totalParts} of {file}.", LogLevel.Trace);
@@ -723,7 +725,9 @@ namespace SimpleSockets.Server
 
 			}
 
-			public async Task<bool> SendFileAsync(int clientId, string file, string remoteloc, bool overwrite) {
+			public bool SendFileAsync(int clientId, string file, string remoteloc, bool overwrite) => SendFileAsync(clientId, file, remoteloc, overwrite);
+
+			public async Task<bool> SendFileAsync(int clientId, string file, string remoteloc, bool overwrite, IDictionary<object,object> metadata) {
 
 				try
 				{
@@ -754,6 +758,7 @@ namespace SimpleSockets.Server
 								.SetPartNumber(currentPart, totalParts)
 								.SetEncryption(EncryptionMethod)
 								.SetDestinationPath(remoteloc)
+								.SetMetadata(metadata)
 								.Build();
 
 							SocketLogger?.Log($"Sending part {currentPart} of {totalParts} of {file}.", LogLevel.Trace);
@@ -789,6 +794,21 @@ namespace SimpleSockets.Server
 				SendPacket(clientId, req.BuildRequestToPacket());
 				return GetResponse(req.RequestGuid, req.Expiration);
 			}
+
+		#endregion
+
+		#region  DirectoryInfo
+
+		public FileInfoSerializable[] RequestDirectoryInfo(int clientId, int responseTimeInMs, string directory) {
+			var req = Request.DirectoryInfoRequest(directory, responseTimeInMs);
+			SendPacket(clientId, req.BuildRequestToPacket());
+			var response = GetResponse(req.RequestGuid, req.Expiration);
+
+			var files = (Newtonsoft.Json.Linq.JArray)response.Data;
+			
+			return files.ToObject<FileInfoSerializable[]>();
+			// return (FileInfoSerializable[]) response.Data;
+		}
 
 		#endregion
 

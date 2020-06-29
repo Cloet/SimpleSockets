@@ -31,8 +31,20 @@ namespace SimpleSockets.Messaging
 		[JsonProperty]
 		public ResponseType Resp { get; internal set; }
 
+		/// <summary>
+		/// Data of the response.
+		/// </summary>
+		[JsonProperty]
+		public object Data { get; internal set; }
+
 		internal static Response CreateResponse(Guid guid, ResponseType response, string errorMsg, Exception ex) {
 			return new Response(guid, response, errorMsg, ex);
+		}
+
+		internal static Response CreateResponse(Guid guid, ResponseType response, string errorMsg, Exception ex, object data) {
+			var resp = new Response(guid, response, errorMsg, ex);
+			resp.Data = data;
+			return resp;
 		}
 
 		private Response(Guid guid, ResponseType resp, string errorMsg, Exception ex) {
