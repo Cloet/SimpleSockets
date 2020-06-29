@@ -85,7 +85,7 @@ namespace Client
 			
 			client.LoggerLevel = LogLevel.Debug;
 			
-
+			client.FileTransferEnabled = true;
 			client.ConnectTo("127.0.0.1", 13000, new TimeSpan(0,0,5));
 			client.CompressionMethod = CompressionMethod.None;
 			BindEvents(client);

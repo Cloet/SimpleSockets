@@ -278,6 +278,30 @@ namespace SimpleSockets.Client {
 			}
 
 
+			if (packet.MessageType == PacketType.File) {
+				if (extraInfo == null)
+					return;
+
+				var partex = extraInfo.TryGetValue(PacketHelper.PACKETPART, out var part);
+				var totex = extraInfo.TryGetValue(PacketHelper.TOTALPACKET, out var total);
+				var destex = extraInfo.TryGetValue(PacketHelper.DESTPATH, out var path);
+
+				if (destex) {
+					var file = Path.GetFullPath(path.ToString());
+
+					if ((long)part == 0) {
+						FileInfo finfo = new FileInfo(file);
+						finfo.Directory?.Create();
+					}
+
+					using (BinaryWriter writer = new BinaryWriter(File.Open(file, FileMode.Append)))
+					{
+						writer.Write(packet.Data, 0, packet.Data.Length);
+						writer.Close();
+					}
+				}
+			}
+
 			if (packet.MessageType == PacketType.Object)
 			{
 				var obj = packet.BuildObjectFromBytes(extraInfo, out var type);
@@ -319,34 +343,34 @@ namespace SimpleSockets.Client {
 		}
 
 		protected virtual void RequestHandler(Request request) {
-			if (request.Req == Requests.FileTransfer)
+			if (request.Req == RequestType.FileTransfer)
 			{
 				var filename = request.Data;
-				Responses res = Responses.Error;
+				ResponseType res = ResponseType.Error;
 				string errormsg = "";
 				if (!FileTransferEnabled)
 				{
-					res = Responses.Error;
+					res = ResponseType.Error;
 					errormsg = "File transfer is not allowed.";
 				}
 				else
 				{
 					if (File.Exists(Path.GetFullPath(filename)))
-						res = Responses.FileExists;
+						res = ResponseType.FileExists;
 					else
-						res = Responses.ReqFilePathOk;
+						res = ResponseType.ReqFilePathOk;
 				}
 				SendPacket(Response.CreateResponse(request.RequestGuid, res, errormsg, null).BuildResponseToPacket());
 			}
-			else if (request.Req == Requests.FileDelete)
+			else if (request.Req == RequestType.FileDelete)
 			{
-				Responses res = Responses.Error;
+				ResponseType res = ResponseType.Error;
 				string errormsg = "";
 				var filename = request.Data;
 
 				if (!FileTransferEnabled)
 				{
-					res = Responses.Error;
+					res = ResponseType.Error;
 					errormsg = "File transfer is not allowed.";
 				}
 				else
@@ -354,11 +378,11 @@ namespace SimpleSockets.Client {
 					try
 					{
 						File.Delete(Path.GetFullPath(filename));
-						res = Responses.FileDeleted;
+						res = ResponseType.FileDeleted;
 					}
 					catch (Exception ex)
 					{
-						res = Responses.Error;
+						res = ResponseType.Error;
 						errormsg = ex.ToString();
 					}
 				}
@@ -368,26 +392,36 @@ namespace SimpleSockets.Client {
 
 		protected override void ByteDecoder(ISessionMetadata session, byte[] array)
 		{
-			for (int i = 0; i < array.Length; i++)
-			{
-				if (array[i] == PacketHelper.ESCAPE)
+			try {
+				for (int i = 0; i < array.Length; i++)
 				{
-					if (i < array.Length)
+					if (array[i] == PacketHelper.ESCAPE || session.DataReceiver.LastByteEscape == true)
 					{
-						i++;
-						if (array[i] == PacketHelper.EOF)
-						{
-							var msg = session.DataReceiver.BuildMessageFromPayload(EncryptionPassphrase, PreSharedKey);
-							if (msg != null)
-								OnMessageReceivedHandler(msg);
-							session.ResetDataReceiver();
+						var lastEscape = session.DataReceiver.LastByteEscape;
+						if (lastEscape)
+							session.DataReceiver.LastByteEscape = false;
+
+						if (i == (array.Length - 1))
+							session.DataReceiver.LastByteEscape = true;
+						else {
+							if (!lastEscape)
+								i++;
+							if (array[i] == PacketHelper.EOF)
+							{
+								var msg = session.DataReceiver.BuildMessageFromPayload(EncryptionPassphrase, PreSharedKey);
+								if (msg != null)
+									OnMessageReceivedHandler(msg);
+								session.ResetDataReceiver();
+							}
+							else
+								session.DataReceiver.AppendByteToReceived(array[i]);
 						}
-						else
-							session.DataReceiver.AppendByteToReceived(array[i]);
 					}
+					else
+						session.DataReceiver.AppendByteToReceived(array[i]);
 				}
-				else
-					session.DataReceiver.AppendByteToReceived(array[i]);
+			} catch (Exception ex) {
+				throw new Exception(ex.ToString(), ex);
 			}
 		}
 
@@ -669,27 +703,6 @@ namespace SimpleSockets.Client {
 
 		#region File
 
-		private Response GetResponse(Guid guid, DateTime expiration) {
-			Response packet = null;
-			while (!Token.IsCancellationRequested)
-			{
-				lock (_responsePackets)
-				{
-					if (_responsePackets.ContainsKey(guid))
-					{
-						packet = _responsePackets[guid];
-						_responsePackets.Remove(guid);
-						return packet;
-					}
-				}
-				if (DateTime.Now >= expiration)
-					break;
-				Task.Delay(50).Wait();
-			}
-
-			throw new TimeoutException("No response received within the expected time window.");
-		}
-
 		private Response RequestFileTransfer(int responseTimeInMs, string filename) {
 			var req = Request.FileTransferRequest(filename, responseTimeInMs);
 			SendPacket(req.BuildRequestToPacket());
@@ -711,17 +724,17 @@ namespace SimpleSockets.Client {
 
 			var response = RequestFileTransfer(5000, remoteloc);
 
-			if (response.Resp == Responses.Error) {
+			if (response.Resp == ResponseType.Error) {
 				throw new InvalidOperationException(response.ExceptionMessage,response.Exception);
 			}
 
-			if (response.Resp == Responses.FileExists) {
+			if (response.Resp == ResponseType.FileExists) {
 				if (overwrite)
 				{
 					response = RequestFileDelete(10000, remoteloc);
-					if (response.Resp == Responses.FileDeleted)
+					if (response.Resp == ResponseType.FileDeleted)
 						SocketLogger?.Log($"File at {remoteloc} was removed from remote location.", LogLevel.Trace);
-					else if (response.Resp == Responses.Error)
+					else if (response.Resp == ResponseType.Error)
 						throw new InvalidOperationException(response.ExceptionMessage, response.Exception);
 					else
 						throw new InvalidOperationException("Invalid response received.");

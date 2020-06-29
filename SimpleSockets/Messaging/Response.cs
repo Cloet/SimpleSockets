@@ -29,13 +29,13 @@ namespace SimpleSockets.Messaging
 		/// The response type.
 		/// </summary>
 		[JsonProperty]
-		public Responses Resp { get; internal set; }
+		public ResponseType Resp { get; internal set; }
 
-		internal static Response CreateResponse(Guid guid, Responses response, string errorMsg, Exception ex) {
+		internal static Response CreateResponse(Guid guid, ResponseType response, string errorMsg, Exception ex) {
 			return new Response(guid, response, errorMsg, ex);
 		}
 
-		private Response(Guid guid, Responses resp, string errorMsg, Exception ex) {
+		private Response(Guid guid, ResponseType resp, string errorMsg, Exception ex) {
 			ResponseGuid = guid;
 			Resp = resp;
 			Exception = ex;

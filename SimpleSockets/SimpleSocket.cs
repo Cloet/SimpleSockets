@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
+using System.Threading.Tasks;
 using SimpleSockets.Client;
 using SimpleSockets.Helpers;
 using SimpleSockets.Helpers.Compression;
@@ -181,6 +182,27 @@ namespace SimpleSockets {
 		public static SimpleClient CreateUdpClient() => new SimpleUdpClient();
 
 		#endregion
+
+		protected Response GetResponse(Guid guid, DateTime expiration) {
+			Response packet = null;
+			while (!Token.IsCancellationRequested)
+			{
+				lock (_responsePackets)
+				{
+					if (_responsePackets.ContainsKey(guid))
+					{
+						packet = _responsePackets[guid];
+						_responsePackets.Remove(guid);
+						return packet;
+					}
+				}
+				if (DateTime.Now.ToUniversalTime() >= expiration.ToUniversalTime())
+					break;
+				Task.Delay(50).Wait();
+			}
+
+			throw new TimeoutException("No response received within the expected time window.");
+		}
 
 	}
 

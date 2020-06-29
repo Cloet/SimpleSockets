@@ -120,7 +120,7 @@ namespace SimpleSockets.Server {
 		}
 
 		// Send bytes to a client.
-		protected override void SendToSocket(int clientId, byte[] payload)
+		protected override bool SendToSocket(int clientId, byte[] payload)
 		{
 			ISessionMetadata client = null;
 			ConnectedClients?.TryGetValue(clientId, out client);
@@ -133,13 +133,18 @@ namespace SimpleSockets.Server {
 					client.WritingData.Reset();
 
 					client.Listener.BeginSendTo(payload, 0, payload.Length, SocketFlags.None, client.UDPEndPoint, SendCallback, client);
+
+					return true;
 				}
+
+				return false;
 			}
 			catch (Exception ex)
 			{
 				if (client != null)
 					client.WritingData.Set();
 				SocketLogger?.Log("Error sending a message.", ex, LogLevel.Error);
+				return false;
 			}
 		}
 

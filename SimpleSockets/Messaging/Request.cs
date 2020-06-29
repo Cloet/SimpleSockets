@@ -23,7 +23,7 @@ namespace SimpleSockets.Messaging
 		/// Request type
 		/// </summary>
 		[JsonProperty]
-		public Requests Req { get; internal set; }
+		public RequestType Req { get; internal set; }
 
 		/// <summary>
 		/// Data of the request.
@@ -33,14 +33,14 @@ namespace SimpleSockets.Messaging
 
 		internal static Request FileTransferRequest(string filename, int timeInMs) {
 			var p = new Request(timeInMs);
-			p.Req = Requests.FileTransfer;
+			p.Req = RequestType.FileTransfer;
 			p.Data = filename;
 			return p;
 		}
 
 		internal static Request FileDeletionRequest(string filename, int timeInMs) {
 			var p = new Request(timeInMs);
-			p.Req = Requests.FileDelete;
+			p.Req = RequestType.FileDelete;
 			p.Data = filename;
 			return p;
 		}

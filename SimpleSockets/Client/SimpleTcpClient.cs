@@ -213,8 +213,6 @@ namespace SimpleSockets {
 
 				if (SslEncryption && !success)
 					throw new AuthenticationException("Client cannot be authenticated.");
-
-
 			}
 			catch (SocketException)
 			{

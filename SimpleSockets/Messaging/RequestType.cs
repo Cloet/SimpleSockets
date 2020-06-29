@@ -4,7 +4,7 @@ using System.Text;
 
 namespace SimpleSockets.Messaging
 {
-	public enum Requests
+	public enum RequestType
 	{
 		FileTransfer=0,
 		FileDelete=1,

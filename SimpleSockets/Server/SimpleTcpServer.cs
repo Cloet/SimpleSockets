@@ -333,7 +333,7 @@ namespace SimpleSockets.Server {
         }
 
 		// Sends data to a client. When data is send SendCallback is called
-        protected override void SendToSocket(int clientId, byte[] payload)
+        protected override bool SendToSocket(int clientId, byte[] payload)
         {
 			ISessionMetadata client = null;
 			ConnectedClients?.TryGetValue(clientId, out client);
@@ -353,13 +353,17 @@ namespace SimpleSockets.Server {
 					else {
 						client.Listener.BeginSend(payload, 0, payload.Length, SocketFlags.None, SendCallback, client);
 					}
+
+					return true;
 				}
 
+				return false;
 			}
 			catch (Exception ex) {
 				if (client != null)
 					client.WritingData.Set();
 				SocketLogger?.Log("Error sending a message.", ex, LogLevel.Error);
+				return false;
 			}
         }
 

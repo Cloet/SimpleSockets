@@ -133,14 +133,35 @@ namespace Server
 				_server.SendObject(clientid, new Person(fname, lname), md);
 
 			}
+			else if (input == "file" || input == "filemd") {
+				var clientid = GetClient();
+
+				if (clientid < 0)
+					return;
+
+				Console.WriteLine("Sending a file to a client.");
+				Console.Write("Enter the path of the file you want to send: ");
+				var file = Console.ReadLine();
+				Console.Write("Destination on the client: ");
+				var dest = Console.ReadLine();
+
+				IDictionary<object,object> md = null;
+
+				if (input == "filemd")
+					md = Metadata();
+
+				_server.SendFile(clientid, file, dest, true);
+			}
 			else if (input == "h" || input == "?")
 			{
 				var stb = new StringBuilder();
 				stb.Append("Possible commands:" + Environment.NewLine);
-				stb.Append("\tmsg\t\tSend a message to the server." + Environment.NewLine);
-				stb.Append("\tmsgmd\t\tSend a message with metadata to the server." + Environment.NewLine);
-				stb.Append("\tobj\t\tSend a test object to the server." + Environment.NewLine);
-				stb.Append("\tobjmd\t\tSend a test object with metadata to the server." + Environment.NewLine);
+				stb.Append("\tmsg\t\tSend a message to a client.." + Environment.NewLine);
+				stb.Append("\tmsgmd\t\tSend a message with metadata to a client.." + Environment.NewLine);
+				stb.Append("\tobj\t\tSend a test object to a client." + Environment.NewLine);
+				stb.Append("\tobjmd\t\tSend a test object with metadata to a client." + Environment.NewLine);
+				stb.Append("\tfile\t\tSend a file to a client." + Environment.NewLine);
+				stb.Append("\tfilemd\t\tSend a file to a client with metadata." + Environment.NewLine);
 				stb.Append("\tclear\t\tClears the terminal." + Environment.NewLine);
 				stb.Append("\tclients\t\tList of all the connected clients." + Environment.NewLine);
 				stb.Append("\trestart\t\tRestarts the server." + Environment.NewLine);
@@ -240,10 +261,7 @@ namespace Server
 
 			Console.WriteLine("All clients:");
 			foreach (var client in clients) {
-				if (_server.SocketProtocol == SocketProtocolType.Udp)
-					Console.WriteLine("\t ID: "  + client.Id + " Endpoint:" + client.)
-				else
-					Console.WriteLine("\t ID:"+client.Id + " IPv4:" + client.IPv4);
+				Console.WriteLine("\t ID:"+client.Id + " IPv4:" + client.IPv4);
 			}
 
 			Console.Write("select a client: ");

@@ -299,40 +299,40 @@ namespace SimpleSockets.Server
 
 		protected virtual void RequestHandler(ISessionMetadata client, Request request) {
 
-			if (request.Req == Requests.FileTransfer) {
+			if (request.Req == RequestType.FileTransfer) {
 				var filename = request.Data;
-				Responses res = Responses.Error;
+				ResponseType res = ResponseType.Error;
 				string errormsg = "";
 				if (!FileTransferEnabled) {
-					res = Responses.Error;
+					res = ResponseType.Error;
 					errormsg = "File transfer is not allowed.";
 				}
 				else
 				{
 					if (File.Exists(Path.GetFullPath(filename)))
-						res = Responses.FileExists;
+						res = ResponseType.FileExists;
 					else
-						res = Responses.ReqFilePathOk;
+						res = ResponseType.ReqFilePathOk;
 				}
 				SendPacket(client.Id, Response.CreateResponse(request.RequestGuid, res, errormsg, null).BuildResponseToPacket());
-			} else if (request.Req == Requests.FileDelete) {
-				Responses res = Responses.Error;
+			} else if (request.Req == RequestType.FileDelete) {
+				ResponseType res = ResponseType.Error;
 				string errormsg = "";
 				var filename = request.Data;
 
 				if (!FileTransferEnabled)
 				{
-					res = Responses.Error;
+					res = ResponseType.Error;
 					errormsg = "File transfer is not allowed.";
 				}
 				else {
 					try
 					{
 						File.Delete(Path.GetFullPath(filename));
-						res = Responses.FileDeleted;
+						res = ResponseType.FileDeleted;
 					}
 					catch (Exception ex) {
-						res = Responses.Error;
+						res = ResponseType.Error;
 						errormsg = ex.ToString();
 					}
 				}
@@ -465,7 +465,7 @@ namespace SimpleSockets.Server
 
 		#region Sending Data
 
-		protected abstract void SendToSocket(int clientId, byte[] payload);
+		protected abstract bool SendToSocket(int clientId, byte[] payload);
 
 		protected abstract Task<bool> SendToSocketAsync(int clientId, byte[] payload);
 
@@ -536,8 +536,7 @@ namespace SimpleSockets.Server
 			try
 			{
 				var p = AddDataOntoPacket(packet);
-				SendToSocket(clientId, p.BuildPayload());
-				return true;
+				return SendToSocket(clientId, p.BuildPayload());
 			}
 			catch (Exception ex)
 			{
@@ -638,6 +637,158 @@ namespace SimpleSockets.Server
 			return await SendInternalAsync(clientId, PacketType.Object, bytes, metadata, string.Empty, EncryptionMethod, CompressionMethod, obj.GetType());
 		}
 
+
+		#endregion
+
+		#region File
+
+			private bool SendFileRequests(int clientId, string file , string remoteloc, bool overwrite) {
+				file = Path.GetFullPath(file);
+
+				if (!File.Exists(file))
+					throw new ArgumentException("No file found at path.", nameof(file));
+
+				var response = RequestFileTransfer(clientId, 10000, remoteloc);
+
+				if (response.Resp == ResponseType.Error) {
+					throw new InvalidOperationException(response.ExceptionMessage,response.Exception);
+				}
+
+				if (response.Resp == ResponseType.FileExists) {
+					if (overwrite)
+					{
+						response = RequestFileDelete(clientId, 10000, remoteloc);
+						if (response.Resp == ResponseType.FileDeleted)
+							SocketLogger?.Log($"File at {remoteloc} was removed from remote location.", LogLevel.Trace);
+						else if (response.Resp == ResponseType.Error)
+							throw new InvalidOperationException(response.ExceptionMessage, response.Exception);
+						else
+							throw new InvalidOperationException("Invalid response received.");
+					}
+					else
+						throw new InvalidOperationException($"A file already exists on the remote location at {remoteloc}.");
+				}
+
+				return true;
+			}
+
+			public bool SendFile(int clientId, string file, string remoteloc, bool overwrite) {
+
+				try {
+					SendFileRequests(clientId, file, remoteloc, overwrite);
+
+					var bufferLength = 4096;
+					var buffer = new byte[bufferLength];
+
+					using (var fileStream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, buffer.Length, true)) {
+						var read = 0;
+						var currentPart = 0;
+						var totalLength = fileStream.Length;
+						int totalParts = (int)Math.Ceiling((double)(totalLength / bufferLength));
+
+						while ((read = fileStream.Read(buffer, 0, buffer.Length)) > 0) {
+							currentPart++;
+							var data = new byte[read];
+							if (read == buffer.Length)
+								data = buffer;
+							else
+								Array.Copy(buffer, 0, data, 0, read);
+
+							var packet = PacketBuilder.NewPacket
+								.SetBytes(data)
+								.SetPacketType(PacketType.File)
+								.SetPartNumber(currentPart, totalParts)
+								.SetEncryption(EncryptionMethod)
+								.SetDestinationPath(remoteloc)
+								.Build();
+
+							SocketLogger?.Log($"Sending part {currentPart} of {totalParts} of {file}.", LogLevel.Trace);
+							var send = SendToSocket(clientId, packet.BuildPayload());
+
+							if (!send)
+							{
+								SocketLogger?.Log($"Part {currentPart} of {totalParts} failed to be sent.", LogLevel.Error);
+								return false;
+							}
+
+							buffer = new byte[bufferLength];
+						}
+					}
+
+					return true;
+				} catch (Exception ex) {
+					SocketLogger?.Log("Error sending a file.", ex, LogLevel.Error);
+					return false;
+				}
+
+			}
+
+			public async Task<bool> SendFileAsync(int clientId, string file, string remoteloc, bool overwrite) {
+
+				try
+				{
+					SendFileRequests(clientId, file, remoteloc, overwrite);
+
+					var start = DateTime.Now;
+					var bufLength = 4096;
+					var buffer = new byte[bufLength]; //When this buffer exceeds 85000 bytes -> buffer will be stored in LOH -> bad for memory usage.			
+					using (var fileStream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, buffer.Length, true))
+					{
+						var read = 0;
+						var currentPart = 0;
+						var totalLength = fileStream.Length;
+						int totalParts = (int)Math.Ceiling((double)(totalLength / bufLength));
+
+						while ((read = await fileStream.ReadAsync(buffer, 0, buffer.Length, Token)) > 0)
+						{
+							currentPart++;
+							var data = new byte[read];
+							if (read == buffer.Length)
+								data = buffer;
+							else
+								Array.Copy(buffer, 0, data, 0, read);
+
+							var packet = PacketBuilder.NewPacket
+								.SetBytes(data)
+								.SetPacketType(PacketType.File)
+								.SetPartNumber(currentPart, totalParts)
+								.SetEncryption(EncryptionMethod)
+								.SetDestinationPath(remoteloc)
+								.Build();
+
+							SocketLogger?.Log($"Sending part {currentPart} of {totalParts} of {file}.", LogLevel.Trace);
+							var send = await SendToSocketAsync(clientId, packet.BuildPayload());
+
+							if (!send)
+							{
+								SocketLogger?.Log($"Part {currentPart} or {totalParts} failed to be sent.", LogLevel.Error);
+								return false;
+							}
+
+							buffer = new byte[bufLength];
+						}
+					}
+
+					Console.WriteLine("Took: " + (start.ToUniversalTime() - DateTime.Now.ToUniversalTime()).ToString());
+					return true;
+				}
+				catch (Exception ex) {
+					SocketLogger?.Log("Error sending a file.", ex, LogLevel.Error);
+					return false;
+				}
+			}
+
+			private Response RequestFileTransfer(int clientId, int responseTimeInMs, string filename) {
+				var req = Request.FileTransferRequest(filename, responseTimeInMs);
+				SendPacket(clientId, req.BuildRequestToPacket());
+				return GetResponse(req.RequestGuid, req.Expiration);
+			}
+
+			private Response RequestFileDelete(int clientId, int responseTimeInMs, string filename) {
+				var req = Request.FileDeletionRequest(filename, responseTimeInMs);
+				SendPacket(clientId, req.BuildRequestToPacket());
+				return GetResponse(req.RequestGuid, req.Expiration);
+			}
 
 		#endregion
 

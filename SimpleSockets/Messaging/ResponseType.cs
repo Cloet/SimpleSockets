@@ -4,12 +4,12 @@ using System.Text;
 
 namespace SimpleSockets.Messaging
 {
-	public enum Responses
+	public enum ResponseType
 	{
 		Error=0,
-		ReqFilePathOk=0,
-		FileExists=1,
-		FileDeleted=2,
-		DirectoryInfo=3
+		ReqFilePathOk=1,
+		FileExists=2,
+		FileDeleted=3,
+		DirectoryInfo=4
 	}
 }
