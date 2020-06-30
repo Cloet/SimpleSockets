@@ -232,6 +232,8 @@ namespace SimpleSockets {
 					Listener.BeginConnect(EndPoint, OnConnected, Listener);
 				else if (!Disposed && Listener == null)
 					ConnectTo(ServerIp, ServerPort, AutoReconnect);
+			} catch (ObjectDisposedException) {
+				ShutDownConnectionLost();
 			} catch (OperationCanceledException) {
 				ShutDownConnectionLost();
 			}

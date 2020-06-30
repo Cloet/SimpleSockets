@@ -151,6 +151,19 @@ namespace Server
 					md = Metadata();
 
 				_server.SendFile(clientid, file, dest, true);
+			} else if (input == "drives") {
+				var clientid = GetClient();
+
+				if (clientid < 0)
+					return;
+
+				Console.WriteLine("Requesting drive info.");
+				var drives = _server.RequestDriveInfo(clientid,10000);
+
+				foreach( var drive in drives) {
+					Console.WriteLine("Drive: " + drive.Name + ", format: " + drive.DriveFormat);
+				}
+				
 			} else if (input == "dir") {
 				var clientid = GetClient();
 
@@ -161,14 +174,26 @@ namespace Server
 				Console.Write("Enter the path of the directory. ");
 				var directory = Console.ReadLine();
 
-				var files = _server.RequestDirectoryInfo(clientid, 10000, directory);
+				var content = _server.RequestDirectoryInfo(clientid, 10000, directory);
 
-				foreach (var info in files) {
-					if (info.DirectoryName == "") {
-						Console.WriteLine("Directory: " + info.FullName);
-					} else
-						Console.WriteLine("File: " + info.FullName);
-				}
+				foreach( var file in content.Files)
+					Console.WriteLine("File: " + file.FullName);
+				
+				foreach (var dir in content.Directories)
+					Console.WriteLine("Directory: " + dir.FullName);
+
+			} else if (input == "request") {
+				var clientid = GetClient();
+
+				if (clientid < 0)
+					return;
+
+				// Console.Write("Enter a message for the client: ");
+				// var data = Console.ReadLine();
+				var data = new Person("Test person", "last name person");
+				var returnval = _server.SendRequest<Person>(clientid, 10000, data);
+
+				Console.WriteLine(returnval.FirstName + " " + returnval.LastName);
 			}
 			else if (input == "h" || input == "?")
 			{
@@ -181,6 +206,8 @@ namespace Server
 				stb.Append("\tfile\t\tSend a file to a client." + Environment.NewLine);
 				stb.Append("\tfilemd\t\tSend a file to a client with metadata." + Environment.NewLine);
 				stb.Append("\tdir\t\tRequest directory info of a client." + Environment.NewLine);
+				stb.Append("\tdrives\t\tRequest drive info from a client." + Environment.NewLine);
+				stb.Append("\trequest\t\tCustom request to a client." + Environment.NewLine);
 				stb.Append("\tclear\t\tClears the terminal." + Environment.NewLine);
 				stb.Append("\tclients\t\tList of all the connected clients." + Environment.NewLine);
 				stb.Append("\trestart\t\tRestarts the server." + Environment.NewLine);
@@ -252,6 +279,11 @@ namespace Server
 			server.ClientDisconnected += Server_ClientDisconnected;
 			server.ObjectReceived += Server_ObjectReceived;
 			server.Logger += Logger;
+			server.RequestHandler += RequestHandler;
+		}
+
+		private static object RequestHandler(ISessionInfo client, object data, Type dataType) {
+			return (data.ToString() + " returned.");
 		}
 
 		private static void Server_ClientDisconnected(object sender, ClientDisconnectedEventArgs e)

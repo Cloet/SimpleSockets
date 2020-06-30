@@ -7,11 +7,13 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 using SimpleSockets.Helpers;
 using SimpleSockets.Helpers.Compression;
 using SimpleSockets.Helpers.Cryptography;
 using SimpleSockets.Helpers.Serialization;
 using SimpleSockets.Messaging;
+using SimpleSockets.Messaging.FileSystem;
 using SimpleSockets.Messaging.Metadata;
 
 namespace SimpleSockets.Client {
@@ -66,6 +68,12 @@ namespace SimpleSockets.Client {
 		/// </summary>
 		public event EventHandler<MessageFailedEventArgs> MessageFailed;
 		protected virtual void OnMessageFailed(MessageFailedEventArgs eventArgs) => MessageFailed?.Invoke(this, eventArgs);
+
+		/// <summary>
+		/// Fired when the client receives a request.
+		/// The return value will be send back to the server.
+		/// </summary>
+		public Func<object, Type, object> RequestHandler = null;
 
 		#endregion
 
@@ -338,92 +346,97 @@ namespace SimpleSockets.Client {
 			if (packet.MessageType == PacketType.Request)
 			{
 				var req = SerializationHelper.DeserializeJson<Request>(packet.Data);
-				RequestHandler(req);
+				OnRequestReceived(req);
 			}
 		}
 
-		protected virtual void RequestHandler(Request request) {
-			if (request.Req == RequestType.FileTransfer)
-			{
-				var filename = request.Data;
-				ResponseType res = ResponseType.Error;
-				string errormsg = "";
-				if (!FileTransferEnabled)
-				{
+		protected virtual void OnRequestReceived(Request request) {
+
+			ResponseType res = ResponseType.Error;
+			string errormsg = "";
+
+			try {
+
+				// if filetransfer not allowed throw an error
+				if ( (int)request.Req < 4 && !FileTransferEnabled) {
 					res = ResponseType.Error;
-					errormsg = "File transfer is not allowed.";
+					errormsg = "Filetransfer is not allowed.";	
+					SendPacket(Response.CreateResponse(request.RequestGuid, res, errormsg, null).BuildResponseToPacket());
+					return;
 				}
-				else
-				{
+
+				object responseObject = null;
+				if (request.Req == RequestType.FileTransfer) {
+					var filename = request.Data.ToString();
+					
 					if (File.Exists(Path.GetFullPath(filename)))
 						res = ResponseType.FileExists;
 					else
 						res = ResponseType.ReqFilePathOk;
-				}
-				SendPacket(Response.CreateResponse(request.RequestGuid, res, errormsg, null).BuildResponseToPacket());
-			}
-			else if (request.Req == RequestType.FileDelete)
-			{
-				ResponseType res = ResponseType.Error;
-				string errormsg = "";
-				var filename = request.Data;
 
-				if (!FileTransferEnabled)
-				{
-					res = ResponseType.Error;
-					errormsg = "File transfer is not allowed.";
-				}
-				else
-				{
-					try
-					{
-						File.Delete(Path.GetFullPath(filename));
-						res = ResponseType.FileDeleted;
-					}
-					catch (Exception ex)
-					{
+				} else if (request.Req == RequestType.FileDelete) {
+					var filename = request.Data.ToString();
+					File.Delete(Path.GetFullPath(filename));
+					res = ResponseType.FileDeleted;
+
+				} else if (request.Req == RequestType.DirectoryInfo) {
+					var dirInfo = request.Data.ToString();
+					var foldercontent = new FolderContent();
+
+					if (!Directory.Exists(dirInfo)) {
 						res = ResponseType.Error;
-						errormsg = ex.ToString();
-					}
-				}
-				SendPacket(Response.CreateResponse(request.RequestGuid, res, errormsg, null).BuildResponseToPacket());
-			} else if (request.Req == RequestType.DirectoryInfo) {
-				ResponseType res = ResponseType.Error;
-				string errormsg = "";
-				var dirInfo = request.Data;
-
-				try {
-					dirInfo = Path.GetFullPath(dirInfo);
-					List<FileInfoSerializable> fileInfos = new List<FileInfoSerializable>();
-
-					if (!FileTransferEnabled) {
-						res = ResponseType.Error;
-						errormsg = "This client does not have filetransfer enabled.";
+						errormsg = "Directory does not exist.";
 					} else {
-						if (!Directory.Exists(dirInfo)) {
-							res = ResponseType.Error;
-							errormsg = "Directory does not exist.";
-						} else {
-							DirectoryInfo dir = new DirectoryInfo(dirInfo);
-							res = ResponseType.DirectoryInfo;
-							var files = dir.GetFiles();
-							foreach (var file in files) {
-								fileInfos.Add(new FileInfoSerializable(file));
-							}
-
-							var dirs = dir.GetDirectories();
-							foreach (var d in dirs) {
-								fileInfos.Add(new FileInfoSerializable(d));
-							}
+						DirectoryInfo dir = new DirectoryInfo(dirInfo);
+						
+						var files = dir.GetFiles();
+						foreach (var file in files) {
+							foldercontent.Files.Add(new FileInfoSerializable(file));
 						}
+
+						var dirs = dir.GetDirectories();
+						foreach (var d in dirs) {
+							foldercontent.Directories.Add(new DirectoryInfoSerializable(d));
+						}
+
+						res = ResponseType.DirectoryInfo;
+						responseObject = foldercontent;
+					}
+				} else if (request.Req == RequestType.DriveInfo) {
+					
+					var drives = new List<DriveInfoSerializable>();
+					var alldrives = DriveInfo.GetDrives();
+					foreach (var drive in alldrives) {
+						drives.Add(new DriveInfoSerializable(drive));
+					}
+					
+					res = ResponseType.DriveInfo;
+					responseObject = drives;
+				} else if (request.Req == RequestType.CustomReq) {
+					object content = null;
+			
+					if (request.Data.GetType() == typeof(JObject)) {
+						content = ((JObject)request.Data).ToObject(request.DataType);
 					}
 
-					SendPacket(Response.CreateResponse(request.RequestGuid, res, errormsg, null, fileInfos).BuildResponseToPacket());
-				} catch (Exception ex) {
-					res = ResponseType.Error;
-					errormsg = ex.ToString();
+					if (request.Data.GetType() == typeof(JArray)){
+						content = ((JArray)request.Data).ToObject(request.DataType);
+					}
+
+					if (content == null)
+						content = request.Data;
+
+					res = ResponseType.CustomResponse;
+					responseObject = RequestHandler(content, request.DataType);
 				}
+
+				SendPacket(Response.CreateResponse(request.RequestGuid, res, errormsg, null, responseObject).BuildResponseToPacket());
+			} catch (Exception ex) {
+				res = ResponseType.Error;
+				errormsg = ex.ToString();
+				SendPacket(Response.CreateResponse(request.RequestGuid, res, errormsg, ex).BuildResponseToPacket());
 			}
+
 		}
 
 		protected override void ByteDecoder(ISessionMetadata session, byte[] array)
@@ -828,6 +841,41 @@ namespace SimpleSockets.Client {
 				SocketLogger?.Log("Error sending a file.", ex, LogLevel.Error);
 				return false;
 			}
+		}
+
+		#endregion
+
+		#region Requests 
+		
+		public object SendRequest(int responseTimeInMs, object data) {
+			return SendRequest<object>(responseTimeInMs, data);
+		}
+
+		public T SendRequest<T>(int responseTimeInMs, object data) {
+			var req = Request.CustomRequest(responseTimeInMs, data);
+			SendPacket(req.BuildRequestToPacket());
+			var response = GetResponse(req.RequestGuid, req.Expiration);
+			
+			return (T) response.Data;
+		}
+		
+		public FolderContent RequestDirectoryInfo(int responseTimeInMs, string directory) {
+			var req = Request.DirectoryInfoRequest(directory, responseTimeInMs);
+			SendPacket(req.BuildRequestToPacket());
+			var response = GetResponse(req.RequestGuid, req.Expiration);
+
+			var content = (JObject)response.Data;
+			
+			return content.ToObject<FolderContent>();
+		}
+
+		public IList<DriveInfoSerializable> RequestDriveInfo(int responseTimeInMs) {
+			var req = Request.DriveInfoRequest(responseTimeInMs);
+			SendPacket(req.BuildRequestToPacket());
+			var response = GetResponse(req.RequestGuid, req.Expiration);
+			var content = (JArray)response.Data;
+
+			return content.ToObject<DriveInfoSerializable[]>();
 		}
 
 		#endregion

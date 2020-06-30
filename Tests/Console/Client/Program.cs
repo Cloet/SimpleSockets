@@ -261,6 +261,15 @@ namespace Client
 			client.DisconnectedFromServer += Client_DisconnectedFromServer;
 			client.ObjectReceived += Client_ObjectReceived;
 			client.Logger += Logger;
+			client.RequestHandler += RequestHandler;
+		}
+
+		private static object RequestHandler(object data, Type dataType) {
+			if (data.GetType() == typeof(Person)) {
+				var p = (Person) data;
+				return (new Person("Test", p.LastName));
+			}
+			return (data.ToString() + " returned.");
 		}
 
 		private static void Client_ObjectReceived(object sender, SimpleSockets.Client.ObjectReceivedEventArgs e)

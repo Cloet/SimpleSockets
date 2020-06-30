@@ -1,8 +1,11 @@
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using SimpleSockets.Helpers;
 using SimpleSockets.Helpers.Compression;
 using SimpleSockets.Helpers.Cryptography;
 using SimpleSockets.Helpers.Serialization;
 using SimpleSockets.Messaging;
+using SimpleSockets.Messaging.FileSystem;
 using SimpleSockets.Messaging.Metadata;
 using System;
 using System.Collections.Generic;
@@ -57,6 +60,12 @@ namespace SimpleSockets.Server
 		/// </summary>
 		public event EventHandler<ClientBytesReceivedEventArgs> BytesReceived;
 		protected virtual void OnClientBytesReceived(ClientBytesReceivedEventArgs eventArgs) => BytesReceived?.Invoke(this, eventArgs);
+
+		/// <summary>
+		/// Fired when the server receives a request.
+		/// The return value will be send back to the corresponding client.
+		/// </summary>
+		public Func<ISessionInfo, object, Type, object> RequestHandler = null;
 
 		#endregion
 
@@ -297,47 +306,90 @@ namespace SimpleSockets.Server
 
 		}
 
-		protected virtual void RequestHandler(ISessionMetadata client, Request request) {
+		protected virtual void OnRequestReceived(ISessionMetadata client, Request request) {
+			ResponseType res = ResponseType.Error;
+			string errormsg = "";
 
-			if (request.Req == RequestType.FileTransfer) {
-				var filename = request.Data;
-				ResponseType res = ResponseType.Error;
-				string errormsg = "";
-				if (!FileTransferEnabled) {
+			try {
+
+				// if filetransfer not allowed throw an error
+				if ( (int)request.Req < 4 && !FileTransferEnabled) {
 					res = ResponseType.Error;
-					errormsg = "File transfer is not allowed.";
+					errormsg = "Filetransfer is not allowed.";	
+					SendPacket(client.Id, Response.CreateResponse(request.RequestGuid, res, errormsg, null).BuildResponseToPacket());
+					return;
 				}
-				else
-				{
+
+				object responseObject = null;
+				if (request.Req == RequestType.FileTransfer) {
+					var filename = request.Data.ToString();
+					
 					if (File.Exists(Path.GetFullPath(filename)))
 						res = ResponseType.FileExists;
 					else
 						res = ResponseType.ReqFilePathOk;
-				}
-				SendPacket(client.Id, Response.CreateResponse(request.RequestGuid, res, errormsg, null).BuildResponseToPacket());
-			} else if (request.Req == RequestType.FileDelete) {
-				ResponseType res = ResponseType.Error;
-				string errormsg = "";
-				var filename = request.Data;
 
-				if (!FileTransferEnabled)
-				{
-					res = ResponseType.Error;
-					errormsg = "File transfer is not allowed.";
-				}
-				else {
-					try
-					{
-						File.Delete(Path.GetFullPath(filename));
-						res = ResponseType.FileDeleted;
-					}
-					catch (Exception ex) {
+				} else if (request.Req == RequestType.FileDelete) {
+					var filename = request.Data.ToString();
+					File.Delete(Path.GetFullPath(filename));
+					res = ResponseType.FileDeleted;
+
+				} else if (request.Req == RequestType.DirectoryInfo) {
+					var dirInfo = request.Data.ToString();
+					var foldercontent = new FolderContent();
+
+					if (!Directory.Exists(dirInfo)) {
 						res = ResponseType.Error;
-						errormsg = ex.ToString();
+						errormsg = "Directory does not exist.";
+					} else {
+						DirectoryInfo dir = new DirectoryInfo(dirInfo);
+						
+						var files = dir.GetFiles();
+						foreach (var file in files) {
+							foldercontent.Files.Add(new FileInfoSerializable(file));
+						}
+
+						var dirs = dir.GetDirectories();
+						foreach (var d in dirs) {
+							foldercontent.Directories.Add(new DirectoryInfoSerializable(d));
+						}
+
+						res = ResponseType.DirectoryInfo;
+						responseObject = foldercontent;
 					}
+				} else if (request.Req == RequestType.DriveInfo) {
+
+					var drives = new List<DriveInfoSerializable>();
+					var alldrives = DriveInfo.GetDrives();
+					foreach (var drive in alldrives) {
+						drives.Add(new DriveInfoSerializable(drive));
+					}
+
+					res = ResponseType.DriveInfo;
+					responseObject = drives;
+				} else if (request.Req == RequestType.CustomReq) {
+					object content = null;
+			
+					if (request.Data.GetType() == typeof(JObject)) {
+						content = ((JObject)request.Data).ToObject(request.DataType);
+					}
+
+					if (request.Data.GetType() == typeof(JArray)){
+						content = ((JArray)request.Data).ToObject(request.DataType);
+					}
+
+					if (content == null)
+						content = request.Data;
+
+					res = ResponseType.CustomResponse;
+					responseObject = RequestHandler(client, content, request.DataType);
 				}
 
-				SendPacket(client.Id, Response.CreateResponse(request.RequestGuid, res, errormsg, null).BuildResponseToPacket());
+				SendPacket(client.Id, Response.CreateResponse(request.RequestGuid, res, errormsg, null, responseObject).BuildResponseToPacket());
+			} catch (Exception ex) {
+				res = ResponseType.Error;
+				errormsg = ex.ToString();
+				SendPacket(client.Id, Response.CreateResponse(request.RequestGuid, res, errormsg, ex).BuildResponseToPacket());
 			}
 		}
 
@@ -449,7 +501,7 @@ namespace SimpleSockets.Server
 
 			if (message.MessageType == PacketType.Request) {
 				var req = SerializationHelper.DeserializeJson<Request>(message.Data);
-				RequestHandler(client, req);
+				OnRequestReceived(client, req);
 			}
 
 			if (message.MessageType == PacketType.Response) {
@@ -636,160 +688,159 @@ namespace SimpleSockets.Server
 			return await SendInternalAsync(clientId, PacketType.Object, bytes, metadata, string.Empty, EncryptionMethod, CompressionMethod, obj.GetType());
 		}
 
-
 		#endregion
 
 		#region File
 
-			private bool SendFileRequests(int clientId, string file , string remoteloc, bool overwrite) {
-				file = Path.GetFullPath(file);
+		private bool SendFileRequests(int clientId, string file , string remoteloc, bool overwrite) {
+			file = Path.GetFullPath(file);
 
-				if (!File.Exists(file))
-					throw new ArgumentException("No file found at path.", nameof(file));
+			if (!File.Exists(file))
+				throw new ArgumentException("No file found at path.", nameof(file));
 
-				var response = RequestFileTransfer(clientId, 10000, remoteloc);
+			var response = RequestFileTransfer(clientId, 10000, remoteloc);
 
-				if (response.Resp == ResponseType.Error) {
-					throw new InvalidOperationException(response.ExceptionMessage,response.Exception);
-				}
+			if (response.Resp == ResponseType.Error) {
+				throw new InvalidOperationException(response.ExceptionMessage,response.Exception);
+			}
 
-				if (response.Resp == ResponseType.FileExists) {
-					if (overwrite)
-					{
-						response = RequestFileDelete(clientId, 10000, remoteloc);
-						if (response.Resp == ResponseType.FileDeleted)
-							SocketLogger?.Log($"File at {remoteloc} was removed from remote location.", LogLevel.Trace);
-						else if (response.Resp == ResponseType.Error)
-							throw new InvalidOperationException(response.ExceptionMessage, response.Exception);
-						else
-							throw new InvalidOperationException("Invalid response received.");
-					}
+			if (response.Resp == ResponseType.FileExists) {
+				if (overwrite)
+				{
+					response = RequestFileDelete(clientId, 10000, remoteloc);
+					if (response.Resp == ResponseType.FileDeleted)
+						SocketLogger?.Log($"File at {remoteloc} was removed from remote location.", LogLevel.Trace);
+					else if (response.Resp == ResponseType.Error)
+						throw new InvalidOperationException(response.ExceptionMessage, response.Exception);
 					else
-						throw new InvalidOperationException($"A file already exists on the remote location at {remoteloc}.");
+						throw new InvalidOperationException("Invalid response received.");
+				}
+				else
+					throw new InvalidOperationException($"A file already exists on the remote location at {remoteloc}.");
+			}
+
+			return true;
+		}
+
+		public bool SendFile(int clientId, string file, string remoteloc, bool overwrite) => SendFile(clientId, file, remoteloc, overwrite, null);
+
+		public bool SendFile(int clientId, string file, string remoteloc, bool overwrite, IDictionary<object,object> metadata) {
+
+			try {
+				SendFileRequests(clientId, file, remoteloc, overwrite);
+
+				var bufferLength = 4096;
+				var buffer = new byte[bufferLength];
+
+				using (var fileStream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, buffer.Length, true)) {
+					var read = 0;
+					var currentPart = 0;
+					var totalLength = fileStream.Length;
+					int totalParts = (int)Math.Ceiling((double)(totalLength / bufferLength));
+
+					while ((read = fileStream.Read(buffer, 0, buffer.Length)) > 0) {
+						currentPart++;
+						var data = new byte[read];
+						if (read == buffer.Length)
+							data = buffer;
+						else
+							Array.Copy(buffer, 0, data, 0, read);
+
+						var packet = PacketBuilder.NewPacket
+							.SetBytes(data)
+							.SetPacketType(PacketType.File)
+							.SetPartNumber(currentPart, totalParts)
+							.SetEncryption(EncryptionMethod)
+							.SetDestinationPath(remoteloc)
+							.SetMetadata(metadata)
+							.Build();
+
+						SocketLogger?.Log($"Sending part {currentPart} of {totalParts} of {file}.", LogLevel.Trace);
+						var send = SendToSocket(clientId, packet.BuildPayload());
+
+						if (!send)
+						{
+							SocketLogger?.Log($"Part {currentPart} of {totalParts} failed to be sent.", LogLevel.Error);
+							return false;
+						}
+
+						buffer = new byte[bufferLength];
+					}
 				}
 
 				return true;
+			} catch (Exception ex) {
+				SocketLogger?.Log("Error sending a file.", ex, LogLevel.Error);
+				return false;
 			}
 
-			public bool SendFile(int clientId, string file, string remoteloc, bool overwrite) => SendFile(clientId, file, remoteloc, overwrite, null);
+		}
 
-			public bool SendFile(int clientId, string file, string remoteloc, bool overwrite, IDictionary<object,object> metadata) {
+		public bool SendFileAsync(int clientId, string file, string remoteloc, bool overwrite) => SendFileAsync(clientId, file, remoteloc, overwrite);
 
-				try {
-					SendFileRequests(clientId, file, remoteloc, overwrite);
+		public async Task<bool> SendFileAsync(int clientId, string file, string remoteloc, bool overwrite, IDictionary<object,object> metadata) {
 
-					var bufferLength = 4096;
-					var buffer = new byte[bufferLength];
+			try
+			{
+				SendFileRequests(clientId, file, remoteloc, overwrite);
 
-					using (var fileStream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, buffer.Length, true)) {
-						var read = 0;
-						var currentPart = 0;
-						var totalLength = fileStream.Length;
-						int totalParts = (int)Math.Ceiling((double)(totalLength / bufferLength));
-
-						while ((read = fileStream.Read(buffer, 0, buffer.Length)) > 0) {
-							currentPart++;
-							var data = new byte[read];
-							if (read == buffer.Length)
-								data = buffer;
-							else
-								Array.Copy(buffer, 0, data, 0, read);
-
-							var packet = PacketBuilder.NewPacket
-								.SetBytes(data)
-								.SetPacketType(PacketType.File)
-								.SetPartNumber(currentPart, totalParts)
-								.SetEncryption(EncryptionMethod)
-								.SetDestinationPath(remoteloc)
-								.SetMetadata(metadata)
-								.Build();
-
-							SocketLogger?.Log($"Sending part {currentPart} of {totalParts} of {file}.", LogLevel.Trace);
-							var send = SendToSocket(clientId, packet.BuildPayload());
-
-							if (!send)
-							{
-								SocketLogger?.Log($"Part {currentPart} of {totalParts} failed to be sent.", LogLevel.Error);
-								return false;
-							}
-
-							buffer = new byte[bufferLength];
-						}
-					}
-
-					return true;
-				} catch (Exception ex) {
-					SocketLogger?.Log("Error sending a file.", ex, LogLevel.Error);
-					return false;
-				}
-
-			}
-
-			public bool SendFileAsync(int clientId, string file, string remoteloc, bool overwrite) => SendFileAsync(clientId, file, remoteloc, overwrite);
-
-			public async Task<bool> SendFileAsync(int clientId, string file, string remoteloc, bool overwrite, IDictionary<object,object> metadata) {
-
-				try
+				var start = DateTime.Now;
+				var bufLength = 4096;
+				var buffer = new byte[bufLength]; //When this buffer exceeds 85000 bytes -> buffer will be stored in LOH -> bad for memory usage.			
+				using (var fileStream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, buffer.Length, true))
 				{
-					SendFileRequests(clientId, file, remoteloc, overwrite);
+					var read = 0;
+					var currentPart = 0;
+					var totalLength = fileStream.Length;
+					int totalParts = (int)Math.Ceiling((double)(totalLength / bufLength));
 
-					var start = DateTime.Now;
-					var bufLength = 4096;
-					var buffer = new byte[bufLength]; //When this buffer exceeds 85000 bytes -> buffer will be stored in LOH -> bad for memory usage.			
-					using (var fileStream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, buffer.Length, true))
+					while ((read = await fileStream.ReadAsync(buffer, 0, buffer.Length, Token)) > 0)
 					{
-						var read = 0;
-						var currentPart = 0;
-						var totalLength = fileStream.Length;
-						int totalParts = (int)Math.Ceiling((double)(totalLength / bufLength));
+						currentPart++;
+						var data = new byte[read];
+						if (read == buffer.Length)
+							data = buffer;
+						else
+							Array.Copy(buffer, 0, data, 0, read);
 
-						while ((read = await fileStream.ReadAsync(buffer, 0, buffer.Length, Token)) > 0)
+						var packet = PacketBuilder.NewPacket
+							.SetBytes(data)
+							.SetPacketType(PacketType.File)
+							.SetPartNumber(currentPart, totalParts)
+							.SetEncryption(EncryptionMethod)
+							.SetDestinationPath(remoteloc)
+							.SetMetadata(metadata)
+							.Build();
+
+						SocketLogger?.Log($"Sending part {currentPart} of {totalParts} of {file}.", LogLevel.Trace);
+						var send = await SendToSocketAsync(clientId, packet.BuildPayload());
+
+						if (!send)
 						{
-							currentPart++;
-							var data = new byte[read];
-							if (read == buffer.Length)
-								data = buffer;
-							else
-								Array.Copy(buffer, 0, data, 0, read);
-
-							var packet = PacketBuilder.NewPacket
-								.SetBytes(data)
-								.SetPacketType(PacketType.File)
-								.SetPartNumber(currentPart, totalParts)
-								.SetEncryption(EncryptionMethod)
-								.SetDestinationPath(remoteloc)
-								.SetMetadata(metadata)
-								.Build();
-
-							SocketLogger?.Log($"Sending part {currentPart} of {totalParts} of {file}.", LogLevel.Trace);
-							var send = await SendToSocketAsync(clientId, packet.BuildPayload());
-
-							if (!send)
-							{
-								SocketLogger?.Log($"Part {currentPart} or {totalParts} failed to be sent.", LogLevel.Error);
-								return false;
-							}
-
-							buffer = new byte[bufLength];
+							SocketLogger?.Log($"Part {currentPart} or {totalParts} failed to be sent.", LogLevel.Error);
+							return false;
 						}
+
+						buffer = new byte[bufLength];
 					}
-
-					Console.WriteLine("Took: " + (start.ToUniversalTime() - DateTime.Now.ToUniversalTime()).ToString());
-					return true;
 				}
-				catch (Exception ex) {
-					SocketLogger?.Log("Error sending a file.", ex, LogLevel.Error);
-					return false;
-				}
-			}
 
-			private Response RequestFileTransfer(int clientId, int responseTimeInMs, string filename) {
-				var req = Request.FileTransferRequest(filename, responseTimeInMs);
-				SendPacket(clientId, req.BuildRequestToPacket());
-				return GetResponse(req.RequestGuid, req.Expiration);
+				Console.WriteLine("Took: " + (start.ToUniversalTime() - DateTime.Now.ToUniversalTime()).ToString());
+				return true;
 			}
+			catch (Exception ex) {
+				SocketLogger?.Log("Error sending a file.", ex, LogLevel.Error);
+				return false;
+			}
+		}
 
-			private Response RequestFileDelete(int clientId, int responseTimeInMs, string filename) {
+		private Response RequestFileTransfer(int clientId, int responseTimeInMs, string filename) {
+			var req = Request.FileTransferRequest(filename, responseTimeInMs);
+			SendPacket(clientId, req.BuildRequestToPacket());
+			return GetResponse(req.RequestGuid, req.Expiration);
+		}
+
+		private Response RequestFileDelete(int clientId, int responseTimeInMs, string filename) {
 				var req = Request.FileDeletionRequest(filename, responseTimeInMs);
 				SendPacket(clientId, req.BuildRequestToPacket());
 				return GetResponse(req.RequestGuid, req.Expiration);
@@ -797,17 +848,56 @@ namespace SimpleSockets.Server
 
 		#endregion
 
-		#region  DirectoryInfo
+		#region  Requests
 
-		public FileInfoSerializable[] RequestDirectoryInfo(int clientId, int responseTimeInMs, string directory) {
+		public object SendRequest(int clientId, int responseTimeInMs, object data) {
+			return SendRequest<object>(clientId, responseTimeInMs, data);
+		}
+
+		public T SendRequest<T>(int clientId, int responseTimeInMs, object data) {
+			var req = Request.CustomRequest(responseTimeInMs, data);
+			SendPacket(clientId, req.BuildRequestToPacket());
+			var response = GetResponse(req.RequestGuid, req.Expiration);
+			
+			if (response.Resp == ResponseType.Error) {
+				throw new InvalidOperationException(response.ExceptionMessage);
+			}
+
+			object content = null;
+
+			if (response.DataType != null) {
+				if (response.Data.GetType() == typeof(JObject)) {
+					content = ((JObject)response.Data).ToObject(response.DataType);
+				}
+
+				if (response.Data.GetType() == typeof(JArray)){
+					content = ((JArray)response.Data).ToObject(response.DataType);
+				}
+			}
+
+			if (content == null)
+				content = response.Data;
+
+			return (T) content;
+		}
+
+		public FolderContent RequestDirectoryInfo(int clientId, int responseTimeInMs, string directory) {
 			var req = Request.DirectoryInfoRequest(directory, responseTimeInMs);
 			SendPacket(clientId, req.BuildRequestToPacket());
 			var response = GetResponse(req.RequestGuid, req.Expiration);
 
-			var files = (Newtonsoft.Json.Linq.JArray)response.Data;
+			var content = (JObject)response.Data;
 			
-			return files.ToObject<FileInfoSerializable[]>();
-			// return (FileInfoSerializable[]) response.Data;
+			return content.ToObject<FolderContent>();
+		}
+
+		public IList<DriveInfoSerializable> RequestDriveInfo(int clientId, int responseTimeInMs) {
+			var req = Request.DriveInfoRequest(responseTimeInMs);
+			SendPacket(clientId, req.BuildRequestToPacket());
+			var response = GetResponse(req.RequestGuid, req.Expiration);
+			var content = (JArray)response.Data;
+
+			return content.ToObject<DriveInfoSerializable[]>();
 		}
 
 		#endregion
@@ -857,7 +947,7 @@ namespace SimpleSockets.Server
 		{
 			var client = GetClientMetadataById(id);
 
-			if (client == null)
+			if (!Disposed && client == null)
 				SocketLogger?.Log("Cannot shutdown client " + id + ", does not exist.", LogLevel.Warning);
 
 			try
