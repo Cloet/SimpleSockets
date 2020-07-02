@@ -8,8 +8,6 @@ namespace SimpleSockets.Messaging
 	{
 		FileTransfer=0,
 		FileDelete=1,
-		DirectoryInfo=2,
-		DriveInfo=3,
-		CustomReq=4
+		CustomReq=2
 	}
 }

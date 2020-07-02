@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace SimpleSockets.Messaging.FileSystem {
+namespace Shared.FileSystem {
 
     public class FolderContent {
 

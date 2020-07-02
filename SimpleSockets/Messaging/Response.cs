@@ -51,7 +51,7 @@ namespace SimpleSockets.Messaging
 		internal static Response CreateResponse(Guid guid, ResponseType response, string errorMsg, Exception ex, object data) {
 			var resp = new Response(guid, response, errorMsg, ex);
 			resp.Data = data;
-			resp.DataType = data.GetType();
+			resp.DataType = data?.GetType();
 			return resp;
 		}
 

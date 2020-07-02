@@ -366,7 +366,7 @@ namespace SimpleSockets {
 		}
 
 		// Send bytes to a connected client.
-		protected override void SendToServer(byte[] payload) {
+		protected override bool SendToServer(byte[] payload) {
 			try
 			{
 				if (!IsConnected())	{
@@ -386,10 +386,13 @@ namespace SimpleSockets {
 				}
 				else
 					Listener.BeginSend(payload, 0, payload.Length, SocketFlags.None, SendCallback, Listener);
+
+				return true;
 			}
 			catch (Exception ex) {
 				SocketLogger?.Log("Error sending a message.", ex, LogLevel.Error);
 				OnMessageFailed(new MessageFailedEventArgs(payload, FailedReason.NotConnected));
+				return false;
 			}
 		}
 

@@ -10,8 +10,6 @@ namespace SimpleSockets.Messaging
 		ReqFilePathOk=1,
 		FileExists=2,
 		FileDeleted=3,
-		DirectoryInfo=4,
-		DriveInfo=5,
-		CustomResponse=6
+		CustomResponse=4
 	}
 }

@@ -26,6 +26,13 @@ namespace SimpleSockets.Messaging
 		public RequestType Req { get; internal set; }
 
 		/// <summary>
+		/// Header of the request.
+		/// </summary>
+		/// <value></value>
+		[JsonProperty]
+		public string Header { get; internal set; }
+
+		/// <summary>
 		/// Data of the request.
 		/// </summary>
 		[JsonProperty]
@@ -38,11 +45,12 @@ namespace SimpleSockets.Messaging
 		[JsonProperty]
 		public Type DataType { get; internal set; }
 
-		internal static Request CustomRequest(int timeInMs, object data) {
+		internal static Request CustomRequest(int timeInMs,string header, object data) {
 			var p = new Request(timeInMs);
 			p.Req = RequestType.CustomReq;
 			p.Data = data;
-			p.DataType = data.GetType();
+			p.DataType = data?.GetType();
+			p.Header = header;
 			return p;
 		}
 
@@ -50,7 +58,7 @@ namespace SimpleSockets.Messaging
 			var p = new Request(timeInMs);
 			p.Req = RequestType.FileTransfer;
 			p.Data = filename;
-			p.DataType = filename.GetType();
+			p.DataType = filename?.GetType();
 			return p;
 		}
 
@@ -58,21 +66,7 @@ namespace SimpleSockets.Messaging
 			var p = new Request(timeInMs);
 			p.Req = RequestType.FileDelete;
 			p.Data = filename;
-			p.DataType = filename.GetType();
-			return p;
-		}
-
-		internal static Request DirectoryInfoRequest(string directory, int timeInMs) {
-			var p = new Request(timeInMs);
-			p.Req = RequestType.DirectoryInfo;
-			p.Data = directory;
-			p.DataType = directory.GetType();
-			return p;
-		}
-
-		internal static Request DriveInfoRequest(int timeInMs) {
-			var p = new Request(timeInMs);
-			p.Req = RequestType.DriveInfo;
+			p.DataType = filename?.GetType();
 			return p;
 		}
 

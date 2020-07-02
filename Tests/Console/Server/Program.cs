@@ -4,6 +4,7 @@ using System.IO;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using Shared;
+using Shared.FileSystem;
 using SimpleSockets;
 using SimpleSockets.Helpers;
 using SimpleSockets.Helpers.Compression;
@@ -74,6 +75,14 @@ namespace Server
 				else
 					Console.WriteLine("invalid input.");
 			}
+		}
+
+		private static FolderContent RequestFolderContent(int clientId, int responseTimeInMs, string directory) {
+			return _server.SendRequest<FolderContent>(clientId, responseTimeInMs, "FolderContents", directory);
+		}
+
+		private static IList<DriveInfoSerializable> RequestDriveInfo(int clientId, int responseTimeInMs) {
+			return _server.SendRequest<List<DriveInfoSerializable>>(clientId, responseTimeInMs, "Drives","");
 		}
 
 		private static void Process(string input) {
@@ -158,7 +167,7 @@ namespace Server
 					return;
 
 				Console.WriteLine("Requesting drive info.");
-				var drives = _server.RequestDriveInfo(clientid,10000);
+				var drives = RequestDriveInfo(clientid, 10000);
 
 				foreach( var drive in drives) {
 					Console.WriteLine("Drive: " + drive.Name + ", format: " + drive.DriveFormat);
@@ -174,7 +183,7 @@ namespace Server
 				Console.Write("Enter the path of the directory. ");
 				var directory = Console.ReadLine();
 
-				var content = _server.RequestDirectoryInfo(clientid, 10000, directory);
+				var content = RequestFolderContent(clientid, 10000, directory);
 
 				foreach( var file in content.Files)
 					Console.WriteLine("File: " + file.FullName);
@@ -191,7 +200,7 @@ namespace Server
 				// Console.Write("Enter a message for the client: ");
 				// var data = Console.ReadLine();
 				var data = new Person("Test person", "last name person");
-				var returnval = _server.SendRequest<Person>(clientid, 10000, data);
+				var returnval = _server.SendRequest<Person>(clientid, 10000, "Person", data);
 
 				Console.WriteLine(returnval.FirstName + " " + returnval.LastName);
 			}
@@ -207,6 +216,7 @@ namespace Server
 				stb.Append("\tfilemd\t\tSend a file to a client with metadata." + Environment.NewLine);
 				stb.Append("\tdir\t\tRequest directory info of a client." + Environment.NewLine);
 				stb.Append("\tdrives\t\tRequest drive info from a client." + Environment.NewLine);
+				stb.Append("\treqfile\t\tRequest a file from a client." + Environment.NewLine);
 				stb.Append("\trequest\t\tCustom request to a client." + Environment.NewLine);
 				stb.Append("\tclear\t\tClears the terminal." + Environment.NewLine);
 				stb.Append("\tclients\t\tList of all the connected clients." + Environment.NewLine);
@@ -214,6 +224,22 @@ namespace Server
 				stb.Append("\tstats\t\tStatistics of the server." + Environment.NewLine);
 				stb.Append("\tquit\t\tClose the server and terminal." + Environment.NewLine);
 				Console.WriteLine(stb.ToString());
+			} else if (input == "reqfile") {
+				var clientid = GetClient();
+
+				if (clientid < 0)
+					return;
+
+				var data = new FileRequest();
+				Console.Write("File at client location: ");
+				data.FileLocation = Console.ReadLine();
+				Console.Write("Location to store file: ");
+				data.RemoteLocation = Console.ReadLine();
+
+				var rec = _server.SendRequest<bool>(clientid, 10000, "reqFile", data);
+
+				if (rec)
+					Console.WriteLine("Receiving a file.");
 			}
 			else if (input == "clear")
 				Console.Clear();
@@ -282,7 +308,7 @@ namespace Server
 			server.RequestHandler += RequestHandler;
 		}
 
-		private static object RequestHandler(ISessionInfo client, object data, Type dataType) {
+		private static object RequestHandler(ISessionInfo client, string header, object data, Type dataType) {
 			return (data.ToString() + " returned.");
 		}
 

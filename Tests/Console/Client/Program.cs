@@ -1,4 +1,5 @@
 ﻿using Shared;
+using Shared.FileSystem;
 using SimpleSockets;
 using SimpleSockets.Client;
 using SimpleSockets.Helpers;
@@ -264,11 +265,43 @@ namespace Client
 			client.RequestHandler += RequestHandler;
 		}
 
-		private static object RequestHandler(object data, Type dataType) {
-			if (data.GetType() == typeof(Person)) {
+		private static object RequestHandler(string header, object data, Type dataType) {
+			if (header == "Person") {
 				var p = (Person) data;
 				return (new Person("Test", p.LastName));
 			}
+
+			if (header == "Drives") {
+				var drives = new List<DriveInfoSerializable>();
+
+				foreach (var dr in DriveInfo.GetDrives()) {
+					drives.Add(new DriveInfoSerializable(dr));
+				}
+
+				return drives;
+			}
+
+			if (header == "FolderContents") {
+				var content = new FolderContent();
+				var dir = new DirectoryInfo(Path.GetFullPath(data.ToString()));
+				foreach (var d in dir.GetDirectories()) {
+					content.Directories.Add(new DirectoryInfoSerializable(d));
+				}
+
+				foreach (var f in dir.GetFiles()) {
+					content.Files.Add(new FileInfoSerializable(f));
+				}
+
+				return content;
+			}
+
+			if (header == "reqFile") {
+				var remote = (FileRequest) data;
+				Task.Run(() => Clients[0].SendFileAsync(remote.FileLocation,remote.RemoteLocation, true));
+				return true;
+			}
+
+
 			return (data.ToString() + " returned.");
 		}
 

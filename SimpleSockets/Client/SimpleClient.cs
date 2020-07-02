@@ -13,7 +13,6 @@ using SimpleSockets.Helpers.Compression;
 using SimpleSockets.Helpers.Cryptography;
 using SimpleSockets.Helpers.Serialization;
 using SimpleSockets.Messaging;
-using SimpleSockets.Messaging.FileSystem;
 using SimpleSockets.Messaging.Metadata;
 
 namespace SimpleSockets.Client {
@@ -73,7 +72,7 @@ namespace SimpleSockets.Client {
 		/// Fired when the client receives a request.
 		/// The return value will be send back to the server.
 		/// </summary>
-		public Func<object, Type, object> RequestHandler = null;
+		public Func<string, object, Type, object> RequestHandler = null;
 
 		#endregion
 
@@ -358,7 +357,7 @@ namespace SimpleSockets.Client {
 			try {
 
 				// if filetransfer not allowed throw an error
-				if ( (int)request.Req < 4 && !FileTransferEnabled) {
+				if ( (int)request.Req < 2 && !FileTransferEnabled) {
 					res = ResponseType.Error;
 					errormsg = "Filetransfer is not allowed.";	
 					SendPacket(Response.CreateResponse(request.RequestGuid, res, errormsg, null).BuildResponseToPacket());
@@ -379,39 +378,6 @@ namespace SimpleSockets.Client {
 					File.Delete(Path.GetFullPath(filename));
 					res = ResponseType.FileDeleted;
 
-				} else if (request.Req == RequestType.DirectoryInfo) {
-					var dirInfo = request.Data.ToString();
-					var foldercontent = new FolderContent();
-
-					if (!Directory.Exists(dirInfo)) {
-						res = ResponseType.Error;
-						errormsg = "Directory does not exist.";
-					} else {
-						DirectoryInfo dir = new DirectoryInfo(dirInfo);
-						
-						var files = dir.GetFiles();
-						foreach (var file in files) {
-							foldercontent.Files.Add(new FileInfoSerializable(file));
-						}
-
-						var dirs = dir.GetDirectories();
-						foreach (var d in dirs) {
-							foldercontent.Directories.Add(new DirectoryInfoSerializable(d));
-						}
-
-						res = ResponseType.DirectoryInfo;
-						responseObject = foldercontent;
-					}
-				} else if (request.Req == RequestType.DriveInfo) {
-					
-					var drives = new List<DriveInfoSerializable>();
-					var alldrives = DriveInfo.GetDrives();
-					foreach (var drive in alldrives) {
-						drives.Add(new DriveInfoSerializable(drive));
-					}
-					
-					res = ResponseType.DriveInfo;
-					responseObject = drives;
 				} else if (request.Req == RequestType.CustomReq) {
 					object content = null;
 			
@@ -427,7 +393,7 @@ namespace SimpleSockets.Client {
 						content = request.Data;
 
 					res = ResponseType.CustomResponse;
-					responseObject = RequestHandler(content, request.DataType);
+					responseObject = RequestHandler(request.Header, content, request.DataType);
 				}
 
 				SendPacket(Response.CreateResponse(request.RequestGuid, res, errormsg, null, responseObject).BuildResponseToPacket());
@@ -494,7 +460,7 @@ namespace SimpleSockets.Client {
 
 		#region Sending Data
 
-		protected abstract void SendToServer(byte[] payload);
+		protected abstract bool SendToServer(byte[] payload);
 
 		protected abstract Task<bool> SendToServerAsync(byte[] payload);
 
@@ -764,14 +730,13 @@ namespace SimpleSockets.Client {
 			return GetResponse(req.RequestGuid, req.Expiration);
 		}
 
-		public async Task<bool> SendFileAsync(string file, string remoteloc, bool overwrite) {
-
+		private bool SendFileRequests(string file , string remoteloc, bool overwrite) {
 			file = Path.GetFullPath(file);
 
 			if (!File.Exists(file))
 				throw new ArgumentException("No file found at path.", nameof(file));
 
-			var response = RequestFileTransfer(5000, remoteloc);
+			var response = RequestFileTransfer(10000, remoteloc);
 
 			if (response.Resp == ResponseType.Error) {
 				throw new InvalidOperationException(response.ExceptionMessage,response.Exception);
@@ -792,8 +757,73 @@ namespace SimpleSockets.Client {
 					throw new InvalidOperationException($"A file already exists on the remote location at {remoteloc}.");
 			}
 
+			return true;
+		}
+
+		public bool SendFile(string file, string remoteloc, bool overwrite) => SendFile(file, remoteloc, overwrite, null);
+
+		public bool SendFile(string file, string remoteloc, bool overwrite, IDictionary<object,object> metadata) {
+
+			try {
+				SendFileRequests(file, remoteloc, overwrite);
+
+				var start = DateTime.Now;
+				var bufferLength = 4096;
+				var buffer = new byte[bufferLength];
+
+				using (var fileStream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, buffer.Length, true)) {
+					var read = 0;
+					var currentPart = 0;
+					var totalLength = fileStream.Length;
+					int totalParts = (int)Math.Ceiling((double)(totalLength / bufferLength));
+
+					while ((read = fileStream.Read(buffer, 0, buffer.Length)) > 0) {
+						currentPart++;
+						var data = new byte[read];
+						if (read == buffer.Length)
+							data = buffer;
+						else
+							Array.Copy(buffer, 0, data, 0, read);
+
+						var packet = PacketBuilder.NewPacket
+							.SetBytes(data)
+							.SetPacketType(PacketType.File)
+							.SetPartNumber(currentPart, totalParts)
+							.SetEncryption(EncryptionMethod)
+							.SetDestinationPath(remoteloc)
+							.SetMetadata(metadata)
+							.Build();
+
+						SocketLogger?.Log($"Sending part {currentPart} of {totalParts} of {file}.", LogLevel.Trace);
+						var send = SendToServer(packet.BuildPayload());
+
+						if (!send)
+						{
+							SocketLogger?.Log($"Part {currentPart} of {totalParts} failed to be sent.", LogLevel.Error);
+							return false;
+						}
+
+						buffer = new byte[bufferLength];
+					}
+				}
+
+				SocketLogger?.Log($"Filetransfer [{file}] -> [{remoteloc}] took  {(DateTime.Now.ToUniversalTime() - start.ToUniversalTime())}.", LogLevel.Trace);
+				return true;
+			} catch (Exception ex) {
+				SocketLogger?.Log("Error sending a file.", ex, LogLevel.Error);
+				return false;
+			}
+
+		}
+
+		public Task<bool> SendFileAsync(string file, string remoteloc, bool overwrite) => SendFileAsync(file, remoteloc, overwrite, null);
+
+		public async Task<bool> SendFileAsync(string file, string remoteloc, bool overwrite, IDictionary<object,object> metadata) {
+
 			try
 			{
+				SendFileRequests(file, remoteloc, overwrite);
+
 				var start = DateTime.Now;
 				var bufLength = 4096;
 				var buffer = new byte[bufLength]; //When this buffer exceeds 85000 bytes -> buffer will be stored in LOH -> bad for memory usage.			
@@ -819,12 +849,13 @@ namespace SimpleSockets.Client {
 							.SetPartNumber(currentPart, totalParts)
 							.SetEncryption(EncryptionMethod)
 							.SetDestinationPath(remoteloc)
+							.SetMetadata(metadata)
 							.Build();
 
-
+						SocketLogger?.Log($"Sending part {currentPart} of {totalParts} of {file}.", LogLevel.Trace);
 						var send = await SendToServerAsync(packet.BuildPayload());
 
-						if (send == false)
+						if (!send)
 						{
 							SocketLogger?.Log($"Part {currentPart} or {totalParts} failed to be sent.", LogLevel.Error);
 							return false;
@@ -834,7 +865,7 @@ namespace SimpleSockets.Client {
 					}
 				}
 
-				Console.WriteLine("Took: " + (start.ToUniversalTime() - DateTime.Now.ToUniversalTime()).ToString());
+				SocketLogger?.Log($"Filetransfer [{file}] -> [{remoteloc}] took  {(DateTime.Now.ToUniversalTime() - start.ToUniversalTime())}.", LogLevel.Trace);
 				return true;
 			}
 			catch (Exception ex) {
@@ -843,41 +874,42 @@ namespace SimpleSockets.Client {
 			}
 		}
 
+
 		#endregion
 
 		#region Requests 
 		
-		public object SendRequest(int responseTimeInMs, object data) {
-			return SendRequest<object>(responseTimeInMs, data);
+		public object SendRequest(int responseTimeInMs,string header, object data) {
+			return SendRequest<object>(responseTimeInMs,header, data);
 		}
 
-		public T SendRequest<T>(int responseTimeInMs, object data) {
-			var req = Request.CustomRequest(responseTimeInMs, data);
+		public T SendRequest<T>(int responseTimeInMs,string header, object data) {
+			var req = Request.CustomRequest(responseTimeInMs,header, data);
 			SendPacket(req.BuildRequestToPacket());
 			var response = GetResponse(req.RequestGuid, req.Expiration);
 			
-			return (T) response.Data;
+			if (response.Resp == ResponseType.Error) {
+				throw new InvalidOperationException(response.ExceptionMessage);
+			}
+
+			object content = null;
+
+			if (response.DataType != null) {
+				if (response.Data.GetType() == typeof(JObject)) {
+					content = ((JObject)response.Data).ToObject(response.DataType);
+				}
+
+				if (response.Data.GetType() == typeof(JArray)){
+					content = ((JArray)response.Data).ToObject(response.DataType);
+				}
+			}
+
+			if (content == null)
+				content = response.Data;
+
+			return (T) content;
 		}
 		
-		public FolderContent RequestDirectoryInfo(int responseTimeInMs, string directory) {
-			var req = Request.DirectoryInfoRequest(directory, responseTimeInMs);
-			SendPacket(req.BuildRequestToPacket());
-			var response = GetResponse(req.RequestGuid, req.Expiration);
-
-			var content = (JObject)response.Data;
-			
-			return content.ToObject<FolderContent>();
-		}
-
-		public IList<DriveInfoSerializable> RequestDriveInfo(int responseTimeInMs) {
-			var req = Request.DriveInfoRequest(responseTimeInMs);
-			SendPacket(req.BuildRequestToPacket());
-			var response = GetResponse(req.RequestGuid, req.Expiration);
-			var content = (JArray)response.Data;
-
-			return content.ToObject<DriveInfoSerializable[]>();
-		}
-
 		#endregion
 
 		#endregion

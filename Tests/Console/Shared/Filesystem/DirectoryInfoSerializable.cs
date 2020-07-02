@@ -2,8 +2,7 @@ using System;
 using System.IO;
 using Newtonsoft.Json;
 
-
-namespace SimpleSockets.Messaging.FileSystem {
+namespace Shared.FileSystem {
 
     [Serializable]
     public class DirectoryInfoSerializable {
