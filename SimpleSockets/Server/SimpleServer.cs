@@ -61,6 +61,12 @@ namespace SimpleSockets.Server
 		protected virtual void OnClientBytesReceived(ClientBytesReceivedEventArgs eventArgs) => BytesReceived?.Invoke(this, eventArgs);
 
 		/// <summary>
+		/// Event fired when a part of a file has been sent
+		/// </summary>
+		public event EventHandler<ClientFileTransferUpdateEventArgs> FileTransferUpdate;
+		protected virtual void OnClientFileTransferUpdate(ClientFileTransferUpdateEventArgs eventArgs) => FileTransferUpdate?.Invoke(this, eventArgs);
+
+		/// <summary>
 		/// Fired when the server receives a request.
 		/// The return value will be send back to the corresponding client.
 		/// </summary>
@@ -723,6 +729,7 @@ namespace SimpleSockets.Server
 							.Build();
 
 						SocketLogger?.Log($"Sending part {currentPart} of {totalParts} of {file}.", LogLevel.Trace);
+
 						var send = SendToSocket(clientId, packet.BuildPayload());
 
 						if (!send)
@@ -730,6 +737,7 @@ namespace SimpleSockets.Server
 							SocketLogger?.Log($"Part {currentPart} of {totalParts} failed to be sent.", LogLevel.Error);
 							return false;
 						}
+						OnClientFileTransferUpdate(new ClientFileTransferUpdateEventArgs(GetClientInfoById(clientId), currentPart, totalParts, new FileInfo(file), remoteloc));
 
 						buffer = new byte[bufferLength];
 					}
@@ -788,6 +796,7 @@ namespace SimpleSockets.Server
 							SocketLogger?.Log($"Part {currentPart} or {totalParts} failed to be sent.", LogLevel.Error);
 							return false;
 						}
+						OnClientFileTransferUpdate(new ClientFileTransferUpdateEventArgs(GetClientInfoById(clientId), currentPart, totalParts, new FileInfo(file), remoteloc));
 
 						buffer = new byte[bufLength];
 					}

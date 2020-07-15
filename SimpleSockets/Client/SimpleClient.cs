@@ -69,6 +69,12 @@ namespace SimpleSockets.Client {
 		protected virtual void OnMessageFailed(MessageFailedEventArgs eventArgs) => MessageFailed?.Invoke(this, eventArgs);
 
 		/// <summary>
+		/// Event fired when a part of a file has been sent
+		/// </summary>
+		public event EventHandler<FileTransferUpdateEventArgs> FileTransferUpdate;
+		protected virtual void OnFileTransferUpdate(FileTransferUpdateEventArgs eventArgs) => FileTransferUpdate?.Invoke(this,eventArgs);
+
+		/// <summary>
 		/// Fired when the client receives a request.
 		/// The return value will be send back to the server.
 		/// </summary>
@@ -803,6 +809,7 @@ namespace SimpleSockets.Client {
 							return false;
 						}
 
+						OnFileTransferUpdate(new FileTransferUpdateEventArgs(currentPart, totalParts, new FileInfo(file), remoteloc));
 						buffer = new byte[bufferLength];
 					}
 				}
@@ -860,6 +867,7 @@ namespace SimpleSockets.Client {
 							SocketLogger?.Log($"Part {currentPart} or {totalParts} failed to be sent.", LogLevel.Error);
 							return false;
 						}
+						OnFileTransferUpdate(new FileTransferUpdateEventArgs(currentPart, totalParts, new FileInfo(file), remoteloc));
 
 						buffer = new byte[bufLength];
 					}
