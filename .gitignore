@@ -332,3 +332,7 @@ ASALocalRun/
 
 #vscode folder
 .vscode/*
+
+client.sh
+throughput.sh
+server.sh
