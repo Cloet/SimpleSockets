@@ -10,7 +10,7 @@ namespace Throughput
 	class Program
 	{
 		static int clients = 25;
-		static int amount = 10000;
+		static int amount = 100;
 		static string errors = "";
 		static Counter counter = new Counter();
 		static Random _random = new Random((int)DateTime.Now.Ticks);
@@ -65,7 +65,7 @@ namespace Throughput
 			}
 
 			for (int i = 0; i < amount; i++) {
-				Task.Delay(_random.Next(0, 25)).Wait();
+				Task.Delay(_random.Next(0, 10)).Wait();
 				client.SendMessage($"This is a test message {i+1}");
 			}
 

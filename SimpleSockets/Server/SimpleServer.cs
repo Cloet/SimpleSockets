@@ -702,7 +702,7 @@ namespace SimpleSockets.Server
 				SendFileRequests(clientId, file, remoteloc, overwrite);
 
 				var start = DateTime.Now;
-				var bufferLength = 4096;
+				var bufferLength = 2048;
 				var buffer = new byte[bufferLength];
 
 				using (var fileStream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, buffer.Length, true)) {
@@ -761,7 +761,7 @@ namespace SimpleSockets.Server
 				SendFileRequests(clientId, file, remoteloc, overwrite);
 
 				var start = DateTime.Now;
-				var bufLength = 4096;
+				var bufLength = 2048;
 				var buffer = new byte[bufLength]; //When this buffer exceeds 85000 bytes -> buffer will be stored in LOH -> bad for memory usage.			
 				using (var fileStream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, buffer.Length, true))
 				{
