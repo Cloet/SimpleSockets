@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Text;
 using Newtonsoft.Json;
 
@@ -27,17 +28,16 @@ namespace SimpleSockets.Helpers.Serialization {
 			if (anySerializableObject== null)
 				return null;
 
-			var json = JsonConvert.SerializeObject(anySerializableObject, Formatting.Indented);
+			// var json = JsonConvert.SerializeObject(anySerializableObject, Formatting.Indented);
 
-			// var json = JsonConvert.SerializeObject(anySerializableObject, Formatting.Indented, 
-			// 	new JsonSerializerSettings { 
-			// 	NullValueHandling = NullValueHandling.Ignore, 
-			// 	DateTimeZoneHandling = DateTimeZoneHandling.Utc,
-			// 	TypeNameHandling = TypeNameHandling.All
-			// 	});
+			var json = JsonConvert.SerializeObject(anySerializableObject, Formatting.Indented, 
+				new JsonSerializerSettings { 
+				NullValueHandling = NullValueHandling.Ignore, 
+				DateTimeZoneHandling = DateTimeZoneHandling.Utc,
+				TypeNameHandling = TypeNameHandling.All
+				});
 
 			return Encoding.UTF8.GetBytes(json);
-
 		}
 
     }

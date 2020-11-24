@@ -69,7 +69,6 @@ namespace SimpleSockets {
 		/// <param name="presharedKey"></param>
 		/// <returns></returns>
         internal Packet Build(byte[] presharedKey) {
-			ThePacket.DeconstructHeaders();
 			ThePacket.BuildMessageFromContent(presharedKey);
             return ThePacket;
         }

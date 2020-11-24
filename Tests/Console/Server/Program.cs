@@ -45,7 +45,7 @@ namespace Server
 
             _server.LoggerLevel = LogLevel.Debug;
 			BindEvents(_server);
-			_server.CompressionMethod = CompressionMethod.Deflate;
+			// _server.CompressionMethod = CompressionMethod.Deflate;
 			_server.Timeout = new TimeSpan(0,10,0);
 			_server.Listen(13000);
 

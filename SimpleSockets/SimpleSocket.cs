@@ -15,7 +15,7 @@ using SimpleSockets.Server;
 namespace SimpleSockets {
 
     public abstract class SimpleSocket: IDisposable {
-        
+
         private string _tempPath;
 
         private LogLevel _logLevel = LogLevel.Error;
@@ -59,7 +59,7 @@ namespace SimpleSockets {
 		/// The default compression when sending messages.
 		/// Alternate compressions can be set for each message.
 		/// </summary>
-        public CompressionMethod CompressionMethod { get; set; } = CompressionMethod.GZip;
+        public CompressionMethod CompressionMethod { get; set; } = CompressionMethod.None;
 
 		/// <summary>
 		/// Readbuffer used when receiving messages.
@@ -82,7 +82,7 @@ namespace SimpleSockets {
 		/// If this value is defined the socket will expect all received messages to contain the same PreSharedKey.
 		/// If a key is expected but not found the message will be skipped.
 		/// </summary>
-        public byte[] PreSharedKey { 
+        public byte[] PreSharedKey {
             get => _preSharedKey;
             set  {
                 if (value.Length != 16)

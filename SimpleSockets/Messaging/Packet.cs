@@ -255,7 +255,7 @@ namespace SimpleSockets.Messaging {
 			index += len.LongLength;
 			if (HeaderFields[0]) {
 				Array.Copy(_metadataBytes, 0, output, index, _metadataBytes.LongLength);
-				index += len.LongLength;
+				index += _metadataBytes.LongLength;
 			}
 
 			len = BitConverter.GetBytes(_internalInfoBytes.Length);
@@ -272,7 +272,7 @@ namespace SimpleSockets.Messaging {
 		/// Builds the payload of a message.
 		/// </summary>
 		/// <returns>Byte[] array</returns>
-        internal virtual byte[] BuildPayload() {
+        public virtual byte[] BuildPayload() {
             
             Logger?.Log("Building a packet.", LogLevel.Trace);
 
@@ -338,7 +338,7 @@ namespace SimpleSockets.Messaging {
 		/// <summary>
 		/// Deconstruct the header fields and set lengths of various message parts.
 		/// </summary>
-        internal void DeconstructHeaders() {
+        protected virtual void DeconstructHeaders() {
             var header = MessageHeader;
 
             // Get the messagetype of the message
@@ -368,7 +368,8 @@ namespace SimpleSockets.Messaging {
 		/// Builds a message from the received bytes.
 		/// </summary>
 		/// <param name="preSharedKey"></param>
-		internal virtual void BuildMessageFromContent(byte[] preSharedKey) {
+		public virtual void BuildMessageFromContent(byte[] preSharedKey) {
+			DeconstructHeaders();
 
 			if (preSharedKey != null && preSharedKey.Length > 0 && HeaderFields[3] == false)
 				throw new Exception("Expected a presharedkey but none was found.");
@@ -422,11 +423,12 @@ namespace SimpleSockets.Messaging {
 			BuildInternalInfoFromBytes();
 		}
 
+
 		/// <summary>
 		/// Build metadata from the stored bytes.
 		/// </summary>
 		/// <returns></returns>
-		private void BuildMetadataFromBytes() {
+		protected virtual void BuildMetadataFromBytes() {
 			try
 			{
 				if (_metadataBytes == null || _metadataBytes.Length == 0) {
@@ -446,7 +448,7 @@ namespace SimpleSockets.Messaging {
 		/// Builds the internal info from stored bytes.
 		/// </summary>
 		/// <returns></returns>
-		private void BuildInternalInfoFromBytes()
+		protected virtual void BuildInternalInfoFromBytes()
 		{
 			try
 			{

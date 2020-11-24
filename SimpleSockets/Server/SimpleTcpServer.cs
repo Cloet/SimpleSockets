@@ -72,7 +72,6 @@ namespace SimpleSockets.Server {
 		{
 			_serverCertificate = context.Certificate ?? throw new ArgumentNullException(nameof(context));
 			SslEncryption = true;
-
 			_tlsProtocol = context.TlsProtocol;
 			AcceptInvalidCertificates = context.AcceptInvalidCertificates;
 			MutualAuthentication = context.MutualAuth;

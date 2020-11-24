@@ -48,7 +48,7 @@ namespace SimpleSockets
 		public long ReceivedMessages => _receivedMessages;
 
 		/// <summary>
-		/// Amount of messages sent fromt he socket.
+		/// Amount of messages sent from the socket.
 		/// This may include messages that haven't been received by another socket.
 		/// </summary>
 		public long SentMessages => _sentMessages;
