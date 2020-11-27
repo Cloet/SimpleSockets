@@ -103,6 +103,8 @@ namespace SimpleSockets.Client {
 			{
 				if (_clientGuid == Guid.Empty)
 					_clientGuid = Guid.NewGuid();
+				Console.WriteLine(
+
 				return _clientGuid;
 			}
 		}
