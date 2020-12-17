@@ -5,7 +5,7 @@ using System.Threading;
 
 namespace SimpleSockets.Helpers {
 
-    internal class LogHelper {
+    public class LogHelper {
 
         internal static LogHelper InitializeLogger(bool client, bool tcp, Action<string> logAction, LogLevel level) => new LogHelper(client, tcp, logAction, level);
 
@@ -37,7 +37,7 @@ namespace SimpleSockets.Helpers {
                 _prefix += "[TCP]";
         }
 
-        internal void Log(string log, LogLevel level) {
+        public void Log(string log, LogLevel level) {
 
             if (level <= _logLevel) {
                 if (_logger == null)
@@ -49,7 +49,7 @@ namespace SimpleSockets.Helpers {
             }
         }
 
-        internal void Log(string log, Exception exception, LogLevel level) {
+        public void Log(string log, Exception exception, LogLevel level) {
             if (level <= _logLevel) {
                 if (_logger == null)
                     return;
@@ -59,7 +59,7 @@ namespace SimpleSockets.Helpers {
             }
         }
 
-        internal void Log(Exception exception, LogLevel level) {
+        public void Log(Exception exception, LogLevel level) {
             Log(exception.ToString(), level);
         }
 

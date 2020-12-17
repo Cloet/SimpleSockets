@@ -67,6 +67,12 @@ namespace SimpleSockets.Server
 		protected virtual void OnClientFileTransferUpdate(ClientFileTransferUpdateEventArgs eventArgs) => FileTransferUpdate?.Invoke(this, eventArgs);
 
 		/// <summary>
+		/// Event fired when a part of a file has been received.
+		/// </summary>
+		public event EventHandler<ClientFileTransferUpdateEventArgs> FileTransferReceivingUpdate;
+		protected virtual void OnClientFileTransferReceivingUpdate(ClientFileTransferUpdateEventArgs eventArgs) => FileTransferReceivingUpdate?.Invoke(this, eventArgs);
+
+		/// <summary>
 		/// Fired when the server receives a request.
 		/// The return value will be send back to the corresponding client.
 		/// </summary>
@@ -402,9 +408,10 @@ namespace SimpleSockets.Server
 						client.ChangeDataReceiver(temp.DataReceiver);
 					} else {
 						var id = !ConnectedClients.Any() ? 1 : ConnectedClients.Keys.Max() + 1;
-						var cloned = client.Clone(id);
+						var cloned = client.Clone(id); // clone to assign a new id to the connected client.
 						cloned.WritingData.Set();
 						ConnectedClients.Add(id, cloned);
+						client = cloned;
 					}
 				}
 
@@ -420,9 +427,7 @@ namespace SimpleSockets.Server
 					eventHandler?.Invoke(this, ev);
 				else
 					OnClientMessageReceived(ev);
-			}
-
-			if (message.MessageType == PacketType.Object)
+			} else if (message.MessageType == PacketType.Object)
 			{
 				var obj = message.BuildObjectFromBytes(extraInfo, out var type);
 
@@ -436,31 +441,27 @@ namespace SimpleSockets.Server
 				}
 				else
 					SocketLogger?.Log("Error receiving an object.", LogLevel.Error);
-			}
-
-			if (message.MessageType == PacketType.Bytes)
+			} else if (message.MessageType == PacketType.Bytes)
 			{
 				var ev = new ClientBytesReceivedEventArgs(client, message.Data, message.MessageMetadata);
 				if (eventHandler != null)
 					eventHandler?.Invoke(this, ev);
 				else
 					OnClientBytesReceived(ev);
-			}
-
-			if (message.MessageType == PacketType.File) {
+			} else if (message.MessageType == PacketType.File) {
 				if (extraInfo == null)
 					return;
 
-				var partex = extraInfo.TryGetValue(PacketHelper.PACKETPART, out var part);
-				var totex = extraInfo.TryGetValue(PacketHelper.TOTALPACKET, out var total);
-				var destex = extraInfo.TryGetValue(PacketHelper.DESTPATH, out var path);
+				var partExists = extraInfo.TryGetValue(PacketHelper.PACKETPART, out var part);
+				var totalExists = extraInfo.TryGetValue(PacketHelper.TOTALPACKET, out var total);
+				var destExists = extraInfo.TryGetValue(PacketHelper.DESTPATH, out var path);
 
-				if (destex) {
+				if (destExists) {
 					var file = Path.GetFullPath(path.ToString());
+					var fileInfo = new FileInfo(file);
 
 					if ((long)part == 0) {
-						FileInfo finfo = new FileInfo(file);
-						finfo.Directory?.Create();
+						fileInfo.Directory?.Create();
 					}
 
 					using (BinaryWriter writer = new BinaryWriter(File.Open(file, FileMode.Append)))
@@ -468,15 +469,13 @@ namespace SimpleSockets.Server
 						writer.Write(message.Data, 0, message.Data.Length);
 						writer.Close();
 					}
-				}
-			}
 
-			if (message.MessageType == PacketType.Request) {
+					OnClientFileTransferReceivingUpdate(new ClientFileTransferUpdateEventArgs(client, (long) part, (long) total, fileInfo, file));
+				}
+			} else if (message.MessageType == PacketType.Request) {
 				var req = SerializationHelper.DeserializeJson<Request>(message.Data);
 				OnRequestReceived(client, req);
-			}
-
-			if (message.MessageType == PacketType.Response) {
+			} else if (message.MessageType == PacketType.Response) {
 				var resp = SerializationHelper.DeserializeJson<Response>(message.Data);
 				lock (_responsePackets) {
 					_responsePackets.Add(resp.ResponseGuid, resp);
@@ -911,13 +910,8 @@ namespace SimpleSockets.Server
 
 			try
 			{
-				if (client?.Listener != null)
-				{
-					client.Listener.Shutdown(SocketShutdown.Both);
-					client.Listener.Close();
-					client.Listener = null;
-					SocketLogger?.Log($"client has been closed. {client.Info()}", LogLevel.Trace);
-				}
+				client?.Dispose();
+				SocketLogger?.Log($"client has been closed. {client.Info()}", LogLevel.Trace);
 			}
 			catch (ObjectDisposedException de)
 			{

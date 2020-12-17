@@ -20,6 +20,8 @@ namespace Client
 		private static event EventHandler<DataReceivedEventArgs> PersonObjectReceived;
 		private static event EventHandler<DataReceivedEventArgs> CustomMessageReceived;
 
+		private static ProgressBar progress;
+
 		private static IList<SimpleClient> Clients = null;
 
 		static void Main(string[] args)
@@ -43,6 +45,7 @@ namespace Client
 			
 			PersonObjectReceived += Program_PersonObjectReceived;
 			CustomMessageReceived += Program_CustomMessageReceived;
+
 
 			for (var i = 0; i < no_clients; i++) {
 				StartClient(usetcp == "1", input == "y", context);
@@ -264,6 +267,8 @@ namespace Client
 			client.ObjectReceived += Client_ObjectReceived;
 			client.Logger += Logger;
 			client.RequestHandler += RequestHandler;
+			client.FileTransferReceivingUpdate += Client_FileTransferReceivingUpdate;
+			client.FileTransferUpdate += Client_FileTransferUpdate;
 		}
 
 		private static object RequestHandler(string header, object data, Type dataType) {
@@ -332,6 +337,39 @@ namespace Client
 		{
 			// Console.WriteLine();
 			Console.WriteLine(obj);
+		}
+
+		private static void Client_FileTransferReceivingUpdate(object sender, FileTransferUpdateEventArgs e) {
+			if (progress == null) {
+				progress = new ProgressBar();
+				Console.WriteLine("Receiving a file...");
+			}
+
+			progress.Report(e.Percentage);
+
+			if (e.Part >= e.TotalParts) {
+				progress.Dispose();
+				progress = null;
+				Thread.Sleep(200);
+				Console.WriteLine("File received.");
+			}
+
+		}
+
+		private static void Client_FileTransferUpdate(object sender, FileTransferUpdateEventArgs e) {
+			if (progress == null) {
+				progress = new ProgressBar();
+				Console.WriteLine("Sending a file...");
+			}
+
+			progress.Report(e.Percentage);
+
+			if (e.Part >= e.TotalParts) {
+				progress.Dispose();
+				progress = null;
+				Thread.Sleep(200);
+				Console.WriteLine("File sent.");
+			}
 		}
 
 		private static void Client_MessageReceived(object sender, SimpleSockets.Client.MessageReceivedEventArgs e)

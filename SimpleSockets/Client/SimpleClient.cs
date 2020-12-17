@@ -74,6 +74,9 @@ namespace SimpleSockets.Client {
 		public event EventHandler<FileTransferUpdateEventArgs> FileTransferUpdate;
 		protected virtual void OnFileTransferUpdate(FileTransferUpdateEventArgs eventArgs) => FileTransferUpdate?.Invoke(this,eventArgs);
 
+		public event EventHandler<FileTransferUpdateEventArgs> FileTransferReceivingUpdate;
+		protected virtual void OnFileTransferReceivingUpdate(FileTransferUpdateEventArgs eventArgs) => FileTransferReceivingUpdate?.Invoke(this, eventArgs);
+
 		/// <summary>
 		/// Fired when the client receives a request.
 		/// The return value will be send back to the server.
@@ -81,6 +84,8 @@ namespace SimpleSockets.Client {
 		public Func<string, object, Type, object> RequestHandler = null;
 
 		#endregion
+
+		protected int ReconnectAttempt = 0;
 
 		private bool _connected;
 		
@@ -103,7 +108,6 @@ namespace SimpleSockets.Client {
 			{
 				if (_clientGuid == Guid.Empty)
 					_clientGuid = Guid.NewGuid();
-				Console.WriteLine(
 
 				return _clientGuid;
 			}
@@ -141,6 +145,12 @@ namespace SimpleSockets.Client {
 		public TimeSpan AutoReconnect { get; protected set; }
 
 		/// <summary>
+		/// Max amounts of automatic reconnection attempts the client will try.
+		/// </summary>
+		/// <value></value>
+		public int MaxAttempts {get; protected set;}
+
+		/// <summary>
 		/// The endpoint of the server.
 		/// </summary>
 		public IPEndPoint EndPoint { get; protected set; }
@@ -161,6 +171,7 @@ namespace SimpleSockets.Client {
 		public SimpleClient(SocketProtocolType protocol) : base(protocol) {
 			_connected = false;
 			AutoReconnect = new TimeSpan(0, 0, 5);
+			MaxAttempts = 20;
 			DynamicCallbacks = new Dictionary<string, EventHandler<DataReceivedEventArgs>>(); ;
 		}
 
@@ -192,7 +203,15 @@ namespace SimpleSockets.Client {
 		/// <param name="serverIp"></param>
 		/// <param name="serverPort"></param>
 		/// <param name="autoReconnect">Amount of seconds the client waits before trying to reconnect.</param>
-		public abstract void ConnectTo(string serverIp, int serverPort, TimeSpan autoReconnect);
+		public abstract void ConnectTo(string serverIp, int serverPort, TimeSpan autoReconnect, int maxReconnectAttempts);
+
+		/// <summary>
+		/// Connect the client to a given ip:port
+		/// </summary>
+		/// <param name="serverIp"></param>
+		/// <param name="serverPort"></param>
+		/// <param name="autoReconnect">Amount of seconds the client waits before trying to reconnect.</param>
+		public void ConnectTo(string serverIp, int serverPort, TimeSpan autoReconnect) => ConnectTo(serverIp, serverPort, autoReconnect, MaxAttempts);
 
 		/// <summary>
 		/// Connects the client to a given ip:port.
@@ -200,7 +219,7 @@ namespace SimpleSockets.Client {
 		/// </summary>
 		/// <param name="serverIp"></param>
 		/// <param name="serverPort"></param>
-		public void ConnectTo(string serverIp, int serverPort) => ConnectTo(serverIp, serverPort, AutoReconnect);
+		public void ConnectTo(string serverIp, int serverPort) => ConnectTo(serverIp, serverPort, AutoReconnect, MaxAttempts);
 
 		// For internal use, if the client loses connection this method should be used.
 		// If this method is called the client will try to reconnect to the server every X seconds.
@@ -280,7 +299,7 @@ namespace SimpleSockets.Client {
 			var extraInfo = packet.AdditionalInternalInfo;
 			var eventHandler = packet.GetDynamicCallbackClient(extraInfo, DynamicCallbacks);
 
-			SocketLogger?.Log($"Received a completed message from the server of type {Enum.GetName(typeof(PacketType), packet.MessageType)}.", LogLevel.Trace);
+			SocketLogger?.Log($"Received a completed message from the server of type {nameof(packet.MessageType)}.", LogLevel.Trace);
 
 			if (packet.MessageType == PacketType.Message)
 			{
@@ -290,23 +309,20 @@ namespace SimpleSockets.Client {
 					eventHandler?.Invoke(this, ev);
 				else
 					OnMessageReceived(ev);
-			}
-
-
-			if (packet.MessageType == PacketType.File) {
+			}else if (packet.MessageType == PacketType.File) {
 				if (extraInfo == null)
 					return;
 
-				var partex = extraInfo.TryGetValue(PacketHelper.PACKETPART, out var part);
-				var totex = extraInfo.TryGetValue(PacketHelper.TOTALPACKET, out var total);
-				var destex = extraInfo.TryGetValue(PacketHelper.DESTPATH, out var path);
+				var partExists = extraInfo.TryGetValue(PacketHelper.PACKETPART, out var part);
+				var totalExists = extraInfo.TryGetValue(PacketHelper.TOTALPACKET, out var total);
+				var destExists = extraInfo.TryGetValue(PacketHelper.DESTPATH, out var path);
 
-				if (destex) {
+				if (destExists) {
 					var file = Path.GetFullPath(path.ToString());
+					var fileInfo = new FileInfo(file);
 
 					if ((long)part == 0) {
-						FileInfo finfo = new FileInfo(file);
-						finfo.Directory?.Create();
+						fileInfo.Directory?.Create();
 					}
 
 					using (BinaryWriter writer = new BinaryWriter(File.Open(file, FileMode.Append)))
@@ -314,10 +330,10 @@ namespace SimpleSockets.Client {
 						writer.Write(packet.Data, 0, packet.Data.Length);
 						writer.Close();
 					}
-				}
-			}
 
-			if (packet.MessageType == PacketType.Object)
+					OnFileTransferReceivingUpdate(new FileTransferUpdateEventArgs((long)part, (long)total,fileInfo, file));
+				}
+			}else if (packet.MessageType == PacketType.Object)
 			{
 				var obj = packet.BuildObjectFromBytes(extraInfo, out var type);
 				var ev = new ObjectReceivedEventArgs(obj, type, packet.MessageMetadata);
@@ -331,26 +347,20 @@ namespace SimpleSockets.Client {
 				}
 				else
 					SocketLogger?.Log("Error receiving an object.", LogLevel.Error);
-			}
-
-			if (packet.MessageType == PacketType.Bytes)
+			} else if (packet.MessageType == PacketType.Bytes)
 			{
 				var ev = new BytesReceivedEventArgs(packet.Data, packet.MessageMetadata);
 				if (eventHandler != null)
 					eventHandler?.Invoke(this, ev);
 				else
 					OnBytesReceived(ev);
-			}
-
-			if (packet.MessageType == PacketType.Response) {
+			} else if (packet.MessageType == PacketType.Response) {
 				var response = SerializationHelper.DeserializeJson<Response>(packet.Data);
 
 				lock (_responsePackets) {
 					_responsePackets.Add(response.ResponseGuid, response);
 				}
-			}
-
-			if (packet.MessageType == PacketType.Request)
+			} else if (packet.MessageType == PacketType.Request)
 			{
 				var req = SerializationHelper.DeserializeJson<Request>(packet.Data);
 				OnRequestReceived(req);

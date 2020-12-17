@@ -5,23 +5,26 @@ namespace SimpleSockets.Client {
 
     public class FileTransferUpdateEventArgs: EventArgs {
 
-        internal FileTransferUpdateEventArgs(int part, int totalParts, FileInfo file, string dest) {
+        internal FileTransferUpdateEventArgs(long part, long totalParts, FileInfo file, string dest) {
             Part = part;
             TotalParts = totalParts;
-            PercentageSent = (( Double.Parse(part.ToString()) / Double.Parse(totalParts.ToString()) ) * 100);
+            Percentage = ((double) part / totalParts );
             File = file;
             FileDestination = dest;
+
+            if (Percentage >= 1 && part < totalParts)
+                Percentage = 0.99;
         }
 
         public FileInfo File { get; private set; }
 
         public string FileDestination { get; private set; }
 
-        public int Part { get; private set; }
+        public long Part { get; private set; }
 
-        public int TotalParts { get; private set; }
+        public long TotalParts { get; private set; }
 
-        public double PercentageSent { get; private set; }
+        public double Percentage { get; private set; }
 
     }
     

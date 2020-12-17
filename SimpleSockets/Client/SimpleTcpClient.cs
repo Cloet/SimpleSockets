@@ -151,7 +151,7 @@ namespace SimpleSockets {
 		/// <param name="serverIp"></param>
 		/// <param name="serverPort"></param>
 		/// <param name="autoReconnect">Set to 0 to disable autoreconnect.</param>
-		public override void ConnectTo(string serverIp, int serverPort, TimeSpan autoReconnect) {
+		public override void ConnectTo(string serverIp, int serverPort, TimeSpan autoReconnect, int maxReconnectAttempts) {
 
 			if (string.IsNullOrEmpty(serverIp))
 				throw new ArgumentNullException(nameof(serverIp),"Invalid server ip.");
@@ -166,6 +166,7 @@ namespace SimpleSockets {
 			ServerIp = serverIp;
 			ServerPort = serverPort;
 			AutoReconnect = autoReconnect;
+			MaxAttempts = maxReconnectAttempts;
 
 			EndPoint = new IPEndPoint(GetIp(ServerIp), ServerPort);
 
@@ -203,6 +204,7 @@ namespace SimpleSockets {
 				}
 
 				if (success) {
+					ReconnectAttempt = 0;
 					Connected.Set();
 					var metadata = new SessionMetadata(Listener, -1, SocketLogger);
 					OnConnectedToServer();
@@ -227,11 +229,18 @@ namespace SimpleSockets {
 				if (AutoReconnect.TotalMilliseconds <= 0)
 					return;
 
+				ReconnectAttempt++;
+				if (MaxAttempts == 0 || ReconnectAttempt > MaxAttempts) {
+					ReconnectAttempt = 0;
+					return;
+				}
+				SocketLogger?.Log($"Attempting to reestablish the connection, attempt {ReconnectAttempt} of {MaxAttempts}", LogLevel.Debug);
+
 				Thread.Sleep((int)AutoReconnect.TotalMilliseconds);
 				if (!Disposed && Listener != null)
 					Listener.BeginConnect(EndPoint, OnConnected, Listener);
 				else if (!Disposed && Listener == null)
-					ConnectTo(ServerIp, ServerPort, AutoReconnect);
+					ConnectTo(ServerIp, ServerPort, AutoReconnect, MaxAttempts);
 			} catch (ObjectDisposedException) {
 				ShutDownConnectionLost();
 			} catch (OperationCanceledException) {

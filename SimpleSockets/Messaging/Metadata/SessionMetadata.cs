@@ -42,6 +42,8 @@ namespace SimpleSockets.Messaging.Metadata
 
 		private LogHelper _logger;
 
+		private Boolean _IsDead = false;
+
 		public SessionMetadata(Socket listener, int id, LogHelper logger = null)
 		{
 			Id = id;
@@ -95,8 +97,17 @@ namespace SimpleSockets.Messaging.Metadata
 		}
 
 		public void Dispose()
-		{
-			DataReceiver = null;
+		{	
+			if (!_IsDead) {
+				_IsDead = true;
+				DataReceiver = null;
+				if (Listener != null)
+				{
+					Listener.Shutdown(SocketShutdown.Both);
+					Listener.Close();
+					Listener = null;
+				}
+			}
 		}
 
         public ISessionMetadata Clone(int id)

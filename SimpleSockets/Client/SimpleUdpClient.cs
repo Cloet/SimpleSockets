@@ -20,7 +20,7 @@ namespace SimpleSockets.Client {
 
 		}
 
-		public override void ConnectTo(string serverIp, int serverPort, TimeSpan autoReconnect)
+		public override void ConnectTo(string serverIp, int serverPort, TimeSpan autoReconnect,int maxReconnectAttempts)
 		{
 			if (string.IsNullOrEmpty(serverIp))
 				throw new ArgumentNullException(nameof(serverIp),"Invalid server ip.");
@@ -32,6 +32,7 @@ namespace SimpleSockets.Client {
 			ServerIp = serverIp;
 			ServerPort = serverPort;
 			AutoReconnect = autoReconnect;
+			MaxAttempts = maxReconnectAttempts;
 
 			EndPoint = new IPEndPoint(GetIp(ServerIp), ServerPort);
 
@@ -59,6 +60,7 @@ namespace SimpleSockets.Client {
 				socket.EndConnect(result);
 
 				Connected.Set();
+				ReconnectAttempt = 0;
 				var metadata = new SessionMetadata(Listener, -1, SocketLogger);
 				Sent.Set();
 				OnConnectedToServer();
@@ -75,11 +77,18 @@ namespace SimpleSockets.Client {
 				if (AutoReconnect.TotalMilliseconds <= 0)
 					return;
 
+				ReconnectAttempt++;
+				if (MaxAttempts == 0 || ReconnectAttempt > MaxAttempts) {
+					ReconnectAttempt = 0;
+					return;
+				}
+				SocketLogger?.Log($"Attempting to reestablish the connection, attempt {ReconnectAttempt} of {MaxAttempts}", LogLevel.Debug);
+
 				Thread.Sleep((int)AutoReconnect.TotalMilliseconds);
 				if (Listener != null & !Disposed)
 					Listener.BeginConnect(EndPoint, OnConnected, Listener);
 				else if (Listener == null && !Disposed)
-					ConnectTo(ServerIp, ServerPort, AutoReconnect);
+					ConnectTo(ServerIp, ServerPort, AutoReconnect, MaxAttempts);
 			}
 			catch (Exception ex)
 			{

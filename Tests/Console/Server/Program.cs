@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using System.Threading;
 using Shared;
 using Shared.FileSystem;
 using SimpleSockets;
@@ -16,6 +17,8 @@ namespace Server
     class Program
     {
 		private static SimpleServer _server;
+
+		private static ProgressBar progress;
 
         static void Main(string[] args)
         {
@@ -63,6 +66,7 @@ namespace Server
 					return input.Trim();
 				else
 					Console.WriteLine("invalid input.");
+				var p = Console.ReadLine();
 			}
 		}
 
@@ -307,6 +311,41 @@ namespace Server
 			server.ObjectReceived += Server_ObjectReceived;
 			server.Logger += Logger;
 			server.RequestHandler += RequestHandler;
+			server.FileTransferReceivingUpdate += FileTransferReceivingUpdate;
+			server.FileTransferUpdate += FileTransferUpdate;
+		}
+
+		private static void FileTransferReceivingUpdate(object sender, ClientFileTransferUpdateEventArgs e) {
+			if (progress == null) {
+				progress = new ProgressBar();
+				Console.WriteLine("Receiving a file...");
+			}
+
+			progress.Report(e.Percentage);
+
+			if (e.Part >= e.TotalParts) {
+				progress.Dispose();
+				progress = null;
+				Thread.Sleep(200);
+				Console.WriteLine("File received.");
+			}
+
+		}
+
+		private static void FileTransferUpdate(object sender, ClientFileTransferUpdateEventArgs e) {
+			if (progress == null) {
+				progress = new ProgressBar();
+				Console.WriteLine("Sending a file...");
+			}
+
+			progress.Report(e.Percentage);
+
+			if (e.Part >= e.TotalParts) {
+				progress.Dispose();
+				progress = null;
+				Thread.Sleep(200);
+				Console.WriteLine("File sent.");
+			}
 		}
 
 		private static object RequestHandler(ISessionInfo client, string header, object data, Type dataType) {
@@ -320,7 +359,7 @@ namespace Server
 
 		private static void Server_ObjectReceived(object sender, ClientObjectReceivedEventArgs e)
 		{
-			if (e.GetType() == typeof(Person)) {
+			if (e.ReceivedObjectType == typeof(Person)) {
 				Console.WriteLine("Person object received from client " + e.ClientInfo.Id);
 				var per = (Person) e.ReceivedObject;
 				Console.WriteLine("Firstname: " + per.FirstName);
