@@ -15,6 +15,9 @@ namespace SimpleSockets.Server {
 	{
 	    private EndPoint _epFrom = new IPEndPoint(IPAddress.Any, 0);
 
+		protected TimeSpan MessageResponseWaitTime = new TimeSpan(0,0,30);
+        protected int MessageAttempts = 15;
+
 		/// <summary>
 		/// Constructor
 		/// </summary>
@@ -206,15 +209,25 @@ namespace SimpleSockets.Server {
 		}
 
 		private Response RequestUdpMessage(int clientId, int responseTimeInMs, string data) {
-			var req = Request.UdpMessageRequest(data,responseTimeInMs);
-			SendPacket(clientId, req.BuildRequestToPacket());
-			return GetResponse(req.RequestGuid, req.Expiration);
+            try {
+				var req = Request.UdpMessageRequest(data, responseTimeInMs);
+	            SendPacket(clientId, req.BuildRequestToPacket());
+            	return GetResponse(req.RequestGuid, req.Expiration);
+			} catch (TimeoutException ex) {
+				SocketLogger?.Log($"Failed to get a response from UDP message @ client {clientId}",ex, LogLevel.Trace);
+				return null;
+			}
 		}
 
         private async Task<Response> RequestUdpMessageAsync(int clientId, int responseTimeInMs, string data) {
-            var req = Request.UdpMessageRequest(data, responseTimeInMs);
-            await SendPacketAsync(clientId, req.BuildRequestToPacket());
-            return GetResponse(req.RequestGuid, req.Expiration);
+            try {
+				var req = Request.UdpMessageRequest(data, responseTimeInMs);
+	            await SendPacketAsync(clientId, req.BuildRequestToPacket());
+            	return GetResponse(req.RequestGuid, req.Expiration);
+			} catch (TimeoutException ex) {
+				SocketLogger?.Log($"Failed to get a response from UDP message @ client {clientId}",ex, LogLevel.Trace);
+				return null;
+			}
         }
 
 		/// <summary>
@@ -229,17 +242,17 @@ namespace SimpleSockets.Server {
 
             try
             {
-                int attempt = 0, maxAttempts = 5;
+                int attempt = 0, maxAttempts = MessageAttempts;
                 var p = AddDataOntoPacket(packet);
                 var payload = PacketHelper.ByteArrayToString(p.BuildPayload());
-                var response = RequestUdpMessage(clientId, 20000, payload);
+                var response = RequestUdpMessage(clientId, (int)MessageResponseWaitTime.TotalMilliseconds, payload);
 
-                if (response.Resp != ResponseType.UdpResponse && attempt <= maxAttempts) {
+                if ( (response == null || response.Resp != ResponseType.UdpResponse) && attempt <= maxAttempts) {
                     attempt++;
                     SocketLogger?.Log($"Failed to deliver UDP message, retrying attempt {attempt} of {maxAttempts}.",LogLevel.Trace);
-                    response = RequestUdpMessage(clientId, 20000, payload);
+                    response = RequestUdpMessage(clientId, (int)MessageResponseWaitTime.TotalMilliseconds, payload);
                 } 
-                else if (response.Resp != ResponseType.UdpResponse && attempt > maxAttempts) {
+                else if ( (response == null || response.Resp != ResponseType.UdpResponse) && attempt > maxAttempts) {
                     throw new InvalidOperationException(response.ExceptionMessage,response.Exception);
                 }
 
@@ -264,17 +277,17 @@ namespace SimpleSockets.Server {
 
             try
             {
-                int attempt = 0, maxAttempts = 5;
+                int attempt = 0, maxAttempts = MessageAttempts;
                 var p = AddDataOntoPacket(packet);
                 var payload = PacketHelper.ByteArrayToString(p.BuildPayload());
-                var response = RequestUdpMessage(clientId,20000, payload);
+                var response = RequestUdpMessage(clientId, (int)MessageResponseWaitTime.TotalMilliseconds, payload);
 
-                if (response.Resp != ResponseType.UdpResponse && attempt <= maxAttempts) {
+                if ( (response == null || response.Resp != ResponseType.UdpResponse) && attempt <= maxAttempts) {
                     attempt++;
                     SocketLogger?.Log($"Failed to deliver UDP message, retrying attempt {attempt} of {maxAttempts}.",LogLevel.Trace);
-                    response = await RequestUdpMessageAsync(clientId, 20000, payload);
+                    response = await RequestUdpMessageAsync(clientId, (int)MessageResponseWaitTime.TotalMilliseconds, payload);
                 } 
-                else if (response.Resp != ResponseType.UdpResponse && attempt > maxAttempts) {
+                else if ( (response == null || response.Resp != ResponseType.UdpResponse) && attempt > maxAttempts) {
                     throw new InvalidOperationException(response.ExceptionMessage,response.Exception);
                 }
 
