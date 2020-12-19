@@ -94,6 +94,26 @@ namespace SimpleSockets
 			}
 		}
 
+		private string HumanReadable(long amount) {
+			var thousand = 1000;
+			var million = 1000000;
+			var billion = 1000000000;
+
+			if (amount > billion) {
+				return (amount / billion) + " B";
+			}
+
+			if (amount > million) {
+				return (amount / billion) + " M";
+			}
+
+			if (amount > thousand) {
+				return (amount / thousand) + " K";
+			}
+
+			return "";
+		}
+
 		public override string ToString()
 		{
 			var stats = "=======================================================================" + Environment.NewLine;
@@ -103,11 +123,11 @@ namespace SimpleSockets
 			stats += "| - UpTime         : " + UpTime.ToString().PadRight(49) + "|" + Environment.NewLine;
 			stats += "| - Protocol       : " + Enum.GetName(typeof(SocketProtocolType), _protocol).ToString().PadRight(49) + "|" + Environment.NewLine;
 			stats += "| - Received         " + "".PadRight(49) + "|" + Environment.NewLine;
-			stats += "|    > Bytes       : " + Received.ToString().PadRight(49) + "|" + Environment.NewLine;
-			stats += "|    > Messages    : " + ReceivedMessages.ToString().PadRight(49) + "|" + Environment.NewLine;
+			stats += "|    > Bytes       : " + Received.ToString().PadRight(20) + HumanReadable(Received).PadRight(29) + "|" + Environment.NewLine;
+			stats += "|    > Messages    : " + ReceivedMessages.ToString().PadRight(20) + HumanReadable(ReceivedMessages).PadRight(29) + "|" + Environment.NewLine;
 			stats += "| - Sent             " + "".PadRight(49) + "|" + Environment.NewLine;
-			stats += "|    > Bytes       : " + Sent.ToString().PadRight(49) + "|" + Environment.NewLine;
-			stats += "|    > Messages    : " + SentMessages.ToString().PadRight(49) + "|" + Environment.NewLine;
+			stats += "|    > Bytes       : " + Sent.ToString().PadRight(20) + HumanReadable(Sent).PadRight(29) + "|" + Environment.NewLine;
+			stats += "|    > Messages    : " + SentMessages.ToString().PadRight(20) + HumanReadable(SentMessages).PadRight(29) + "|" + Environment.NewLine;
 			stats += "=======================================================================" + Environment.NewLine;
 			return stats;
 		}

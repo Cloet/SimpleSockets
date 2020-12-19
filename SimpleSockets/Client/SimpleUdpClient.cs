@@ -15,6 +15,9 @@ namespace SimpleSockets.Client
 
         private EndPoint _epFrom = new IPEndPoint(IPAddress.Any, 0);
 
+        protected TimeSpan MessageResponseWaitTime = new TimeSpan(0,0,30);
+        protected int MessageAttempts = 15;
+
         public SimpleUdpClient() : base(SocketProtocolType.Udp)
         {
 
@@ -237,15 +240,15 @@ namespace SimpleSockets.Client
 
             try
             {
-                int attempt = 0, maxAttempts = 5;
+                int attempt = 0, maxAttempts = MessageAttempts;
                 var p = AddDataOntoPacket(packet);
                 var payload = PacketHelper.ByteArrayToString(p.BuildPayload());
-                var response = RequestUdpMessage(20000, payload);
+                var response = RequestUdpMessage( (int) MessageResponseWaitTime.TotalMilliseconds, payload);
 
                 if (response.Resp != ResponseType.UdpResponse && attempt <= maxAttempts) {
                     attempt++;
                     SocketLogger?.Log($"Failed to deliver UDP message, retrying attempt {attempt} of {maxAttempts}.",LogLevel.Trace);
-                    response = RequestUdpMessage(20000, payload);
+                    response = RequestUdpMessage((int) MessageResponseWaitTime.TotalMilliseconds, payload);
                 } 
                 else if (response.Resp != ResponseType.UdpResponse && attempt > maxAttempts) {
                     throw new InvalidOperationException(response.ExceptionMessage,response.Exception);
@@ -266,15 +269,15 @@ namespace SimpleSockets.Client
 
             try
             {
-                int attempt = 0, maxAttempts = 5;
+                int attempt = 0, maxAttempts = MessageAttempts;
                 var p = AddDataOntoPacket(packet);
                 var payload = PacketHelper.ByteArrayToString(p.BuildPayload());
-                var response = RequestUdpMessage(20000, payload);
+                var response = RequestUdpMessage((int) MessageResponseWaitTime.TotalMilliseconds, payload);
 
                 if (response.Resp != ResponseType.UdpResponse && attempt <= maxAttempts) {
                     attempt++;
                     SocketLogger?.Log($"Failed to deliver UDP message, retrying attempt {attempt} of {maxAttempts}.",LogLevel.Trace);
-                    response = await RequestUdpMessageAsync(20000, payload);
+                    response = await RequestUdpMessageAsync((int) MessageResponseWaitTime.TotalMilliseconds, payload);
                 } 
                 else if (response.Resp != ResponseType.UdpResponse && attempt > maxAttempts) {
                     throw new InvalidOperationException(response.ExceptionMessage,response.Exception);
