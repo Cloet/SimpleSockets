@@ -15,7 +15,7 @@ namespace SimpleSockets.Server {
 	{
 	    private EndPoint _epFrom = new IPEndPoint(IPAddress.Any, 0);
 
-		protected TimeSpan MessageResponseWaitTime = new TimeSpan(0,0,30);
+		protected TimeSpan MessageResponseWaitTime = new TimeSpan(0,0,5);
         protected int MessageAttempts = 15;
 
 		/// <summary>
@@ -243,12 +243,12 @@ namespace SimpleSockets.Server {
 					int attempt = 0, maxAttempts = MessageAttempts;
 					var p = AddDataOntoPacket(packet);
 					var payload = PacketHelper.ByteArrayToString(p.BuildPayload());
-					var response = await RequestUdpMessageAsync(clientId, (int)MessageResponseWaitTime.TotalMilliseconds, payload);
+					var response = RequestUdpMessage(clientId, (int)MessageResponseWaitTime.TotalMilliseconds, payload);
 
 					if ( (response == null || response.Resp != ResponseType.UdpResponse) && attempt <= maxAttempts) {
 						attempt++;
 						SocketLogger?.Log($"Failed to deliver UDP message, retrying attempt {attempt} of {maxAttempts}.",LogLevel.Trace);
-						response = await RequestUdpMessageAsync(clientId, (int)MessageResponseWaitTime.TotalMilliseconds, payload);
+						response = RequestUdpMessage(clientId, (int)MessageResponseWaitTime.TotalMilliseconds, payload);
 					} 
 					else if ( (response == null || response.Resp != ResponseType.UdpResponse) && attempt > maxAttempts) {
 						throw new InvalidOperationException(response.ExceptionMessage,response.Exception);

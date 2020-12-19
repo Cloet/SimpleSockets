@@ -822,7 +822,7 @@ namespace SimpleSockets.Client {
 							.Build();
 
 						SocketLogger?.Log($"Sending part {currentPart} of {totalParts} of {file}.", LogLevel.Trace);
-						var send = SendToServer(packet.BuildPayload());
+						var send = SendPacket(packet);
 
 						if (!send)
 						{
@@ -882,7 +882,7 @@ namespace SimpleSockets.Client {
 							.Build();
 
 						SocketLogger?.Log($"Sending part {currentPart} of {totalParts} of {file}.", LogLevel.Trace);
-						var send = await SendToServerAsync(packet.BuildPayload());
+						var send = await SendPacketAsync(packet);
 
 						if (!send)
 						{

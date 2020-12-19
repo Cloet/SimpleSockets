@@ -736,7 +736,7 @@ namespace SimpleSockets.Server
 
 						SocketLogger?.Log($"Sending part {currentPart} of {totalParts} of {file}.", LogLevel.Trace);
 
-						var send = SendToSocket(clientId, packet.BuildPayload());
+						var send = SendPacket(clientId, packet);
 
 						if (!send)
 						{
@@ -796,7 +796,7 @@ namespace SimpleSockets.Server
 							.Build();
 
 						SocketLogger?.Log($"Sending part {currentPart} of {totalParts} of {file}.", LogLevel.Trace);
-						var send = await SendToSocketAsync(clientId, packet.BuildPayload());
+						var send = await SendPacketAsync(clientId, packet);
 
 						if (!send)
 						{

@@ -15,7 +15,7 @@ namespace SimpleSockets.Client
 
         private EndPoint _epFrom = new IPEndPoint(IPAddress.Any, 0);
 
-		protected TimeSpan MessageResponseWaitTime = new TimeSpan(0,0,30);
+		protected TimeSpan MessageResponseWaitTime = new TimeSpan(0,0,5);
         protected int MessageAttempts = 15;
 
         public SimpleUdpClient() : base(SocketProtocolType.Udp)
