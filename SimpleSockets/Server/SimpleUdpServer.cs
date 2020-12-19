@@ -235,69 +235,69 @@ namespace SimpleSockets.Server {
 		/// </summary>
 		/// <param name="packet"></param>
 		/// <returns></returns>
-		public override bool SendPacket(int clientId, Packet packet)
+		public override async Task<bool> SendPacketAsync(int clientId, Packet packet)
 		{
-			if (packet.MessageType == PacketType.Request || packet.MessageType == PacketType.Response)
-                return base.SendPacket(clientId, packet);
+			if (packet.MessageType == PacketType.File || packet.MessageType == PacketType.Folder) {
+				try
+				{
+					int attempt = 0, maxAttempts = MessageAttempts;
+					var p = AddDataOntoPacket(packet);
+					var payload = PacketHelper.ByteArrayToString(p.BuildPayload());
+					var response = await RequestUdpMessageAsync(clientId, (int)MessageResponseWaitTime.TotalMilliseconds, payload);
 
-            try
-            {
-                int attempt = 0, maxAttempts = MessageAttempts;
-                var p = AddDataOntoPacket(packet);
-                var payload = PacketHelper.ByteArrayToString(p.BuildPayload());
-                var response = RequestUdpMessage(clientId, (int)MessageResponseWaitTime.TotalMilliseconds, payload);
+					if ( (response == null || response.Resp != ResponseType.UdpResponse) && attempt <= maxAttempts) {
+						attempt++;
+						SocketLogger?.Log($"Failed to deliver UDP message, retrying attempt {attempt} of {maxAttempts}.",LogLevel.Trace);
+						response = await RequestUdpMessageAsync(clientId, (int)MessageResponseWaitTime.TotalMilliseconds, payload);
+					} 
+					else if ( (response == null || response.Resp != ResponseType.UdpResponse) && attempt > maxAttempts) {
+						throw new InvalidOperationException(response.ExceptionMessage,response.Exception);
+					}
 
-                if ( (response == null || response.Resp != ResponseType.UdpResponse) && attempt <= maxAttempts) {
-                    attempt++;
-                    SocketLogger?.Log($"Failed to deliver UDP message, retrying attempt {attempt} of {maxAttempts}.",LogLevel.Trace);
-                    response = RequestUdpMessage(clientId, (int)MessageResponseWaitTime.TotalMilliseconds, payload);
-                } 
-                else if ( (response == null || response.Resp != ResponseType.UdpResponse) && attempt > maxAttempts) {
-                    throw new InvalidOperationException(response.ExceptionMessage,response.Exception);
-                }
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                SocketLogger?.Log("Error sending a packet.", ex, LogLevel.Error);
-                return false;
-            }
+					return true;
+				}
+				catch (Exception ex)
+				{
+					SocketLogger?.Log("Error sending a packet.", ex, LogLevel.Error);
+					return false;
+				}
+			} else 
+				return await base.SendPacketAsync(clientId, packet);
 		}
 
 		/// <summary>
-		/// Sends a packet build with <seealso cref="PacketBuilder"/>
+		/// Send a packet build with <seealso cref="PacketBuilder"/>.
 		/// </summary>
 		/// <param name="packet"></param>
 		/// <returns></returns>
-		public override async Task<bool> SendPacketAsync(int clientId, Packet packet)
+		public override bool SendPacket(int clientId, Packet packet)
 		{
-            if (packet.MessageType == PacketType.Request || packet.MessageType == PacketType.Response)
-                return await base.SendPacketAsync(clientId, packet);
+			if (packet.MessageType == PacketType.File || packet.MessageType == PacketType.Folder) {
+				try
+				{
+					int attempt = 0, maxAttempts = MessageAttempts;
+					var p = AddDataOntoPacket(packet);
+					var payload = PacketHelper.ByteArrayToString(p.BuildPayload());
+					var response = RequestUdpMessage(clientId, (int)MessageResponseWaitTime.TotalMilliseconds, payload);
 
-            try
-            {
-                int attempt = 0, maxAttempts = MessageAttempts;
-                var p = AddDataOntoPacket(packet);
-                var payload = PacketHelper.ByteArrayToString(p.BuildPayload());
-                var response = RequestUdpMessage(clientId, (int)MessageResponseWaitTime.TotalMilliseconds, payload);
+					if ( (response == null || response.Resp != ResponseType.UdpResponse) && attempt <= maxAttempts) {
+						attempt++;
+						SocketLogger?.Log($"Failed to deliver UDP message, retrying attempt {attempt} of {maxAttempts}.",LogLevel.Trace);
+						response = RequestUdpMessage(clientId, (int)MessageResponseWaitTime.TotalMilliseconds, payload);
+					} 
+					else if ( (response == null || response.Resp != ResponseType.UdpResponse) && attempt > maxAttempts) {
+						throw new InvalidOperationException(response.ExceptionMessage,response.Exception);
+					}
 
-                if ( (response == null || response.Resp != ResponseType.UdpResponse) && attempt <= maxAttempts) {
-                    attempt++;
-                    SocketLogger?.Log($"Failed to deliver UDP message, retrying attempt {attempt} of {maxAttempts}.",LogLevel.Trace);
-                    response = await RequestUdpMessageAsync(clientId, (int)MessageResponseWaitTime.TotalMilliseconds, payload);
-                } 
-                else if ( (response == null || response.Resp != ResponseType.UdpResponse) && attempt > maxAttempts) {
-                    throw new InvalidOperationException(response.ExceptionMessage,response.Exception);
-                }
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                SocketLogger?.Log("Error sending a packet.", ex, LogLevel.Error);
-                return false;
-            }
+					return true;
+				}
+				catch (Exception ex)
+				{
+					SocketLogger?.Log("Error sending a packet.", ex, LogLevel.Error);
+					return false;
+				}
+			} else 
+				return base.SendPacket(clientId, packet);
 		}
 
 		// Disposes of the server.
