@@ -708,7 +708,8 @@ namespace SimpleSockets.Server
 					var read = 0;
 					var currentPart = 0;
 					var totalLength = fileStream.Length;
-					int totalParts = (int)Math.Ceiling((double)(totalLength / bufferLength));
+					double temp = ((double)totalLength/(double)bufferLength);
+					int totalParts = (int)Math.Ceiling(temp);
 
 					while ((read = fileStream.Read(buffer, 0, buffer.Length)) > 0) {
 						currentPart++;
@@ -767,7 +768,8 @@ namespace SimpleSockets.Server
 					var read = 0;
 					var currentPart = 0;
 					var totalLength = fileStream.Length;
-					int totalParts = (int)Math.Ceiling((double)(totalLength / bufLength));
+					double temp = ((double)totalLength/(double)bufLength);
+					int totalParts = (int)Math.Ceiling(temp);
 
 					while ((read = await fileStream.ReadAsync(buffer, 0, buffer.Length, Token)) > 0)
 					{
@@ -825,7 +827,7 @@ namespace SimpleSockets.Server
 
 		#endregion
 
-		#region  Requests
+		#region Requests
 
 		public object SendRequest(int clientId, int responseTimeInMs, string header, object data) {
 			return SendRequest<object>(clientId,responseTimeInMs,header,  data);

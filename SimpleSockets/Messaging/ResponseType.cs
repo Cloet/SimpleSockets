@@ -1,15 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace SimpleSockets.Messaging
+﻿namespace SimpleSockets.Messaging
 {
-	public enum ResponseType
+    public enum ResponseType
 	{
 		Error=0,
 		ReqFilePathOk=1,
 		FileExists=2,
 		FileDeleted=3,
-		CustomResponse=4
+		CustomResponse=4,
+		UdpResponse=5
 	}
 }

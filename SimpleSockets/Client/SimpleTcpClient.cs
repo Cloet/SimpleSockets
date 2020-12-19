@@ -1,6 +1,4 @@
 using System;
-using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
@@ -10,10 +8,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using SimpleSockets.Client;
 using SimpleSockets.Helpers;
-using SimpleSockets.Messaging;
 using SimpleSockets.Messaging.Metadata;
 
-namespace SimpleSockets {
+namespace SimpleSockets
+{
 
     public class SimpleTcpClient : SimpleClient
     {

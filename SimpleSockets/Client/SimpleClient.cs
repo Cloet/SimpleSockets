@@ -291,7 +291,7 @@ namespace SimpleSockets.Client {
 		#region Helper-Methods
 
 		// Handles the received packets
-		protected virtual void OnMessageReceivedHandler(Packet packet)
+		protected virtual void OnMessageReceivedHandler(ISessionMetadata session, Packet packet)
 		{
 
 			Statistics?.AddReceivedMessages(1);
@@ -353,7 +353,7 @@ namespace SimpleSockets.Client {
 				if (eventHandler != null)
 					eventHandler?.Invoke(this, ev);
 				else
-					OnBytesReceived(ev);
+					OnBytesReceived(ev);	
 			} else if (packet.MessageType == PacketType.Response) {
 				var response = SerializationHelper.DeserializeJson<Response>(packet.Data);
 
@@ -363,11 +363,12 @@ namespace SimpleSockets.Client {
 			} else if (packet.MessageType == PacketType.Request)
 			{
 				var req = SerializationHelper.DeserializeJson<Request>(packet.Data);
-				OnRequestReceived(req);
+				OnRequestReceived(session, req);
 			}
+			
 		}
 
-		protected virtual void OnRequestReceived(Request request) {
+		protected virtual void OnRequestReceived(ISessionMetadata session, Request request) {
 
 			ResponseType res = ResponseType.Error;
 			string errormsg = "";
@@ -395,7 +396,12 @@ namespace SimpleSockets.Client {
 					var filename = request.Data.ToString();
 					File.Delete(Path.GetFullPath(filename));
 					res = ResponseType.FileDeleted;
-
+				} else if (request.Req == RequestType.UdpMessage) {
+					var data = (byte[]) request.Data;
+					ByteDecoder(session, data);
+					
+					// Return response to server that message was received.
+					res = ResponseType.UdpResponse;
 				} else if (request.Req == RequestType.CustomReq) {
 					object content = null;
 			
@@ -443,7 +449,7 @@ namespace SimpleSockets.Client {
 							{
 								var msg = session.DataReceiver.BuildMessageFromPayload(EncryptionPassphrase, PreSharedKey);
 								if (msg != null)
-									OnMessageReceivedHandler(msg);
+									OnMessageReceivedHandler(session, msg);
 								session.ResetDataReceiver();
 							}
 							else
@@ -482,7 +488,7 @@ namespace SimpleSockets.Client {
 
 		protected abstract Task<bool> SendToServerAsync(byte[] payload);
 
-		protected bool SendInternal(PacketType msgType, byte[] data, IDictionary<object, object> metadata, string eventKey, EncryptionMethod encryption, CompressionMethod compression, Type objType = null)
+		protected virtual bool SendInternal(PacketType msgType, byte[] data, IDictionary<object, object> metadata, string eventKey, EncryptionMethod encryption, CompressionMethod compression, Type objType = null)
 		{
 			var packet = PacketBuilder.NewPacket
 				.SetBytes(data)
@@ -498,7 +504,7 @@ namespace SimpleSockets.Client {
 			return SendPacket(packet.Build());
 		}
 
-		protected async Task<bool> SendInternalAsync(PacketType msgType, byte[] data, IDictionary<object, object> metadata, string eventKey, EncryptionMethod encryption, CompressionMethod compression, Type objType = null)
+		protected virtual async Task<bool> SendInternalAsync(PacketType msgType, byte[] data, IDictionary<object, object> metadata, string eventKey, EncryptionMethod encryption, CompressionMethod compression, Type objType = null)
 		{
 			var packet = PacketBuilder.NewPacket
 				.SetBytes(data)
@@ -529,7 +535,7 @@ namespace SimpleSockets.Client {
 		}
 
 		// Add some extra data to a packet that will be sent.
-		private Packet AddDataOntoPacket(Packet packet) {
+		protected Packet AddDataOntoPacket(Packet packet) {
 			
 			if (SocketProtocol == SocketProtocolType.Udp)
 			{
@@ -564,7 +570,7 @@ namespace SimpleSockets.Client {
 		/// </summary>
 		/// <param name="packet"></param>
 		/// <returns></returns>
-		public bool SendPacket(Packet packet) {
+		public virtual bool SendPacket(Packet packet) {
 
 			try
 			{
@@ -583,7 +589,7 @@ namespace SimpleSockets.Client {
 		/// </summary>
 		/// <param name="packet"></param>
 		/// <returns></returns>
-		public async Task<bool> SendPacketAsync(Packet packet) {
+		public virtual async Task<bool> SendPacketAsync(Packet packet) {
 			try
 			{
 				var p = AddDataOntoPacket(packet);
@@ -793,7 +799,8 @@ namespace SimpleSockets.Client {
 					var read = 0;
 					var currentPart = 0;
 					var totalLength = fileStream.Length;
-					int totalParts = (int)Math.Ceiling((double)(totalLength / bufferLength));
+					double temp = ((double)totalLength/(double)bufferLength);
+					int totalParts = (int)Math.Ceiling(temp);
 
 					while ((read = fileStream.Read(buffer, 0, buffer.Length)) > 0) {
 						currentPart++;
@@ -851,7 +858,8 @@ namespace SimpleSockets.Client {
 					var read = 0;
 					var currentPart = 0;
 					var totalLength = fileStream.Length;
-					int totalParts = (int)Math.Ceiling((double)(totalLength / bufLength));
+					double temp = ((double)totalLength/(double)bufLength);
+					int totalParts = (int)Math.Ceiling(temp);
 
 					while ((read = await fileStream.ReadAsync(buffer, 0, buffer.Length, Token)) > 0)
 					{

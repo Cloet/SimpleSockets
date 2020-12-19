@@ -1,11 +1,9 @@
 ﻿using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace SimpleSockets.Messaging
 {
-	public class Request
+    public class Request
 	{
 		/// <summary>
 		/// The guid of the request.
@@ -67,6 +65,14 @@ namespace SimpleSockets.Messaging
 			p.Req = RequestType.FileDelete;
 			p.Data = filename;
 			p.DataType = filename?.GetType();
+			return p;
+		}
+
+		internal static Request UdpMessageRequest(byte[] packet, int timeInMs) {
+			var p = new Request(timeInMs);
+			p.Req = RequestType.UdpMessage;
+			p.Data = packet;
+			p.DataType = packet?.GetType();
 			return p;
 		}
 
