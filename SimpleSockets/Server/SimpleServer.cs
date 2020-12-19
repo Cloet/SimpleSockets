@@ -345,7 +345,13 @@ namespace SimpleSockets.Server
 					File.Delete(Path.GetFullPath(filename));
 					res = ResponseType.FileDeleted;
 
-				} else if (request.Req == RequestType.CustomReq) {
+				} else if (request.Req == RequestType.UdpMessage) {
+					var data = request.Data.ToString();
+					client.ResetDataReceiver();
+					ByteDecoder(client, PacketHelper.StringToByteArray(data));
+					res = ResponseType.UdpResponse;
+				}
+				else if (request.Req == RequestType.CustomReq) {
 					object content = null;
 			
 					if (request.Data.GetType() == typeof(JObject)) {
@@ -527,7 +533,7 @@ namespace SimpleSockets.Server
 		}
 
 		// Add some extra data to a packet that will be sent.
-		private Packet AddDataOntoPacket(Packet packet)
+		protected Packet AddDataOntoPacket(Packet packet)
 		{
 			packet.PreSharedKey = PreSharedKey;
 			packet.Logger = SocketLogger;
@@ -553,7 +559,7 @@ namespace SimpleSockets.Server
 		/// </summary>
 		/// <param name="packet"></param>
 		/// <returns></returns>
-		public bool SendPacket(int clientId, Packet packet)
+		public virtual bool SendPacket(int clientId, Packet packet)
 		{
 			try
 			{
@@ -572,7 +578,7 @@ namespace SimpleSockets.Server
 		/// </summary>
 		/// <param name="packet"></param>
 		/// <returns></returns>
-		public async Task<bool> SendPacketAsync(int clientId, Packet packet)
+		public virtual async Task<bool> SendPacketAsync(int clientId, Packet packet)
 		{
 			try
 			{

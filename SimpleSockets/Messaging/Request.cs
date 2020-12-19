@@ -68,7 +68,7 @@ namespace SimpleSockets.Messaging
 			return p;
 		}
 
-		internal static Request UdpMessageRequest(byte[] packet, int timeInMs) {
+		internal static Request UdpMessageRequest(string packet, int timeInMs) {
 			var p = new Request(timeInMs);
 			p.Req = RequestType.UdpMessage;
 			p.Data = packet;

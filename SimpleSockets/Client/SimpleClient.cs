@@ -7,6 +7,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using SimpleSockets.Helpers;
 using SimpleSockets.Helpers.Compression;
@@ -397,8 +398,9 @@ namespace SimpleSockets.Client {
 					File.Delete(Path.GetFullPath(filename));
 					res = ResponseType.FileDeleted;
 				} else if (request.Req == RequestType.UdpMessage) {
-					var data = (byte[]) request.Data;
-					ByteDecoder(session, data);
+					string data = request.Data.ToString();
+					session.ResetDataReceiver();
+					ByteDecoder(session, PacketHelper.StringToByteArray(data));
 					
 					// Return response to server that message was received.
 					res = ResponseType.UdpResponse;

@@ -205,6 +205,88 @@ namespace SimpleSockets.Server {
 			}
 		}
 
+		private Response RequestUdpMessage(int clientId, int responseTimeInMs, string data) {
+			var req = Request.UdpMessageRequest(data,responseTimeInMs);
+			SendPacket(clientId, req.BuildRequestToPacket());
+			return GetResponse(req.RequestGuid, req.Expiration);
+		}
+
+        private async Task<Response> RequestUdpMessageAsync(int clientId, int responseTimeInMs, string data) {
+            var req = Request.UdpMessageRequest(data, responseTimeInMs);
+            await SendPacketAsync(clientId, req.BuildRequestToPacket());
+            return GetResponse(req.RequestGuid, req.Expiration);
+        }
+
+		/// <summary>
+		/// Send a packet build with <seealso cref="PacketBuilder"/>.
+		/// </summary>
+		/// <param name="packet"></param>
+		/// <returns></returns>
+		public override bool SendPacket(int clientId, Packet packet)
+		{
+			if (packet.MessageType == PacketType.Request || packet.MessageType == PacketType.Response)
+                return base.SendPacket(clientId, packet);
+
+            try
+            {
+                int attempt = 0, maxAttempts = 5;
+                var p = AddDataOntoPacket(packet);
+                var payload = PacketHelper.ByteArrayToString(p.BuildPayload());
+                var response = RequestUdpMessage(clientId, 20000, payload);
+
+                if (response.Resp != ResponseType.UdpResponse && attempt <= maxAttempts) {
+                    attempt++;
+                    SocketLogger?.Log($"Failed to deliver UDP message, retrying attempt {attempt} of {maxAttempts}.",LogLevel.Trace);
+                    response = RequestUdpMessage(clientId, 20000, payload);
+                } 
+                else if (response.Resp != ResponseType.UdpResponse && attempt > maxAttempts) {
+                    throw new InvalidOperationException(response.ExceptionMessage,response.Exception);
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                SocketLogger?.Log("Error sending a packet.", ex, LogLevel.Error);
+                return false;
+            }
+		}
+
+		/// <summary>
+		/// Sends a packet build with <seealso cref="PacketBuilder"/>
+		/// </summary>
+		/// <param name="packet"></param>
+		/// <returns></returns>
+		public override async Task<bool> SendPacketAsync(int clientId, Packet packet)
+		{
+            if (packet.MessageType == PacketType.Request || packet.MessageType == PacketType.Response)
+                return await base.SendPacketAsync(clientId, packet);
+
+            try
+            {
+                int attempt = 0, maxAttempts = 5;
+                var p = AddDataOntoPacket(packet);
+                var payload = PacketHelper.ByteArrayToString(p.BuildPayload());
+                var response = RequestUdpMessage(clientId,20000, payload);
+
+                if (response.Resp != ResponseType.UdpResponse && attempt <= maxAttempts) {
+                    attempt++;
+                    SocketLogger?.Log($"Failed to deliver UDP message, retrying attempt {attempt} of {maxAttempts}.",LogLevel.Trace);
+                    response = await RequestUdpMessageAsync(clientId, 20000, payload);
+                } 
+                else if (response.Resp != ResponseType.UdpResponse && attempt > maxAttempts) {
+                    throw new InvalidOperationException(response.ExceptionMessage,response.Exception);
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                SocketLogger?.Log("Error sending a packet.", ex, LogLevel.Error);
+                return false;
+            }
+		}
+
 		// Disposes of the server.
 		public override void Dispose()
 		{
