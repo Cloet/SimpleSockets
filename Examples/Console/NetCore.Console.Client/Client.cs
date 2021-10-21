@@ -32,7 +32,7 @@ namespace NetCore.Console.Client
 			var xmlSer = new XmlSerialization();
 			var binSer = new BinarySerializer();
 
-			var cert = new X509Certificate2(File.ReadAllBytes(Path.GetFullPath(@"C:\Users\" + Environment.UserName + @"\Desktop\test.pfx")), "Password");
+			//var cert = new X509Certificate2(File.ReadAllBytes(Path.GetFullPath(@"C:\Users\" + Environment.UserName + @"\Desktop\test.pfx")), "Password");
 
 			_client = new SimpleSocketTcpClient();
 			//_client = new SimpleSocketTcpSslClient(cert);
