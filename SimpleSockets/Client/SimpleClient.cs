@@ -222,6 +222,20 @@ namespace SimpleSockets.Client {
 		/// <param name="serverPort"></param>
 		public void ConnectTo(string serverIp, int serverPort) => ConnectTo(serverIp, serverPort, AutoReconnect, MaxAttempts);
 
+		public void Pause() {
+			if (Disposed)
+				throw new InvalidOperationException("Socket has already been disposed...");
+
+			try
+			{
+				ShutDown();
+
+			}
+			catch (Exception ex) {
+				SocketLogger?.Log("Error pausing the client.", ex, LogLevel.Error);
+			}
+		}
+
 		// For internal use, if the client loses connection this method should be used.
 		// If this method is called the client will try to reconnect to the server every X seconds.
 		// When ShutDown() is called by a user this is not the case.

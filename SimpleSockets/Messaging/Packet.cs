@@ -429,7 +429,7 @@ namespace SimpleSockets.Messaging
             datalength = BitConverter.ToInt64(Content, (int)index);
             _metadataBytes = new byte[datalength];
             index += 8;
-            if (datalength > 0)
+            if (datalength > 0 && (datalength <= (Content.Length - index)))
             {
                 Array.Copy(Content, index, _metadataBytes, 0, _metadataBytes.LongLength);
                 index += _metadataBytes.LongLength;
@@ -438,7 +438,7 @@ namespace SimpleSockets.Messaging
             datalength = BitConverter.ToInt32(Content, (int)index);
             index += 4;
             _internalInfoBytes = new byte[datalength];
-            if (datalength > 0)
+            if (datalength > 0 && (datalength <= (Content.Length - index)))
             {
                 Array.Copy(Content, index, _internalInfoBytes, 0, _internalInfoBytes.LongLength);
             }
